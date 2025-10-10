@@ -280,15 +280,26 @@ void URenderer::RenderLevel(UCamera* InCurrentCamera)
 		{
 			RenderingContext.Texts.push_back(Text);
 		}
-		else if (auto Decal = Cast<UDecalComponent>(Prim))
-		{
-			RenderingContext.Decals.push_back(Decal);
-		}
 		else if (!Prim->IsA(UUUIDTextComponent::StaticClass()))
 		{
 			RenderingContext.DefaultPrimitives.push_back(Prim);
 		}
 	}
+	for (AActor* Actor : CurrentLevel->GetLevelActors())
+	{
+		for (UActorComponent* Comp : Actor->GetOwnedComponents())
+		{
+			if (auto* Decal = Cast<UDecalComponent>(Comp))
+			{
+				// SceneComponent 기반 데칼도 수집
+				if (Decal->IsVisible())
+				{
+					RenderingContext.Decals.push_back(Decal);
+				}
+			}
+		}
+	}
+
 
 	for (auto RenderPass: RenderPasses)
 	{

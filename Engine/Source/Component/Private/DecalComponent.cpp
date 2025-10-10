@@ -4,7 +4,7 @@
 #include "Manager/Asset/Public/AssetManager.h"
 #include "Texture/Public/Texture.h"
 
-IMPLEMENT_CLASS(UDecalComponent, UPrimitiveComponent)
+IMPLEMENT_CLASS(UDecalComponent, USceneComponent)
 
 UDecalComponent::UDecalComponent()
 {
@@ -16,4 +16,9 @@ UDecalComponent::~UDecalComponent()
 {
     SafeDelete(BoundingBox);
     SafeDelete(DecalTexture);
+}
+
+const IBoundingVolume* UDecalComponent::GetBoundingBox()
+{
+    return BoundingBox;
 }
