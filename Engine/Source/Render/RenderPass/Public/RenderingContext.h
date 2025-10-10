@@ -15,6 +15,5 @@ struct FRenderingContext
     TArray<class UStaticMeshComponent*> StaticMeshes;
     TArray<class UBillBoardComponent*> BillBoards;
     TArray<class UTextComponent*> Texts;
-    TArray<class UDecalComponent*> Decals;
     TArray<class UPrimitiveComponent*> DefaultPrimitives;
 };

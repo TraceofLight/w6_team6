@@ -37,7 +37,6 @@ public:
 	void CreateBlendState();
 	void CreateDefaultShader();
 	void CreateTextureShader();
-	void CreateDecalShader();
 	void CreateConstantBuffers();
 
 	// Release
