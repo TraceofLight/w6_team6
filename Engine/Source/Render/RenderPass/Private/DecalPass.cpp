@@ -22,7 +22,7 @@ void FDecalPass::Execute(FRenderingContext& Context)
     if (Context.Decals.empty()) { return; }
 
     // --- Set Pipeline State ---
-    FPipelineInfo PipelineInfo = { InputLayout, VS, FRenderResourceFactory::GetRasterizerState({ ECullMode::None, EFillMode::Solid }),
+    FPipelineInfo PipelineInfo = { InputLayout, VS, FRenderResourceFactory::GetRasterizerState({ ECullMode::Back, EFillMode::Solid }),
         DS_Read, PS, BlendState };
     Pipeline->UpdatePipeline(PipelineInfo);
     Pipeline->SetConstantBuffer(1, true, ConstantBufferViewProj);

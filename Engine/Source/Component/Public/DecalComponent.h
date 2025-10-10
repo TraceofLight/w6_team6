@@ -1,30 +1,23 @@
 #pragma once
 #include "Component/Public/PrimitiveComponent.h"
-
-
 UCLASS()
 class UDecalComponent : public USceneComponent
 {
-	GENERATED_BODY()
-	DECLARE_CLASS(UDecalComponent, USceneComponent)
-
+    GENERATED_BODY()
+    DECLARE_CLASS(UDecalComponent, USceneComponent)
 public:
-	UDecalComponent();
-	~UDecalComponent();
-
-	void SetTexture(class UTexture* InTexture) { DecalTexture = InTexture; }
-	class UTexture* GetTexture() const { return DecalTexture; }
-
-	// Primitive¿¡¼­ ¾²´ø ÀÎÅÍÆäÀÌ½º ÃÖ¼Ò º¹¿ø
-	bool IsVisible() const { return bVisible; }
-	void SetVisibility(bool bVisibility) { bVisible = bVisibility; }
-
-	// DecalPass°¡ ¾²´Â ¹Ù¿îµù º¼·ı
-	const IBoundingVolume* GetBoundingBox();
+    UDecalComponent();
+    ~UDecalComponent();
+    void SetTexture(class UTexture* InTexture) { DecalTexture = InTexture; }
+    class UTexture* GetTexture() const { return DecalTexture; }
+    // Primitiveì—ì„œ ì“°ë˜ ì¸í„°í˜ì´ìŠ¤ ìµœì†Œ ë³µì›
+    bool IsVisible() const { return bVisible; }
+    void SetVisibility(bool bVisibility) { bVisible = bVisibility; }
+    // DecalPassê°€ ì“°ëŠ” ë°”ìš´ë”© ë³¼ë¥¨
+    const IBoundingVolume* GetBoundingBox();
 protected:
-	class UTexture* DecalTexture = nullptr;
-
-	// ³»ºÎ º¸À¯ (Primitive°¡ ¾Æ´Ï¹Ç·Î Á÷Á¢ °¡Áü)
-	IBoundingVolume* BoundingBox = nullptr;
-	bool bVisible = true;
+    class UTexture* DecalTexture = nullptr;
+    // ë‚´ë¶€ ë³´ìœ  (Primitiveê°€ ì•„ë‹ˆë¯€ë¡œ ì§ì ‘ ê°€ì§)
+    IBoundingVolume* BoundingBox = nullptr;
+    bool bVisible = true;
 };

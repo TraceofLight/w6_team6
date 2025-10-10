@@ -285,6 +285,7 @@ void URenderer::RenderLevel(UCamera* InCurrentCamera)
 			RenderingContext.DefaultPrimitives.push_back(Prim);
 		}
 	}
+	// TODO - 모든 액터 순회하는 거 없애야 됨.
 	for (AActor* Actor : CurrentLevel->GetLevelActors())
 	{
 		for (UActorComponent* Comp : Actor->GetOwnedComponents())
