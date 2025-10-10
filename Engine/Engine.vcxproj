@@ -329,7 +329,6 @@
     </ClInclude>
     <ClInclude Include="Source\Component\Public\ActorComponent.h" />
     <ClInclude Include="Source\Component\Public\BillBoardComponent.h" />
-    <ClInclude Include="Source\Component\Public\DecalComponent.h" />
     <ClInclude Include="Source\Component\Public\TextComponent.h" />
     <ClInclude Include="Source\Component\Public\UUIDTextComponent.h" />
     <ClInclude Include="Source\Component\Public\LineComponent.h" />
@@ -486,7 +485,6 @@
     </ClCompile>
     <ClCompile Include="Source\Component\Private\ActorComponent.cpp" />
     <ClCompile Include="Source\Component\Private\BillBoardComponent.cpp" />
-    <ClCompile Include="Source\Component\Private\DecalComponent.cpp" />
     <ClCompile Include="Source\Component\Private\TextComponent.cpp" />
     <ClCompile Include="Source\Component\Private\UUIDTextComponent.cpp" />
     <ClCompile Include="Source\Component\Private\LineComponent.cpp" />
