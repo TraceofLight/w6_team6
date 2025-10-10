@@ -1,5 +1,6 @@
-# Week5+ Team1(국동희, 박영빈, 최진혁, 홍신화) 기술문서
+# Week6 Team6 (김희준, 서명교, 신동민, 장수빈) 기술문서
 
+<!--
 ## 1. 개요
 본 문서는 Week5+의 주요 주제인 Component Pattern 아키텍처와 Play In Editor(PIE) 시스템의 구현 원리를 설명합니다.
 
@@ -164,4 +165,4 @@ UEditorEngine
 **PIE 모드:**
 - EditorWorld 복제 → PIEWorld 생성 → 게임 실행 → 종료 시 PIEWorld 삭제
 
-
+-->
