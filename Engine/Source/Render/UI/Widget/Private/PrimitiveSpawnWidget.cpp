@@ -9,6 +9,7 @@
 #include "Actor/Public/TriangleActor.h"
 #include "Actor/Public/StaticMeshActor.h"
 #include "Actor/Public/BillBoardActor.h"
+#include "Actor/Public/DecalActor.h"
 #include "Actor/Public/MovingCubeActor.h"
 #include "Actor/Public/TextActor.h"
 
@@ -143,7 +144,10 @@ void UPrimitiveSpawnWidget::SpawnActors() const
 		{
 			NewActor = GWorld->SpawnActor(ATextActor::StaticClass());
 		}
-
+		else if (SelectedPrimitiveType == EPrimitiveType::Decal)
+		{
+			NewActor = GWorld->SpawnActor(ADecalActor::StaticClass());
+		}
 		if (NewActor)
 		{
 			// 범위 내 랜덤 위치

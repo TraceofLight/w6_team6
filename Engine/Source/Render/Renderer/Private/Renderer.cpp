@@ -4,6 +4,7 @@
 #include "Component/Public/UUIDTextComponent.h"
 #include "Component/Public/PrimitiveComponent.h"
 #include "Component/Mesh/Public/StaticMeshComponent.h"
+#include "Component/Public/DecalComponent.h"
 #include "Editor/Public/Editor.h"
 #include "Editor/Public/Viewport.h"
 #include "Editor/Public/ViewportClient.h"
@@ -19,6 +20,7 @@
 #include "Render/RenderPass/Public/PrimitivePass.h"
 #include "Render/RenderPass/Public/StaticMeshPass.h"
 #include "Render/RenderPass/Public/TextPass.h"
+#include "Render/RenderPass/Public/DecalPass.h"
 
 IMPLEMENT_SINGLETON_CLASS_BASE(URenderer)
 
@@ -37,6 +39,7 @@ void URenderer::Init(HWND InWindowHandle)
 	CreateBlendState();
 	CreateDefaultShader();
 	CreateTextureShader();
+	CreateDecalShader();
 	CreateConstantBuffers();
 
 	// FontRenderer 초기화
@@ -56,6 +59,10 @@ void URenderer::Init(HWND InWindowHandle)
 	FPrimitivePass* PrimitivePass = new FPrimitivePass(Pipeline, ConstantBufferViewProj, ConstantBufferModels,
 		DefaultVertexShader, DefaultPixelShader, DefaultInputLayout, DefaultDepthStencilState);
 	RenderPasses.push_back(PrimitivePass);
+
+	FDecalPass* DecalPass = new FDecalPass(Pipeline, ConstantBufferViewProj,
+		DecalVertexShader, DecalPixelShader, DecalInputLayout, DecalDepthStencilState, AlphaBlendState);
+	RenderPasses.push_back(DecalPass);
 
 	FBillboardPass* BillboardPass = new FBillboardPass(Pipeline, ConstantBufferViewProj, ConstantBufferModels,
 		TextureVertexShader, TexturePixelShader, TextureInputLayout, DefaultDepthStencilState);
@@ -94,6 +101,14 @@ void URenderer::CreateDepthStencilState()
 	DefaultDescription.StencilEnable = FALSE;
 	GetDevice()->CreateDepthStencilState(&DefaultDescription, &DefaultDepthStencilState);
 
+	// Decal Depth Stencil (Depth Read, Stencil X)
+	D3D11_DEPTH_STENCIL_DESC DecalDescription = {};
+	DecalDescription.DepthEnable = TRUE;
+	DecalDescription.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+	DecalDescription.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+	DecalDescription.StencilEnable = FALSE;
+	GetDevice()->CreateDepthStencilState(&DecalDescription, &DecalDepthStencilState);
+
 	// Disabled Depth Stencil (Depth X, Stencil X)
 	D3D11_DEPTH_STENCIL_DESC DisabledDescription = {};
 	DisabledDescription.DepthEnable = FALSE;
@@ -128,6 +143,19 @@ void URenderer::CreateDefaultShader()
 	FRenderResourceFactory::CreateVertexShaderAndInputLayout(L"Asset/Shader/SampleShader.hlsl", DefaultLayout, &DefaultVertexShader, &DefaultInputLayout);
 	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/SampleShader.hlsl", &DefaultPixelShader);
 	Stride = sizeof(FNormalVertex);
+}
+
+void URenderer::CreateDecalShader()
+{
+	TArray<D3D11_INPUT_ELEMENT_DESC> DecalLayout =
+	{
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(FNormalVertex, Position), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(FNormalVertex, Normal), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, offsetof(FNormalVertex, Color), D3D11_INPUT_PER_VERTEX_DATA, 0	},
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, offsetof(FNormalVertex, TexCoord), D3D11_INPUT_PER_VERTEX_DATA, 0	}
+	};
+	FRenderResourceFactory::CreateVertexShaderAndInputLayout(L"Asset/Shader/DecalShader.hlsl", DecalLayout, &DecalVertexShader, &DecalInputLayout);
+	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/DecalShader.hlsl", &DecalPixelShader);
 }
 
 void URenderer::CreateTextureShader()
@@ -251,6 +279,10 @@ void URenderer::RenderLevel(UCamera* InCurrentCamera)
 		else if (auto Text = Cast<UTextComponent>(Prim); Text && !Text->IsExactly(UUUIDTextComponent::StaticClass()))
 		{
 			RenderingContext.Texts.push_back(Text);
+		}
+		else if (auto Decal = Cast<UDecalComponent>(Prim))
+		{
+			RenderingContext.Decals.push_back(Decal);
 		}
 		else if (!Prim->IsA(UUUIDTextComponent::StaticClass()))
 		{

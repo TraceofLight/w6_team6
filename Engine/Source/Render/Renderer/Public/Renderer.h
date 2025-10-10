@@ -36,6 +36,7 @@ public:
 	void CreateDepthStencilState();
 	void CreateBlendState();
 	void CreateDefaultShader();
+	void CreateDecalShader();
 	void CreateTextureShader();
 	void CreateConstantBuffers();
 
