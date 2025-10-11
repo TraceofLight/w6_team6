@@ -583,16 +583,13 @@ void UActorDetailWidget::RenderTransformEdit()
 
 	ImGui::PopID();
 
-	// 드래그가 끝났을 때만 BVH 업데이트
+	// 드래그가 끝났을 때만 BVH 업데이트 (자식 컴포넌트 포함)
 	if (bNeedsBVHUpdate)
 	{
-		if (UPrimitiveComponent* Primitive = Cast<UPrimitiveComponent>(SceneComponent))
+		ULevel* Level = GWorld->GetLevel();
+		if (Level && Level->IsSceneBVHEnabled())
 		{
-			ULevel* Level = GWorld->GetLevel();
-			if (Level && Level->IsSceneBVHEnabled())
-			{
-				Level->UpdateSceneBVHComponent(Primitive);
-			}
+			Level->UpdateSceneBVHComponent(SceneComponent);
 		}
 	}
 }

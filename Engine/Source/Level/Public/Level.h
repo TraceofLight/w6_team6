@@ -132,10 +132,10 @@ public:
 	bool IsSceneBVHEnabled() const { return bShowSceneBVH; }
 
 	/**
-	 * Scene BVH에서 특정 Component 증분 업데이트
-	 * @param InComponent: 업데이트할 Component
+	 * Scene BVH에서 특정 Component와 그 자식들 재귀적으로 업데이트
+	 * @param InComponent: 업데이트할 Component (자식 포함)
 	 */
-	void UpdateSceneBVHComponent(UPrimitiveComponent* InComponent);
+	void UpdateSceneBVHComponent(USceneComponent* InComponent);
 
 	friend class UWorld;
 public:

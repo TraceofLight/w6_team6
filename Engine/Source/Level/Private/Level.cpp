@@ -453,18 +453,30 @@ void ULevel::RenderSceneBVHDebug()
 	// }
 }
 
-void ULevel::UpdateSceneBVHComponent(UPrimitiveComponent* InComponent)
+void ULevel::UpdateSceneBVHComponent(USceneComponent* InComponent)
 {
 	if (!InComponent || !SceneBVH)
 	{
 		return;
 	}
 
-	// BVH에서 해당 Component 증분 업데이트
-	SceneBVH->UpdateComponent(InComponent);
+	// 현재 컴포넌트가 PrimitiveComponent면 BVH 업데이트
+	if (UPrimitiveComponent* Primitive = Cast<UPrimitiveComponent>(InComponent))
+	{
+		SceneBVH->UpdateComponent(Primitive);
+	}
 
-	// 시각화가 켜져있으면 디버그 정보 갱신
-	if (bShowSceneBVH)
+	// 자식 컴포넌트들도 재귀적으로 업데이트
+	for (USceneComponent* Child : InComponent->GetChildren())
+	{
+		if (Child)
+		{
+			UpdateSceneBVHComponent(Child);
+		}
+	}
+
+	// 시각화가 켜져있으면 디버그 정보 갱신 (루트 컴포넌트일 때만)
+	if (bShowSceneBVH && InComponent->GetParentAttachment() == nullptr)
 	{
 		SceneBVH->GetDebugDrawInfo(CachedDebugBoxes, CachedDebugColors, BVHDebugMaxDepth);
 	}

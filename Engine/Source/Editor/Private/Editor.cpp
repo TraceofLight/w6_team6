@@ -400,15 +400,15 @@ void UEditor::ProcessMouseInput()
 	}
 	if (InputManager.IsKeyReleased(EKeyInput::MouseLeft))
 	{
-		// 기즈모 드래그가 끝났을 때 BVH 업데이트 (전체 재구축 대신 증분 업데이트)
+		// 기즈모 드래그가 끝났을 때 BVH 업데이트 (자식 컴포넌트 포함)
 		if (Gizmo.IsDragging() && Gizmo.GetSelectedComponent())
 		{
-			if (UPrimitiveComponent* Primitive = Cast<UPrimitiveComponent>(Gizmo.GetSelectedComponent()))
+			if (USceneComponent* SceneComp = Cast<USceneComponent>(Gizmo.GetSelectedComponent()))
 			{
 				ULevel* Level = GWorld->GetLevel();
 				if (Level && Level->IsSceneBVHEnabled())
 				{
-					Level->UpdateSceneBVHComponent(Primitive);
+					Level->UpdateSceneBVHComponent(SceneComp);
 				}
 			}
 		}
