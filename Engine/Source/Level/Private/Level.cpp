@@ -452,3 +452,20 @@ void ULevel::RenderSceneBVHDebug()
 	//     DrawDebugBox(CachedDebugBoxes[i], CachedDebugColors[i]);
 	// }
 }
+
+void ULevel::UpdateSceneBVHComponent(UPrimitiveComponent* InComponent)
+{
+	if (!InComponent || !SceneBVH)
+	{
+		return;
+	}
+
+	// BVH에서 해당 Component 증분 업데이트
+	SceneBVH->UpdateComponent(InComponent);
+
+	// 시각화가 켜져있으면 디버그 정보 갱신
+	if (bShowSceneBVH)
+	{
+		SceneBVH->GetDebugDrawInfo(CachedDebugBoxes, CachedDebugColors, BVHDebugMaxDepth);
+	}
+}

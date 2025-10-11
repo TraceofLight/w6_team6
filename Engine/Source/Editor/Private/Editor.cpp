@@ -400,6 +400,19 @@ void UEditor::ProcessMouseInput()
 	}
 	if (InputManager.IsKeyReleased(EKeyInput::MouseLeft))
 	{
+		// 기즈모 드래그가 끝났을 때 BVH 업데이트 (전체 재구축 대신 증분 업데이트)
+		if (Gizmo.IsDragging() && Gizmo.GetSelectedComponent())
+		{
+			if (UPrimitiveComponent* Primitive = Cast<UPrimitiveComponent>(Gizmo.GetSelectedComponent()))
+			{
+				ULevel* Level = GWorld->GetLevel();
+				if (Level && Level->IsSceneBVHEnabled())
+				{
+					Level->UpdateSceneBVHComponent(Primitive);
+				}
+			}
+		}
+
 		Gizmo.EndDrag();
 		// 드래그가 끝나면 선택된 뷰포트를 비활성화 합니다.
 		InteractionViewport = nullptr;

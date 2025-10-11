@@ -83,6 +83,20 @@ public:
 	bool QueryOverlappingComponents(const struct FOBB& OBB, TArray<UPrimitiveComponent*>& OutComponents) const;
 
 	/**
+	* @brief: 특정 Component의 Transform이 변경되었을 때 BVH에서 해당 노드 업데이트
+	* @param InComponent: 업데이트할 Component
+	* @return: 업데이트 성공 여부
+	*/
+	bool UpdateComponent(UPrimitiveComponent* InComponent);
+
+	/**
+	* @brief: 특정 Component를 BVH에서 제거
+	* @param InComponent: 제거할 Component
+	* @return: 제거 성공 여부
+	*/
+	bool RemoveComponent(UPrimitiveComponent* InComponent);
+
+	/**
 	* @brief: 새 리프 노드를 특정 노드의 형제로 추가했을 때 전체 업데이트 트리의 비용 증가량 계산
 	* @param CandidateIndex: 후보 형제 노드 인덱스
 	* @param NewLeafAABB: 새로운 리프 노드의 AABB
@@ -98,6 +112,19 @@ private:
 	*/
 	int32 InsertLeaf(UPrimitiveComponent* InComponent);
 
+	/**
+	* @brief 특정 leaf node를 BVH에서 제거.
+	* @param LeafIndex: 제거할 leaf node의 인덱스
+	*/
+	void RemoveLeaf(int32 LeafIndex);
+
+	/**
+	* @brief Component로부터 해당하는 leaf node 인덱스 찾기
+	* @param InComponent: 찾을 Component
+	* @return leaf node 인덱스, 못 찾으면 -1 반환
+	*/
+	int32 FindLeafNode(UPrimitiveComponent* InComponent) const;
+
 	// --- 새 leaf node 삽입 과정 보조 메소드들 ---
 
 	//@brief 새로운 leaf node가 추가되었을 때 cost가 가장 조금 증가하는 sibling node 탐색.
@@ -110,4 +137,7 @@ private:
 	TArray<FSceneNode> Nodes;
 	int32 RootIndex = -1;
 	float Cost = 0.0f;
+
+	// Component -> Node Index 매핑 (O(1) 검색을 위함)
+	TMap<UPrimitiveComponent*, int32> ComponentToNodeMap;
 };

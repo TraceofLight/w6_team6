@@ -20,6 +20,7 @@ void FSceneBVH::Clear()
 	Nodes.clear();
 	RootIndex = -1;
 	Cost = 0.0f;
+	ComponentToNodeMap.clear();
 }
 
 int32 FSceneBVH::InsertLeaf(UPrimitiveComponent* InComponent)
@@ -51,6 +52,7 @@ int32 FSceneBVH::InsertLeaf(UPrimitiveComponent* InComponent)
 		Nodes.push_back(NewNode);
 		RootIndex = 0;
 		Cost = GetCost(RootIndex);
+		ComponentToNodeMap[InComponent] = 0;
 		return 0;
 	}
 
@@ -63,6 +65,9 @@ int32 FSceneBVH::InsertLeaf(UPrimitiveComponent* InComponent)
 
 	// 5. 새 node가 추가되었으므로 부모 거슬러올라가며 AABB 리피팅
 	RefitAncestors(Nodes[SiblingIndex].ParentIndex);
+
+	// 6. 해시맵에 등록
+	ComponentToNodeMap[InComponent] = NewNode.ObjectIndex;
 
 	return NewNode.ObjectIndex;
 }
@@ -548,4 +553,134 @@ void FSceneBVH::GetDebugDrawInfo(TArray<FAABB>& OutBoxes, TArray<FVector4>& OutC
 			}
 		}
 	}
+}
+
+int32 FSceneBVH::FindLeafNode(UPrimitiveComponent* InComponent) const
+{
+	if (!InComponent)
+	{
+		return -1;
+	}
+
+	// 해시맵에서 O(1)로 검색
+	auto It = ComponentToNodeMap.find(InComponent);
+	if (It != ComponentToNodeMap.end())
+	{
+		return It->second;
+	}
+
+	return -1;
+}
+
+void FSceneBVH::RemoveLeaf(int32 LeafIndex)
+{
+	if (LeafIndex < 0 || LeafIndex >= static_cast<int32>(Nodes.size()))
+	{
+		return;
+	}
+
+	FSceneNode& Leaf = Nodes[LeafIndex];
+	if (!Leaf.bIsLeaf)
+	{
+		return; // 리프가 아니면 제거 불가
+	}
+
+	// 해시맵에서 제거
+	if (Leaf.Component)
+	{
+		ComponentToNodeMap.erase(Leaf.Component);
+	}
+
+	// 트리에 노드가 하나만 있는 경우 (루트 = 리프)
+	if (LeafIndex == RootIndex)
+	{
+		Clear();
+		return;
+	}
+
+	int32 ParentIndex = Leaf.ParentIndex;
+	if (ParentIndex < 0 || ParentIndex >= static_cast<int32>(Nodes.size()))
+	{
+		return;
+	}
+
+	FSceneNode& Parent = Nodes[ParentIndex];
+	int32 SiblingIndex = (Parent.Child1 == LeafIndex) ? Parent.Child2 : Parent.Child1;
+	int32 GrandParentIndex = Parent.ParentIndex;
+
+	// 형제 노드를 할아버지 노드에 연결
+	if (GrandParentIndex != -1)
+	{
+		FSceneNode& GrandParent = Nodes[GrandParentIndex];
+		if (GrandParent.Child1 == ParentIndex)
+		{
+			GrandParent.Child1 = SiblingIndex;
+		}
+		else
+		{
+			GrandParent.Child2 = SiblingIndex;
+		}
+		Nodes[SiblingIndex].ParentIndex = GrandParentIndex;
+
+		// 할아버지부터 루트까지 AABB 리피팅
+		RefitAncestors(SiblingIndex);
+	}
+	else
+	{
+		// 부모가 루트였던 경우, 형제가 새 루트가 됨
+		RootIndex = SiblingIndex;
+		Nodes[SiblingIndex].ParentIndex = -1;
+	}
+
+	// 제거된 노드를 무효화 (실제로는 배열에서 제거하지 않고 Component를 null로 설정)
+	Leaf.Component = nullptr;
+	Leaf.bIsLeaf = false;
+	Parent.Component = nullptr;
+	Parent.bIsLeaf = false;
+	Parent.Child1 = -1;
+	Parent.Child2 = -1;
+
+	Cost = GetCost(RootIndex);
+}
+
+bool FSceneBVH::UpdateComponent(UPrimitiveComponent* InComponent)
+{
+	if (!InComponent)
+	{
+		return false;
+	}
+
+	// 1. 기존 노드 찾기
+	int32 LeafIndex = FindLeafNode(InComponent);
+	if (LeafIndex == -1)
+	{
+		// 노드가 없으면 새로 삽입
+		InsertLeaf(InComponent);
+		return true;
+	}
+
+	// 2. 기존 노드 제거
+	RemoveLeaf(LeafIndex);
+
+	// 3. 새 위치에 다시 삽입
+	InsertLeaf(InComponent);
+
+	return true;
+}
+
+bool FSceneBVH::RemoveComponent(UPrimitiveComponent* InComponent)
+{
+	if (!InComponent)
+	{
+		return false;
+	}
+
+	int32 LeafIndex = FindLeafNode(InComponent);
+	if (LeafIndex == -1)
+	{
+		return false;
+	}
+
+	RemoveLeaf(LeafIndex);
+	return true;
 }

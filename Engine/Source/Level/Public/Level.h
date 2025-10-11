@@ -126,6 +126,17 @@ public:
 	const TArray<FAABB>& GetCachedDebugBoxes() const { return CachedDebugBoxes; }
 	const TArray<FVector4>& GetCachedDebugColors() const { return CachedDebugColors; }
 
+	/**
+	 * Scene BVH 활성화 여부 확인
+	 */
+	bool IsSceneBVHEnabled() const { return bShowSceneBVH; }
+
+	/**
+	 * Scene BVH에서 특정 Component 증분 업데이트
+	 * @param InComponent: 업데이트할 Component
+	 */
+	void UpdateSceneBVHComponent(UPrimitiveComponent* InComponent);
+
 	friend class UWorld;
 public:
 	virtual UObject* Duplicate() override;

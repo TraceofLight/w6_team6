@@ -546,10 +546,17 @@ void UActorDetailWidget::RenderTransformEdit()
 	// 컴포넌트 포인터를 PushID로 사용해서 내부 ID 고유화
 	ImGui::PushID(SceneComponent);
 
+	bool bNeedsBVHUpdate = false;
+
 	FVector ComponentPosition = SceneComponent->GetRelativeLocation();
 	if (ImGui::DragFloat3("Position", &ComponentPosition.X, 0.1f))
 	{
 		SceneComponent->SetRelativeLocation(ComponentPosition);
+	}
+	// 드래그가 끝났는지 확인
+	if (ImGui::IsItemDeactivatedAfterEdit())
+	{
+		bNeedsBVHUpdate = true;
 	}
 
 	FVector ComponentRotation = SceneComponent->GetRelativeRotation();
@@ -557,14 +564,37 @@ void UActorDetailWidget::RenderTransformEdit()
 	{
 		SceneComponent->SetRelativeRotation(ComponentRotation);
 	}
+	// 드래그가 끝났는지 확인
+	if (ImGui::IsItemDeactivatedAfterEdit())
+	{
+		bNeedsBVHUpdate = true;
+	}
 
 	FVector ComponentScale = SceneComponent->GetRelativeScale3D();
 	if (ImGui::DragFloat3("Scale", &ComponentScale.X, 0.1f))
 	{
 		SceneComponent->SetRelativeScale3D(ComponentScale);
 	}
+	// 드래그가 끝났는지 확인
+	if (ImGui::IsItemDeactivatedAfterEdit())
+	{
+		bNeedsBVHUpdate = true;
+	}
 
 	ImGui::PopID();
+
+	// 드래그가 끝났을 때만 BVH 업데이트
+	if (bNeedsBVHUpdate)
+	{
+		if (UPrimitiveComponent* Primitive = Cast<UPrimitiveComponent>(SceneComponent))
+		{
+			ULevel* Level = GWorld->GetLevel();
+			if (Level && Level->IsSceneBVHEnabled())
+			{
+				Level->UpdateSceneBVHComponent(Primitive);
+			}
+		}
+	}
 }
 
 void UActorDetailWidget::SwapComponents(UActorComponent* A, UActorComponent* B)
