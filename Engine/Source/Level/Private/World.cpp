@@ -73,7 +73,7 @@ void UWorld::Tick(float DeltaTimes)
 
 	if (WorldType == EWorldType::Editor )
 	{
-		for (AActor* Actor : Level->GetLevelActors())
+		for (AActor* Actor : Level->GetActors())
 		{
 			if(Actor->CanTickInEditor() && Actor->CanTick())
 			{
@@ -84,7 +84,7 @@ void UWorld::Tick(float DeltaTimes)
 
 	if (WorldType == EWorldType::Game || WorldType == EWorldType::PIE)
 	{
-		for (AActor* Actor : Level->GetLevelActors())
+		for (AActor* Actor : Level->GetActors())
 		{
 			if(Actor->CanTick())
 			{

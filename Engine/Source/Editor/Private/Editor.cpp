@@ -480,7 +480,7 @@ void UEditor::ProcessMouseInput()
 TArray<UPrimitiveComponent*> UEditor::FindCandidatePrimitives(ULevel* InLevel)
 {
 	TArray<UPrimitiveComponent*> Candidate;
-	for (AActor* Actor : InLevel->GetLevelActors())
+	for (AActor* Actor : InLevel->GetActors())
 	{
 		for (auto& ActorComponent : Actor->GetOwnedComponents())
 		{

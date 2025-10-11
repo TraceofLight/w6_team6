@@ -28,11 +28,11 @@ ULevel::ULevel(const FName& InName)
 ULevel::~ULevel()
 {
 	// LevelActors 배열에 남아있는 모든 액터의 메모리를 해제합니다.
-	for (const auto& Actor : LevelActors)
+	for (const auto& Actor : Actors)
 	{
 		DestroyActor(Actor);
 	}
-	LevelActors.clear();
+	Actors.clear();
 
 	// 모든 액터 객체가 삭제되었으므로, 포인터를 담고 있던 컨테이너들을 비웁니다.
 	SafeDelete(StaticOctree);
@@ -85,7 +85,7 @@ void ULevel::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 		InOutHandle["PerspectiveCamera"] = UConfigManager::GetInstance().GetCameraSettingsAsJson();
 
 		JSON ActorsJson = json::Object();
-		for (AActor* Actor : LevelActors)
+		for (AActor* Actor : Actors)
 		{
 			JSON ActorJson;
 			ActorJson["Type"] = FActorTypeMapper::ActorToType(Actor->GetClass());
@@ -116,7 +116,7 @@ AActor* ULevel::SpawnActorToLevel(UClass* InActorClass, const FName& InName, JSO
 		{
 			NewActor->SetName(InName);
 		}
-		LevelActors.push_back(NewActor);
+		Actors.push_back(NewActor);
 		if (ActorJsonData != nullptr)
 		{
 			NewActor->Serialize(true, *ActorJsonData);
@@ -126,7 +126,7 @@ AActor* ULevel::SpawnActorToLevel(UClass* InActorClass, const FName& InName, JSO
 			NewActor->InitializeComponents();
 		}
 		NewActor->BeginPlay();
-		AddLevelPrimitiveComponent(NewActor);
+		AddPrimitiveComponent(NewActor);
 		return NewActor;
 	}
 
@@ -172,7 +172,7 @@ void ULevel::UnregisterPrimitiveComponent(UPrimitiveComponent* InComponent)
 	}
 }
 
-void ULevel::AddLevelPrimitiveComponent(AActor* Actor)
+void ULevel::AddPrimitiveComponent(AActor* Actor)
 {
 	if (!Actor) return;
 
@@ -213,10 +213,10 @@ bool ULevel::DestroyActor(AActor* InActor)
 	}
 
 	// LevelActors 리스트에서 제거
-	if (auto It = std::find(LevelActors.begin(), LevelActors.end(), InActor); It != LevelActors.end())
+	if (auto It = std::find(Actors.begin(), Actors.end(), InActor); It != Actors.end())
 	{
-		*It = std::move(LevelActors.back());
-		LevelActors.pop_back();
+		*It = std::move(Actors.back());
+		Actors.pop_back();
 	}
 
 	// Remove Actor Selection
@@ -265,10 +265,10 @@ void ULevel::DuplicateSubObjects(UObject* DuplicatedObject)
 	Super::DuplicateSubObjects(DuplicatedObject);
 	ULevel* DuplicatedLevel = Cast<ULevel>(DuplicatedObject);
 
-	for (AActor* Actor : LevelActors)
+	for (AActor* Actor : Actors)
 	{
 		AActor* DuplicatedActor = Cast<AActor>(Actor->Duplicate());
-		DuplicatedLevel->LevelActors.push_back(DuplicatedActor);
-		DuplicatedLevel->AddLevelPrimitiveComponent(DuplicatedActor);
+		DuplicatedLevel->Actors.push_back(DuplicatedActor);
+		DuplicatedLevel->AddPrimitiveComponent(DuplicatedActor);
 	}
 }

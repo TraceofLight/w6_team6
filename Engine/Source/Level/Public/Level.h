@@ -26,9 +26,9 @@ public:
 
 	void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
 
-	const TArray<AActor*>& GetLevelActors() const { return LevelActors; }
+	const TArray<AActor*>& GetActors() const { return Actors; }
 
-	void AddLevelPrimitiveComponent(AActor* Actor);
+	void AddPrimitiveComponent(AActor* Actor);
 
 	void RegisterPrimitiveComponent(UPrimitiveComponent* InComponent);
 	void UnregisterPrimitiveComponent(UPrimitiveComponent* InComponent);
@@ -52,7 +52,7 @@ protected:
 private:
 	AActor* SpawnActorToLevel(UClass* InActorClass, const FName& InName = FName::GetNone(), JSON* ActorJsonData = nullptr);
 
-	TArray<AActor*> LevelActors;	// 레벨이 보유하고 있는 모든 Actor를 배열로 저장합니다.
+	TArray<AActor*> Actors;	// 레벨이 보유하고 있는 모든 Actor를 배열로 저장합니다.
 	FOctree* StaticOctree = nullptr;
 	TArray<UPrimitiveComponent*> DynamicPrimitives;
 
