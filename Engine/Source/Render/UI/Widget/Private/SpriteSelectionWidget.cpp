@@ -23,7 +23,7 @@ void USpriteSelectionWidget::Initialize()
 
 void USpriteSelectionWidget::Update()
 {
-	// �� ������ Level�� ���õ� Actor�� Ȯ���ؼ� ���� �ݿ�
+	// 현재 Level의 선택된 Actor를 확인하여 위젯 상태를 업데이트
 	ULevel* CurrentLevel = GWorld->GetLevel();
 
 	if (CurrentLevel)
@@ -46,7 +46,7 @@ void USpriteSelectionWidget::Update()
 
 void USpriteSelectionWidget::RenderWidget()
 {
-	if (!SelectedActor)
+	if (!SelectedActor || !SelectedBillBoard)
 		return;
 	
 	ImGui::Separator();
@@ -54,55 +54,94 @@ void USpriteSelectionWidget::RenderWidget()
 
 	ImGui::Spacing();
 		
-	static int current_item = 0; // ���� ���õ� �ε���
+	static int CurrentIndex = 0;
 
-	// ���� ���ڿ� ���
-	TArray<FString> items;
-	const TMap<FName, ID3D11ShaderResourceView*>& TextureCache = \
+	// 1) TextureCache에서 (이름, 표시용 문자열) 수집
+	struct FSpriteItem
+	{
+		FName   Name;
+		FString Label;
+	};
+	TArray<FSpriteItem> SpriteItems;
+	SpriteItems.reserve(UAssetManager::GetInstance().GetTextureCache().size());
+
+	const TMap<FName, ID3D11ShaderResourceView*>& TextureCache =
 		UAssetManager::GetInstance().GetTextureCache();
 
-	int i = 0;
-	for (auto Itr = TextureCache.begin(); Itr != TextureCache.end(); Itr++, i++)
+	for (auto It = TextureCache.begin(); It != TextureCache.end(); ++It)
 	{
-		if (Itr->first == SelectedBillBoard->GetSprite().first)
-			current_item = i;
-
-		items.push_back(Itr->first.ToString());
+		const FName Name = It->first;
+		SpriteItems.push_back({ Name, Name.ToString() });
 	}
 
-	sort(items.begin(), items.end());
-	
-	if (ImGui::BeginCombo("Sprite", items[current_item].c_str())) // Label�� ���� �� ǥ��
+	// 비어 있으면 안전 탈출
+	if (SpriteItems.empty())
 	{
-		for (int n = 0; n < items.size(); n++)
-		{
-			bool is_selected = (current_item == n);
-			if (ImGui::Selectable(items[n].c_str(), is_selected))
-			{
-				current_item = n;
-				SetSpriteOfActor(items[current_item]);
-			}
+		ImGui::TextUnformatted("No sprite found.");
+		ImGui::Separator();
+		WidgetNum = (WidgetNum + 1) % std::numeric_limits<uint32>::max();
+		return;
+	}
 
-			if (is_selected)
-				ImGui::SetItemDefaultFocus(); // �⺻ ��Ŀ��
+	// 2) 표시 문자열 기준 정렬
+	std::sort(SpriteItems.begin(), SpriteItems.end(),
+		[](const FSpriteItem& A, const FSpriteItem& B)
+		{
+			return A.Label < B.Label;
+		});
+
+	// 3) 정렬 이후 '현재 선택된 스프라이트'의 인덱스를 다시 찾아 반영
+	{
+		const FName SelectedName = SelectedBillBoard->GetSprite().first; // FName 가정
+		int Found = 0;
+		for (int i = 0; i < static_cast<int>(SpriteItems.size()); ++i)
+		{
+			if (SpriteItems[i].Name == SelectedName)
+			{
+				Found = i;
+				break;
+			}
+		}
+		CurrentIndex = Found;
+	}
+
+	// 4) 드롭다운 렌더
+	const FString& CurrentLabel = SpriteItems[CurrentIndex].Label;
+	if (ImGui::BeginCombo("Sprite", CurrentLabel.c_str()))
+	{
+		for (int i = 0; i < static_cast<int>(SpriteItems.size()); ++i)
+		{
+			const bool bIsSelected = (CurrentIndex == i);
+			if (ImGui::Selectable(SpriteItems[i].Label.c_str(), bIsSelected))
+			{
+				CurrentIndex = i;
+				SetSpriteOfActor(SpriteItems[CurrentIndex].Name); // ← FName으로 적용
+			}
+			if (bIsSelected)
+			{
+				ImGui::SetItemDefaultFocus();
+			}
 		}
 		ImGui::EndCombo();
 	}
 
 	ImGui::Separator();
-
 	WidgetNum = (WidgetNum + 1) % std::numeric_limits<uint32>::max();
 }
 
-void USpriteSelectionWidget::SetSpriteOfActor(FString NewSprite)
+void USpriteSelectionWidget::SetSpriteOfActor(FName NewSprite)
 {
-	if (!SelectedActor)
+	if (!SelectedActor || !SelectedBillBoard)
+	{
 		return;
-	if (!SelectedBillBoard)
-		return;
+	}
 
-	const TMap<FName, ID3D11ShaderResourceView*>& TextureCache = \
+	const TMap<FName, ID3D11ShaderResourceView*>& TextureCache =
 		UAssetManager::GetInstance().GetTextureCache();
 
-	SelectedBillBoard->SetSprite(*TextureCache.find(NewSprite));
+	auto It = TextureCache.find(NewSprite);
+	if (It != TextureCache.end())
+	{
+		SelectedBillBoard->SetSprite(*It); // (FName, SRV*)의 pair* 라고 가정한 기존 코드 스타일 준수
+	}
 }

@@ -32,6 +32,15 @@ private:
 	UActorComponent*  SelectedComponent = nullptr;
 	AActor* CachedSelectedActor = nullptr;
 
+	// 추가: 선택된 컴포넌트 UI 위젯 캐싱
+	UActorComponent* CachedSelectedComponent = nullptr;
+	UWidget* SelectedPropertyWidget = nullptr;
+	UClass* SelectedPropertyWidgetClass = nullptr;
+
+	// 추가: 선택된 컴포넌트 UI 위젯 생성/교체
+	void EnsureSelectedPropertyWidget();
+
+
 	// Helper functions
 	void RenderActorHeader(AActor* InSelectedActor);
 	void RenderComponentTree(AActor* InSelectedActor);

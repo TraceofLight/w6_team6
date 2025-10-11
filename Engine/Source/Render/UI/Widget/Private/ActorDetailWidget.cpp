@@ -72,6 +72,34 @@ void UActorDetailWidget::RenderWidget()
 
 	// 선택된 컴포넌트의 트랜스폼 정보 렌더링
 	RenderTransformEdit();
+	// 선택된 컴포넌트의 속성 UI
+	EnsureSelectedPropertyWidget();
+	if (SelectedPropertyWidget)
+	{
+		// 선택된 컴포넌트의 전용 위젯 렌더
+		SelectedPropertyWidget->Update();
+		SelectedPropertyWidget->RenderWidget();
+	}
+}
+
+void UActorDetailWidget::EnsureSelectedPropertyWidget()
+{
+	UActorComponent* Current = GEditor->GetEditorModule()->GetSelectedComponent();
+	if (Current != CachedSelectedComponent)
+	{
+		CachedSelectedComponent = Current;
+		SelectedPropertyWidget = nullptr;
+		SelectedPropertyWidgetClass = nullptr;
+
+		if (Current)
+		{
+			if (UClass* WidgetClass = Current->GetSpecificWidgetClass())
+			{
+				SelectedPropertyWidgetClass = WidgetClass;
+				SelectedPropertyWidget = Cast<UWidget>(NewObject(WidgetClass));
+			}
+		}
+	}
 }
 
 void UActorDetailWidget::RenderActorHeader(AActor* InSelectedActor)

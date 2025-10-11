@@ -20,7 +20,7 @@ public:
 	~USpriteSelectionWidget() override;
 
 private:
-	void SetSpriteOfActor(FString NewSprite);
+	void SetSpriteOfActor(FName NewSprite);
 
 	AActor* SelectedActor = nullptr;
 	UBillBoardComponent* SelectedBillBoard = nullptr;
