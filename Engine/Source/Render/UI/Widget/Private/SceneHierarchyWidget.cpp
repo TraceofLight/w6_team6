@@ -10,6 +10,7 @@
 #include "Editor/Public/ViewportClient.h"
 #include "Editor/Public/Viewport.h"
 #include "Global/Quaternion.h"
+#include "Manager/Input/Public/InputManager.h"
 
 USceneHierarchyWidget::USceneHierarchyWidget()
 	: UWidget("Scene Hierarchy Widget")
@@ -123,6 +124,24 @@ void USceneHierarchyWidget::RenderWidget()
 		}
 	}
 	ImGui::EndChild();
+
+	if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows)
+		&& !ImGui::GetIO().WantTextInput && !ImGui::IsAnyItemActive()) {
+
+		auto& Input = UInputManager::GetInstance();
+		static bool sDeleteHeld = false;
+		bool down = Input.IsKeyDown(EKeyInput::Delete);
+
+		if (down && !sDeleteHeld) {
+			sDeleteHeld = true;
+			if (AActor* sel = GEditor->GetEditorModule()->GetSelectedActor()) {
+				GWorld->DestroyActor(sel);
+			}
+		}
+		else if (!down) {
+			sDeleteHeld = false;
+		}
+	}
 }
 
 /**
