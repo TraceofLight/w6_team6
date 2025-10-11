@@ -29,4 +29,6 @@ struct FAABB : public IBoundingVolume
 
 bool CheckIntersectionRayBox(const FRay& Ray, const FAABB& Box);
 
+bool CheckIntersectionOBBAABB(const struct FOBB& OBB, const FAABB& AABB);
+
 FAABB Union(const FAABB& Box1, const FAABB& Box2);

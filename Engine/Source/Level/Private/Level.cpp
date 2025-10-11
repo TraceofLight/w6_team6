@@ -11,6 +11,7 @@
 #include "Utility/Public/JsonSerializer.h"
 #include "Utility/Public/ActorTypeMapper.h"
 #include "Global/Octree.h"
+#include "Global/SceneBVH.h"
 #include <json.hpp>
 
 IMPLEMENT_CLASS(ULevel, UObject)
@@ -37,6 +38,7 @@ ULevel::~ULevel()
 
 	// 모든 액터 객체가 삭제되었으므로, 포인터를 담고 있던 컨테이너들을 비웁니다.
 	SafeDelete(StaticOctree);
+	SafeDelete(SceneBVH);
 	DynamicPrimitives.clear();
 }
 
@@ -101,6 +103,13 @@ void ULevel::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 void ULevel::Init()
 {
 	// TEST CODE
+
+	// SceneBVH 테스트: 자동으로 BVH 구축 및 시각화
+	if (!DynamicPrimitives.empty())
+	{
+		BuildSceneBVH();
+		ToggleSceneBVHVisualization(true, -1); // 모든 레벨 표시
+	}
 }
 
 AActor* ULevel::SpawnActorToLevel(UClass* InActorClass, const FName& InName, JSON* ActorJsonData)
@@ -186,6 +195,12 @@ void ULevel::AddPrimitiveComponent(AActor* Actor)
 		{
 			DynamicPrimitives.push_back(PrimitiveComponent);
 		}
+	}
+
+	// SceneBVH 테스트: Dynamic Primitive가 추가되면 BVH 재구축
+	if (!DynamicPrimitives.empty() && bShowSceneBVH)
+	{
+		BuildSceneBVH();
 	}
 }
 
@@ -378,4 +393,62 @@ void ULevel::MarkDecalIndexClean()
 {
 	DirtyDecals.clear();
 	bDecalsDirty = false;
+}
+
+// ========================================
+// Scene BVH Implementation
+// ========================================
+
+void ULevel::BuildSceneBVH()
+{
+	// 기존 BVH 제거
+	if (SceneBVH)
+	{
+		SafeDelete(SceneBVH);
+	}
+
+	// 새 BVH 생성 및 구축
+	SceneBVH = new FSceneBVH();
+	SceneBVH->Build(DynamicPrimitives);
+
+	UE_LOG("Level: Scene BVH built with %d nodes", SceneBVH->GetNodeCount());
+}
+
+void ULevel::ToggleSceneBVHVisualization(bool bShow, int32 MaxDepth)
+{
+	bShowSceneBVH = bShow;
+	BVHDebugMaxDepth = MaxDepth;
+
+	// BVH가 없으면 생성
+	if (bShow && !SceneBVH)
+	{
+		BuildSceneBVH();
+	}
+
+	UE_LOG("Level: Scene BVH visualization %s (MaxDepth: %d)",
+		bShow ? "enabled" : "disabled", MaxDepth);
+}
+
+void ULevel::RenderSceneBVHDebug()
+{
+	// 시각화가 꺼져있거나 BVH가 없으면 캐시 클리어
+	if (!bShowSceneBVH || !SceneBVH)
+	{
+		CachedDebugBoxes.clear();
+		CachedDebugColors.clear();
+		return;
+	}
+
+	// 디버그 정보 가져와서 캐싱
+	SceneBVH->GetDebugDrawInfo(CachedDebugBoxes, CachedDebugColors, BVHDebugMaxDepth);
+
+	// 실제 렌더링은 여기서 하지 않고, 렌더러나 Editor에서
+	// GetCachedDebugBoxes()를 통해 데이터를 가져가서 그리도록 함
+
+	// TODO: 실제 라인 렌더링은 BatchLines나 별도의 DebugDrawer를 통해 수행
+	// 예시:
+	// for (int32 i = 0; i < CachedDebugBoxes.size(); ++i)
+	// {
+	//     DrawDebugBox(CachedDebugBoxes[i], CachedDebugColors[i]);
+	// }
 }

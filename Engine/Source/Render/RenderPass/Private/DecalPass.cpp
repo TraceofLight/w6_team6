@@ -81,6 +81,7 @@ void FDecalPass::Execute(FRenderingContext& Context)
                 Pipeline->SetSamplerState(0, false, Proxy->GetSampler());
             }
         }
+        // TODO: BVH를 이용해서 후보자를 줄여야 함
         // 1) 기존 기본 프리미티브
         for (UPrimitiveComponent* Prim : Context.DefaultPrimitives)
         {

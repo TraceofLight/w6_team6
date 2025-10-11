@@ -350,6 +350,7 @@
     <ClInclude Include="Source\Editor\Public\ViewportClient.h" />
     <ClInclude Include="Source\Editor\Public\Viewport.h" />
     <ClInclude Include="Source\Global\BVH.h" />
+    <ClInclude Include="Source\Global\SceneBVH.h" />
     <ClInclude Include="Source\Global\Octree.h" />
     <ClInclude Include="Source\Global\Quaternion.h" />
     <ClInclude Include="Source\Level\Public\World.h" />
@@ -430,6 +431,7 @@
     <ClInclude Include="Source\Render\UI\Widget\Public\InputInformationWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\MainBarWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\PrimitiveSpawnWidget.h" />
+    <ClInclude Include="Source\Render\UI\Widget\Public\SceneBVHDebugWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\SceneHierarchyWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\SceneIOWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\SetTextComponentWidget.h" />
@@ -508,6 +510,7 @@
     <ClCompile Include="Source\Editor\Private\ViewportClient.cpp" />
     <ClCompile Include="Source\Editor\Private\Viewport.cpp" />
     <ClCompile Include="Source\Global\BVH.cpp" />
+    <ClCompile Include="Source\Global\SceneBVH.cpp" />
     <ClCompile Include="Source\Global\Octree.cpp" />
     <ClCompile Include="Source\Global\Quaternion.cpp" />
     <ClCompile Include="Source\Level\Private\World.cpp" />
@@ -575,6 +578,7 @@
     <ClCompile Include="Source\Render\UI\Widget\Private\InputInformationWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\MainBarWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\PrimitiveSpawnWidget.cpp" />
+    <ClCompile Include="Source\Render\UI\Widget\Private\SceneBVHDebugWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\SceneHierarchyWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\SceneIOWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\SetTextComponentWidget.cpp" />

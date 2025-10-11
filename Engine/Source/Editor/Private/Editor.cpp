@@ -19,7 +19,10 @@
 #include "Utility/Public/ScopeCycleCounter.h"
 #include "Render/UI/Overlay/Public/StatOverlay.h"
 #include "Component/Public/UUIDTextComponent.h"
- #include "Component/Public/DecalComponent.h"
+#include "Component/Public/DecalComponent.h"
+#include "ImGui/imgui.h"
+#include "Manager/Asset/Public/AssetManager.h"
+#include "Render/Renderer/Public/RenderResourceFactory.h"
 
 UEditor::UEditor()
 {
@@ -80,6 +83,12 @@ void UEditor::Update()
 
 	ProcessMouseInput();
 
+	// SceneBVH 디버그 데이터 업데이트
+	if (ULevel* CurrentLevel = GWorld->GetLevel())
+	{
+		CurrentLevel->RenderSceneBVHDebug();
+	}
+
 	UpdateLayout();
 }
 
@@ -93,6 +102,9 @@ void UEditor::RenderEditor(UCamera* InCamera)
 	{
 		Gizmo.RenderGizmo(Cast<USceneComponent>(GetSelectedComponent()), InCamera);
 	}
+
+	// SceneBVH 디버그 렌더링
+	RenderSceneBVH();
 }
 
 void UEditor::SetSingleViewportLayout(int InActiveIndex)
@@ -625,4 +637,73 @@ void UEditor::SelectComponent(UActorComponent* InComponent)
 UUUIDTextComponent* UEditor::GetPickedBillboard() const
 {
 	return PickedBillboard;
+}
+
+void UEditor::RenderSceneBVH()
+{
+	ULevel* CurrentLevel = GWorld->GetLevel();
+	if (!CurrentLevel) return;
+
+	const TArray<FAABB>& Boxes = CurrentLevel->GetCachedDebugBoxes();
+	const TArray<FVector4>& Colors = CurrentLevel->GetCachedDebugColors();
+
+	if (Boxes.empty()) return;
+
+	// 각 박스 렌더링
+	for (size_t i = 0; i < Boxes.size(); ++i)
+	{
+		RenderBVHBox(Boxes[i], Colors[i]);
+	}
+}
+
+void UEditor::RenderBVHBox(const FAABB& Box, const FVector4& Color)
+{
+	// 8개의 코너 버텍스 생성
+	FVector Corners[8];
+	Corners[0] = FVector(Box.Min.X, Box.Min.Y, Box.Min.Z);
+	Corners[1] = FVector(Box.Max.X, Box.Min.Y, Box.Min.Z);
+	Corners[2] = FVector(Box.Max.X, Box.Max.Y, Box.Min.Z);
+	Corners[3] = FVector(Box.Min.X, Box.Max.Y, Box.Min.Z);
+	Corners[4] = FVector(Box.Min.X, Box.Min.Y, Box.Max.Z);
+	Corners[5] = FVector(Box.Max.X, Box.Min.Y, Box.Max.Z);
+	Corners[6] = FVector(Box.Max.X, Box.Max.Y, Box.Max.Z);
+	Corners[7] = FVector(Box.Min.X, Box.Max.Y, Box.Max.Z);
+
+	// 12개 엣지의 인덱스 (LineList)
+	uint32 Indices[] = {
+		// 앞면 (Z = Min)
+		0, 1,  1, 2,  2, 3,  3, 0,
+		// 뒷면 (Z = Max)
+		4, 5,  5, 6,  6, 7,  7, 4,
+		// 연결 엣지
+		0, 4,  1, 5,  2, 6,  3, 7
+	};
+
+	// FEditorPrimitive 설정
+	FEditorPrimitive LinePrimitive;
+	LinePrimitive.NumVertices = 8;
+	LinePrimitive.NumIndices = 24;
+	LinePrimitive.Topology = D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
+	LinePrimitive.Color = Color;
+
+	// 버텍스 버퍼 생성
+	LinePrimitive.Vertexbuffer = FRenderResourceFactory::CreateVertexBuffer(
+		Corners, LinePrimitive.NumVertices * sizeof(FVector), false);
+
+	// 인덱스 버퍼 생성
+	LinePrimitive.IndexBuffer = FRenderResourceFactory::CreateIndexBuffer(
+		Indices, LinePrimitive.NumIndices * sizeof(uint32));
+
+	// 셰이더 설정
+	LinePrimitive.VertexShader = UAssetManager::GetInstance().GetVertexShader(EShaderType::BatchLine);
+	LinePrimitive.InputLayout = UAssetManager::GetInstance().GetIputLayout(EShaderType::BatchLine);
+	LinePrimitive.PixelShader = UAssetManager::GetInstance().GetPixelShader(EShaderType::BatchLine);
+
+	// 렌더링
+	URenderer& Renderer = URenderer::GetInstance();
+	Renderer.RenderEditorPrimitive(LinePrimitive, LinePrimitive.RenderState, sizeof(FVector), sizeof(uint32));
+
+	// 리소스 해제
+	SafeRelease(LinePrimitive.Vertexbuffer);
+	SafeRelease(LinePrimitive.IndexBuffer);
 }

@@ -11,6 +11,7 @@ class AActor;
 class UPrimitiveComponent;
 class UDecalComponent;
 class FOctree;
+class FSceneBVH;
 
 UCLASS()
 class ULevel :
@@ -93,6 +94,38 @@ public:
 	 */
 	const TSet<UDecalComponent*>& GetDirtyDecals() const { return DirtyDecals; }
 
+	// ========================================
+	// Scene BVH Management API
+	// ========================================
+
+	/**
+	 * Scene BVH 구축 (모든 Dynamic Primitives로부터)
+	 */
+	void BuildSceneBVH();
+
+	/**
+	 * Scene BVH 시각화 토글
+	 * @param bShow: 표시 여부
+	 * @param MaxDepth: 표시할 최대 깊이 (-1이면 전체)
+	 */
+	void ToggleSceneBVHVisualization(bool bShow, int32 MaxDepth = -1);
+
+	/**
+	 * Scene BVH 디버그 렌더링
+	 */
+	void RenderSceneBVHDebug();
+
+	/**
+	 * Scene BVH 가져오기
+	 */
+	FSceneBVH* GetSceneBVH() { return SceneBVH; }
+
+	/**
+	 * 캐시된 디버그 박스 데이터 가져오기
+	 */
+	const TArray<FAABB>& GetCachedDebugBoxes() const { return CachedDebugBoxes; }
+	const TArray<FVector4>& GetCachedDebugColors() const { return CachedDebugColors; }
+
 	friend class UWorld;
 public:
 	virtual UObject* Duplicate() override;
@@ -123,4 +156,15 @@ private:
 	TArray<UDecalComponent*> VisibleDecals;       // 가시 Decal만
 	TSet<UDecalComponent*> DirtyDecals;           // 변경된 Decal
 	bool bDecalsDirty = false;                     // BVH 재구축 플래그
+
+	// ========================================
+	// Scene BVH
+	// ========================================
+	FSceneBVH* SceneBVH = nullptr;
+	bool bShowSceneBVH = false;
+	int32 BVHDebugMaxDepth = -1;
+
+	// 디버그 렌더링용 데이터
+	TArray<FAABB> CachedDebugBoxes;
+	TArray<FVector4> CachedDebugColors;
 };
