@@ -20,6 +20,8 @@ FDecalPass::FDecalPass(UPipeline* InPipeline, ID3D11Buffer* InConstantBufferView
 
 void FDecalPass::Execute(FRenderingContext& Context)
 {
+    // 플래그가 꺼져 있으면 전체 스킵
+    if (!(Context.ShowFlags & EEngineShowFlags::SF_Decal)) { return; }
     if (Context.Decals.empty()) { return; }
 
     // --- Set Pipeline State ---

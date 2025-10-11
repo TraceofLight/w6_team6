@@ -285,22 +285,26 @@ void URenderer::RenderLevel(UCamera* InCurrentCamera)
 			RenderingContext.DefaultPrimitives.push_back(Prim);
 		}
 	}
-	// TODO - 모든 액터 순회하는 거 없애야 됨.
-	for (AActor* Actor : CurrentLevel->GetLevelActors())
+	// 수집 전에 플래그 확인
+	const bool bWantsDecal = (CurrentLevel->GetShowFlags() & EEngineShowFlags::SF_Decal) != 0;
+	if (bWantsDecal)
 	{
-		for (UActorComponent* Comp : Actor->GetOwnedComponents())
+		// TODO - 모든 액터 순회하는 거 없애야 됨.
+		for (AActor* Actor : CurrentLevel->GetLevelActors())
 		{
-			if (auto* Decal = Cast<UDecalComponent>(Comp))
+			for (UActorComponent* Comp : Actor->GetOwnedComponents())
 			{
-				// SceneComponent 기반 데칼도 수집
-				if (Decal->IsVisible())
+				if (auto* Decal = Cast<UDecalComponent>(Comp))
 				{
-					RenderingContext.Decals.push_back(Decal);
+					// SceneComponent 기반 데칼도 수집
+					if (Decal->IsVisible())
+					{
+						RenderingContext.Decals.push_back(Decal);
+					}
 				}
 			}
 		}
 	}
-
 
 	for (auto RenderPass: RenderPasses)
 	{
