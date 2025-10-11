@@ -426,5 +426,8 @@ WARP.md
 # 문서
 Document/*
 
+# .objbin
+*.objbin
+
 # Rider
 .idea/
