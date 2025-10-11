@@ -5,6 +5,7 @@
 #include "Texture/Public/Texture.h"
 #include "Render/UI/Widget/Public/DecalComponentWidget.h"
 #include "Utility/Public/JsonSerializer.h"
+#include "Level/Public/Level.h"
 
 IMPLEMENT_CLASS(UDecalComponent, USceneComponent)
 
@@ -43,6 +44,18 @@ const IBoundingVolume* UDecalComponent::GetBoundingBox()
 UClass* UDecalComponent::GetSpecificWidgetClass() const
 {
     return UDecalComponentWidget::StaticClass();
+}
+
+void UDecalComponent::MarkAsDirty()
+{
+    // 부모 클래스의 MarkAsDirty 호출 (트랜스폼 더티 플래그 설정)
+    Super::MarkAsDirty();
+
+    // Level에 Decal 변경 알림
+    if (ULevel* Level = GWorld->GetLevel())
+    {
+        Level->UpdateDecalDirtyFlag(this);
+    }
 }
 
 void UDecalComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)

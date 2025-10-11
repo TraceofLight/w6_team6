@@ -2,6 +2,7 @@
 #include "Actor/Public/Actor.h"
 #include "Component/Public/SceneComponent.h"
 #include "Component/Public/UUIDTextComponent.h"
+#include "Component/Public/DecalComponent.h"
 #include "Level/Public/Level.h"
 #include "Utility/Public/ActorTypeMapper.h"
 #include "Utility/Public/JsonSerializer.h"
@@ -248,9 +249,15 @@ void AActor::RegisterComponent(UActorComponent* InNewComponent)
 
 	OwnedComponents.push_back(InNewComponent);
 
+	// PrimitiveComponent 등록 (기존)
 	if (UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(InNewComponent))
 	{
 		GWorld->GetLevel()->RegisterPrimitiveComponent(PrimitiveComponent);
+	}
+	// DecalComponent 등록 (새로 추가)
+	else if (UDecalComponent* Decal = Cast<UDecalComponent>(InNewComponent))
+	{
+		GWorld->GetLevel()->RegisterDecalComponent(Decal);
 	}
 }
 
@@ -270,10 +277,17 @@ bool AActor::RemoveComponent(UActorComponent* InComponentToDelete)
 			return false;
         }
 
+        // PrimitiveComponent 등록 해제 (기존)
         if (UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(InComponentToDelete))
         {
             GWorld->GetLevel()->UnregisterPrimitiveComponent(PrimitiveComponent);
         }
+        // DecalComponent 등록 해제 (새로 추가)
+        else if (UDecalComponent* Decal = Cast<UDecalComponent>(InComponentToDelete))
+        {
+            GWorld->GetLevel()->UnregisterDecalComponent(Decal);
+        }
+
         if (USceneComponent* SceneComponent = Cast<USceneComponent>(InComponentToDelete))
         {
             if (SceneComponent->GetParentComponent())

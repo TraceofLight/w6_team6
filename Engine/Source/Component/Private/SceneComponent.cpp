@@ -4,6 +4,7 @@
 #include "Utility/Public/JsonSerializer.h"
 
 #include "Component/Public/PrimitiveComponent.h"
+#include "Component/Public/DecalComponent.h"
 #include "Level/Public/Level.h"
 
 #include <json.hpp>
@@ -120,9 +121,15 @@ void USceneComponent::SetRelativeLocation(const FVector& Location)
 	RelativeLocation = Location;
 	MarkAsDirty();
 
+	// Primitive 업데이트 (기존)
 	if (auto PrimitiveComponent = Cast<UPrimitiveComponent>(this))
 	{
 		GWorld->GetLevel()->UpdatePrimitiveInOctree(PrimitiveComponent);
+	}
+	// Decal 업데이트 (새로 추가)
+	else if (auto Decal = Cast<UDecalComponent>(this))
+	{
+		GWorld->GetLevel()->UpdateDecalDirtyFlag(Decal);
 	}
 }
 
@@ -131,9 +138,15 @@ void USceneComponent::SetRelativeRotation(const FVector& Rotation)
 	RelativeRotation = Rotation;
 	MarkAsDirty();
 
+	// Primitive 업데이트 (기존)
 	if (auto PrimitiveComponent = Cast<UPrimitiveComponent>(this))
 	{
 		GWorld->GetLevel()->UpdatePrimitiveInOctree(PrimitiveComponent);
+	}
+	// Decal 업데이트 (새로 추가)
+	else if (auto Decal = Cast<UDecalComponent>(this))
+	{
+		GWorld->GetLevel()->UpdateDecalDirtyFlag(Decal);
 	}
 }
 
@@ -142,9 +155,15 @@ void USceneComponent::SetRelativeScale3D(const FVector& Scale)
 	RelativeScale3D = Scale;
 	MarkAsDirty();
 
+	// Primitive 업데이트 (기존)
 	if (auto PrimitiveComponent = Cast<UPrimitiveComponent>(this))
 	{
 		GWorld->GetLevel()->UpdatePrimitiveInOctree(PrimitiveComponent);
+	}
+	// Decal 업데이트 (새로 추가)
+	else if (auto Decal = Cast<UDecalComponent>(this))
+	{
+		GWorld->GetLevel()->UpdateDecalDirtyFlag(Decal);
 	}
 }
 

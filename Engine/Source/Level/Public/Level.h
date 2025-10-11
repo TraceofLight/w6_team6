@@ -9,6 +9,7 @@ using JSON = json::JSON;
 class UWorld;
 class AActor;
 class UPrimitiveComponent;
+class UDecalComponent;
 class FOctree;
 
 UCLASS()
@@ -42,6 +43,56 @@ public:
 	FOctree* GetStaticOctree() { return StaticOctree; }
 	TArray<UPrimitiveComponent*>& GetDynamicPrimitives() { return DynamicPrimitives; }
 
+	// ========================================
+	// Decal Management API
+	// ========================================
+
+	/**
+	 * Decal 컴포넌트 등록
+	 * Actor::RegisterComponent()에서 자동 호출됨
+	 */
+	void RegisterDecalComponent(UDecalComponent* InDecal);
+
+	/**
+	 * Decal 컴포넌트 등록 해제
+	 * Actor::RemoveComponent()에서 자동 호출됨
+	 */
+	void UnregisterDecalComponent(UDecalComponent* InDecal);
+
+	/**
+	 * Decal 트랜스폼 변경 알림
+	 * DecalComponent::MarkAsDirty()에서 호출
+	 */
+	void UpdateDecalDirtyFlag(UDecalComponent* InDecal);
+
+	/**
+	 * Decal 가시성 변경 알림
+	 * DecalComponent::SetVisibility()에서 호출
+	 */
+	void OnDecalVisibilityChanged(UDecalComponent* InDecal, bool bVisible);
+
+	/**
+	 * Renderer가 사용할 가시 Decal 목록
+	 * @return 렌더링 가능한 Decal 배열 (const 참조)
+	 */
+	const TArray<UDecalComponent*>& GetVisibleDecals() const { return VisibleDecals; }
+
+	/**
+	 * BVH 재구축 필요 여부
+	 */
+	bool NeedsDecalIndexRebuild() const { return bDecalsDirty; }
+
+	/**
+	 * BVH 재구축 완료 후 호출
+	 */
+	void MarkDecalIndexClean();
+
+	/**
+	 * 변경된 Decal 집합
+	 * 증분 BVH 업데이트에 사용
+	 */
+	const TSet<UDecalComponent*>& GetDirtyDecals() const { return DirtyDecals; }
+
 	friend class UWorld;
 public:
 	virtual UObject* Duplicate() override;
@@ -65,4 +116,11 @@ private:
 		static_cast<uint64>(EEngineShowFlags::SF_StaticMesh) |
 		static_cast<uint64>(EEngineShowFlags::SF_Text) |
 		static_cast<uint64>(EEngineShowFlags::SF_Decal);
+	// ========================================
+	// Decal Cache
+	// ========================================
+	TArray<UDecalComponent*> AllDecals;           // 모든 Decal
+	TArray<UDecalComponent*> VisibleDecals;       // 가시 Decal만
+	TSet<UDecalComponent*> DirtyDecals;           // 변경된 Decal
+	bool bDecalsDirty = false;                     // BVH 재구축 플래그
 };

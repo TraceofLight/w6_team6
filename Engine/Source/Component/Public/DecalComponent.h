@@ -1,7 +1,9 @@
 #pragma once
 #include "Component/Public/PrimitiveComponent.h"
+#include "Level/Public/Level.h"
 
 class UMaterial;
+class ULevel;
 
 UCLASS()
 class UDecalComponent : public USceneComponent
@@ -21,7 +23,19 @@ public:
 
     // Primitive에서 쓰던 인터페이스 최소 복원
     bool IsVisible() const { return bVisible; }
-    void SetVisibility(bool bVisibility) { bVisible = bVisibility; }
+    void SetVisibility(bool bInVisible)
+    {
+        if (bVisible != bInVisible)
+        {
+            bVisible = bInVisible;
+
+            // Level에 가시성 변경 알림
+            if (ULevel* Level = GWorld->GetLevel())
+            {
+                Level->OnDecalVisibilityChanged(this, bInVisible);
+            }
+        }
+    }
 
     // 데칼 사이즈 API (full size)
     void SetDecalSize(const FVector& InSize)
@@ -37,6 +51,9 @@ public:
 
     // 전용 속성 위젯 연결
     UClass* GetSpecificWidgetClass() const override;
+
+    // MarkAsDirty override - Level에 변경 알림
+    void MarkAsDirty() override;
 
     // TODO - 테스트 못해봄
     void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;

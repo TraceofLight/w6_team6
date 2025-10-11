@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Level/Public/Level.h"
 #include "Component/Public/PrimitiveComponent.h"
+#include "Component/Public/DecalComponent.h"
 #include "Editor/Public/Editor.h"
 #include "Actor/Public/Actor.h"
 #include "Core/Public/Object.h"
@@ -271,4 +272,110 @@ void ULevel::DuplicateSubObjects(UObject* DuplicatedObject)
 		DuplicatedLevel->Actors.push_back(DuplicatedActor);
 		DuplicatedLevel->AddPrimitiveComponent(DuplicatedActor);
 	}
+}
+
+// ========================================
+// Decal Management Implementation
+// ========================================
+
+void ULevel::RegisterDecalComponent(UDecalComponent* InDecal)
+{
+	if (!InDecal)
+	{
+		UE_LOG("Level: RegisterDecalComponent called with nullptr");
+		return;
+	}
+
+	// 모든 Decal 목록에 추가
+	AllDecals.push_back(InDecal);
+
+	// 가시 Decal만 별도 관리
+	if (InDecal->IsVisible())
+	{
+		VisibleDecals.push_back(InDecal);
+	}
+
+	// BVH 재구축 플래그
+	DirtyDecals.insert(InDecal);
+	bDecalsDirty = true;
+
+	UE_LOG("Level: Decal '%s' registered (Visible: %d)",
+		InDecal->GetName().ToString().data(),
+		InDecal->IsVisible());
+}
+
+void ULevel::UnregisterDecalComponent(UDecalComponent* InDecal)
+{
+	if (!InDecal) return;
+
+	// AllDecals에서 제거
+	if (auto It = std::find(AllDecals.begin(), AllDecals.end(), InDecal);
+		It != AllDecals.end())
+	{
+		*It = std::move(AllDecals.back());
+		AllDecals.pop_back();
+	}
+
+	// VisibleDecals에서 제거
+	if (auto It = std::find(VisibleDecals.begin(), VisibleDecals.end(), InDecal);
+		It != VisibleDecals.end())
+	{
+		*It = std::move(VisibleDecals.back());
+		VisibleDecals.pop_back();
+	}
+
+	// 더티 플래그 제거
+	DirtyDecals.erase(InDecal);
+	if (DirtyDecals.empty())
+	{
+		bDecalsDirty = false;
+	}
+
+	UE_LOG("Level: Decal '%s' unregistered", InDecal->GetName().ToString().data());
+}
+
+void ULevel::UpdateDecalDirtyFlag(UDecalComponent* InDecal)
+{
+	if (!InDecal) return;
+
+	DirtyDecals.insert(InDecal);
+	bDecalsDirty = true;
+
+	UE_LOG("Level: Decal '%s' marked dirty", InDecal->GetName().ToString().data());
+}
+
+void ULevel::OnDecalVisibilityChanged(UDecalComponent* InDecal, bool bVisible)
+{
+	if (!InDecal) return;
+
+	if (bVisible)
+	{
+		// 가시 목록에 추가
+		if (std::find(VisibleDecals.begin(), VisibleDecals.end(), InDecal) == VisibleDecals.end())
+		{
+			VisibleDecals.push_back(InDecal);
+		}
+	}
+	else
+	{
+		// 가시 목록에서 제거
+		if (auto It = std::find(VisibleDecals.begin(), VisibleDecals.end(), InDecal);
+			It != VisibleDecals.end())
+		{
+			*It = std::move(VisibleDecals.back());
+			VisibleDecals.pop_back();
+		}
+	}
+
+	// BVH 재구축 플래그
+	UpdateDecalDirtyFlag(InDecal);
+
+	UE_LOG("Level: Decal '%s' visibility changed to %d",
+		InDecal->GetName().ToString().data(), bVisible);
+}
+
+void ULevel::MarkDecalIndexClean()
+{
+	DirtyDecals.clear();
+	bDecalsDirty = false;
 }
