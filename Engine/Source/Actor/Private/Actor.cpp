@@ -5,6 +5,7 @@
 #include "Level/Public/Level.h"
 #include "Utility/Public/ActorTypeMapper.h"
 #include "Utility/Public/JsonSerializer.h"
+#include "Editor/Public/Editor.h"
 
 IMPLEMENT_CLASS(AActor, UObject)
 
@@ -257,39 +258,74 @@ void AActor::RegisterComponent(UActorComponent* InNewComponent)
 bool AActor::RemoveComponent(UActorComponent* InComponentToDelete)
 {
     auto It = std::find(OwnedComponents.begin(), OwnedComponents.end(), InComponentToDelete);
-    if (It != OwnedComponents.end())
+    if (It == OwnedComponents.end())
     {
-        if (InComponentToDelete == RootComponent)
+        return false;
+    }
+
+    // 보호: Root, UUIDText
+    if (InComponentToDelete == RootComponent)
+    {
+        UE_LOG_WARNING("루트 컴포넌트는 제거할 수 없습니다.");
+        return false;
+    }
+    if (Cast<UUUIDTextComponent>(InComponentToDelete))
+    {
+        UE_LOG_WARNING("UUIDTextComponent는 제거할 수 없습니다.");
+        return false;
+    }
+
+    // 선택 해제 먼저 수행 (Gizmo 타깃 포함)
+    if (GEditor && GEditor->GetEditorModule()->GetSelectedComponent() == InComponentToDelete)
+    {
+        GEditor->GetEditorModule()->SelectComponent(nullptr);
+    }
+    // 레벨/옥트리 등록 해제 (프리미티브인 경우)
+    if (UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(InComponentToDelete))
+    {
+        GWorld->GetLevel()->UnregisterPrimitiveComponent(PrimitiveComponent);
+    }
+
+    // 씬 컴포넌트라면 자식 승격 처리
+    if (USceneComponent* SceneComponent = Cast<USceneComponent>(InComponentToDelete))
+    {
+        USceneComponent* Parent = SceneComponent->GetParentAttachment();
+
+        // 부모 연결 해제(부모가 있으면)
+        if (Parent)
         {
-			UE_LOG_WARNING("루트 컴포넌트는 제거할 수 없습니다.");
-			return false;
-        }
-        else if (Cast<UUUIDTextComponent>(InComponentToDelete))
-        {
-			UE_LOG_WARNING("UUIDTextComponent는 제거할 수 없습니다.");
-			return false;
+            Parent->RemoveChild(SceneComponent);
         }
 
-        if (UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(InComponentToDelete))
+        // 자식들을 할아버지(Parent)에 붙이고 월드 트랜스폼 유지
+        TArray<USceneComponent*> Children = SceneComponent->GetChildren(); // 값 복사
+        for (USceneComponent* Child : Children)
         {
-            GWorld->GetLevel()->UnregisterPrimitiveComponent(PrimitiveComponent);
+            if (!Child) { continue; }
+
+            // 자식의 월드 트랜스폼 백업
+            const FVector WLoc = Child->GetWorldLocation();
+            const FVector WRot = Child->GetWorldRotation();
+            const FVector WScale = Child->GetWorldScale3D();
+
+            // 새 부모를 '할아버지'로 설정
+            Child->SetParentAttachment(Parent);
+
+            // 월드 트랜스폼 복원 → 내부에서 새 부모 기준 상대 트랜스폼으로 자동 환산
+            Child->SetWorldLocation(WLoc);
+            Child->SetWorldRotation(WRot);
+            Child->SetWorldScale3D(WScale);
         }
-        if (USceneComponent* SceneComponent = Cast<USceneComponent>(InComponentToDelete))
-        {
-            if (SceneComponent->GetParentComponent())
-            {
-                SceneComponent->GetParentComponent()->RemoveChild(SceneComponent);
-            }
-            for (USceneComponent* Child : SceneComponent->GetChildren())
-            {
-				RemoveComponent(Child);
-            }
-		}
-        OwnedComponents.erase(It);
-        SafeDelete(*It);
-        return true;
     }
-    return false;
+
+    // 소유 배열에서 제거 (swap-pop)
+    *It = std::move(OwnedComponents.back());
+    OwnedComponents.pop_back();
+
+    // 실제 메모리 해제는 월드가 안전 시점에 처리
+    GWorld->DestroyComponent(InComponentToDelete);
+
+    return true;
 }
 
 void AActor::DuplicateSubObjects(UObject* DuplicatedObject)

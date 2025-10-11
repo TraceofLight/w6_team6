@@ -4,6 +4,7 @@
 #include "Utility/Public/JsonSerializer.h"
 #include "Manager/Config/Public/ConfigManager.h"
 #include "Manager/Path/Public/PathManager.h"
+#include "Component/Public/ActorComponent.h"
 
 IMPLEMENT_CLASS(UWorld, UObject)
 
@@ -221,6 +222,29 @@ bool UWorld::DestroyActor(AActor* InActor)
 	return true;
 }
 
+bool UWorld::DestroyComponent(UActorComponent* InComponent)
+{
+	if (!InComponent) { UE_LOG_ERROR("World: DestroyComponent null"); return false; }
+
+	// 컴포넌트 소유 액터가 이미 삭제 대기라면, 액터 삭제가 컴포넌트 해제까지 처리하므로 스킵
+	if (AActor* Owner = InComponent->GetOwner())
+	{
+		if (std::find(PendingDestroyActors.begin(), PendingDestroyActors.end(), Owner) != PendingDestroyActors.end())
+		{
+			return true;
+		}
+	}
+
+	if (std::find(PendingDestroyComponents.begin(), PendingDestroyComponents.end(), InComponent) !=
+		PendingDestroyComponents.end())
+	{
+		return false; // 중복 예약 방지
+	}
+
+	PendingDestroyComponents.push_back(InComponent);
+	return true;
+}
+
 EWorldType UWorld::GetWorldType() const
 {
 	return WorldType;
@@ -237,7 +261,33 @@ void UWorld::SetWorldType(EWorldType InWorldType)
  */
 void UWorld::FlushPendingDestroy()
 {
-	if (PendingDestroyActors.empty() || !Level)
+	if (!Level) { return; }
+
+	// 1) 컴포넌트 삭제 먼저 처리
+	if (!PendingDestroyComponents.empty())
+	{
+		TArray<UActorComponent*> ComponentsToProcess = PendingDestroyComponents;
+		PendingDestroyComponents.clear();
+
+		for (UActorComponent* Comp : ComponentsToProcess)
+		{
+			if (!Comp) { continue; }
+			// 안전망: 아직 Owner가 들고 있다면 제거
+			if (AActor* Owner = Comp->GetOwner())
+			{
+				auto& Owned = Owner->GetOwnedComponents();
+				if (auto it = std::find(Owned.begin(), Owned.end(), Comp); it != Owned.end())
+				{
+					*it = std::move(Owned.back());
+					Owned.pop_back();
+				}
+			}
+			SafeDelete(Comp);
+		}
+	}
+
+	// 2) 기존 Actor 삭제 처리 (기존 코드 유지)
+	if (PendingDestroyActors.empty())
 	{
 		return;
 	}

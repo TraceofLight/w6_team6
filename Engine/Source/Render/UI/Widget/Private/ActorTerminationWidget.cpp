@@ -101,9 +101,16 @@ void UActorTerminationWidget::DeleteSelectedActor(AActor* InSelectedActor)
 
 void UActorTerminationWidget::DeleteSelectedComponent(AActor* InSelectedActor, UActorComponent* InSelectedComponent)
 {
-	bool bSuccess = InSelectedActor->RemoveComponent(InSelectedComponent);
-	if (bSuccess)
-	{
-		ActorDetailWidget->SetSelectedComponent(nullptr);
-	}
+    // 먼저 에디터 선택 해제 → Gizmo도 SelectComponent(nullptr)에서 ClearTarget 호출됨
+    if (GEditor->GetEditorModule()->GetSelectedComponent() == InSelectedComponent)
+    {
+        GEditor->GetEditorModule()->SelectComponent(nullptr);
+    }
+
+    bool bSuccess = InSelectedActor->RemoveComponent(InSelectedComponent);
+
+    if (bSuccess && ActorDetailWidget)
+    {
+        ActorDetailWidget->SetSelectedComponent(nullptr);
+    }
 }

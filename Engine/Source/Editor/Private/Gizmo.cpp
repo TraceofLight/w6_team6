@@ -59,7 +59,20 @@ UGizmo::~UGizmo() = default;
 
 void UGizmo::UpdateScale(UCamera* InCamera)
 {
-	if (!TargetComponent || !InCamera) { return; }
+	if (!TargetComponent || !InCamera ||
+		!TargetComponent->GetOwner())
+	{
+		ClearTarget();
+		return;
+	}
+	{
+		auto& Owned = TargetComponent->GetOwner()->GetOwnedComponents();
+		if (std::find(Owned.begin(), Owned.end(), TargetComponent) == Owned.end())
+		{
+			ClearTarget();
+			return;
+		}
+	}
 
 	float Scale;
 	if (InCamera->GetCameraType() == ECameraType::ECT_Perspective)
@@ -81,7 +94,19 @@ void UGizmo::UpdateScale(UCamera* InCamera)
 void UGizmo::RenderGizmo(USceneComponent* SceneComponent, UCamera* InCamera)
 {
 	TargetComponent = SceneComponent;
-	if (!TargetComponent || !InCamera) { return; }
+	if (!TargetComponent || !InCamera || !TargetComponent->GetOwner())
+	{
+		ClearTarget();
+		return;
+	}
+	{
+		auto& Owned = TargetComponent->GetOwner()->GetOwnedComponents();
+		if (std::find(Owned.begin(), Owned.end(), TargetComponent) == Owned.end())
+		{
+			ClearTarget();
+			return;
+		}
+	}
 
 	float RenderScale;
 	if (InCamera->GetCameraType() == ECameraType::ECT_Perspective)
@@ -190,4 +215,10 @@ FVector4 UGizmo::ColorFor(EGizmoDirection InAxis) const
 		return BaseColor;
 	else
 		return Paint;
+}
+void UGizmo::ClearTarget()
+{
+	TargetComponent = nullptr;
+	bIsDragging = false;
+	GizmoDirection = EGizmoDirection::None;
 }
