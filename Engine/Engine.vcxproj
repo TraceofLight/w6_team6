@@ -313,6 +313,7 @@
     <ClInclude Include="Source\Actor\Public\CubeActor.h" />
     <ClInclude Include="Source\Actor\Public\DecalActor.h" />
     <ClInclude Include="Source\Actor\Public\MovingCubeActor.h" />
+    <ClInclude Include="Source\Actor\Public\SemiLightActor.h" />
     <ClInclude Include="Source\Actor\Public\SphereActor.h" />
     <ClInclude Include="Source\Actor\Public\SquareActor.h" />
     <ClInclude Include="Source\Actor\Public\StaticMeshActor.h">
@@ -469,6 +470,7 @@
     <ClCompile Include="Source\Actor\Private\DecalActor.cpp" />
     <ClCompile Include="Source\Actor\Private\MovingCubeActor.cpp">
     </ClCompile>
+    <ClCompile Include="Source\Actor\Private\SemiLightActor.cpp" />
     <ClCompile Include="Source\Actor\Private\SphereActor.cpp" />
     <ClCompile Include="Source\Actor\Private\SquareActor.cpp" />
     <ClCompile Include="Source\Actor\Private\StaticMeshActor.cpp">
