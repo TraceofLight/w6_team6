@@ -19,7 +19,6 @@ public:
     void SetTexture(class UTexture* InTexture) { DecalTexture = InTexture; }
     class UTexture* GetTexture() const { return DecalTexture; }
 
-
     // Primitive에서 쓰던 인터페이스 최소 복원
     bool IsVisible() const { return bVisible; }
     void SetVisibility(bool bVisibility) { bVisible = bVisibility; }

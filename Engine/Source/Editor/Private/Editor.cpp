@@ -19,6 +19,7 @@
 #include "Utility/Public/ScopeCycleCounter.h"
 #include "Render/UI/Overlay/Public/StatOverlay.h"
 #include "Component/Public/UUIDTextComponent.h"
+ #include "Component/Public/DecalComponent.h"
 
 UEditor::UEditor()
 {
@@ -183,11 +184,10 @@ void UEditor::UpdateBatchLines()
 {
 	if (UActorComponent* Component = GetSelectedComponent())
 	{
-		if (UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(Component))
+		uint64 ShowFlags = GWorld->GetLevel()->GetShowFlags();
+		if ((ShowFlags & EEngineShowFlags::SF_Primitives) && (ShowFlags & EEngineShowFlags::SF_Bounds))
 		{
-			uint64 ShowFlags = GWorld->GetLevel()->GetShowFlags();
-
-			if ((ShowFlags & EEngineShowFlags::SF_Primitives) && (ShowFlags & EEngineShowFlags::SF_Bounds))
+			if (UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(Component))
 			{
 				if (PrimitiveComponent->GetBoundingBox()->GetType() == EBoundingVolumeType::AABB)
 				{
@@ -195,12 +195,20 @@ void UEditor::UpdateBatchLines()
 					FAABB AABB(WorldMin, WorldMax);
 					BatchLines.UpdateBoundingBoxVertices(&AABB);
 				}
-				else { BatchLines.UpdateBoundingBoxVertices(PrimitiveComponent->GetBoundingBox()); }
-				return; 
+				else
+				{
+					BatchLines.UpdateBoundingBoxVertices(PrimitiveComponent->GetBoundingBox());
+				}
+				return;
+			}
+			else if (UDecalComponent* DecalComponent = Cast<UDecalComponent>(Component))
+			{
+				// 데칼도 바운딩 갱신 후 라인 업데이트
+				BatchLines.UpdateBoundingBoxVertices(DecalComponent->GetBoundingBox());
+				return;
 			}
 		}
 	}
-
 	BatchLines.DisableRenderBoundingBox();
 }
 
