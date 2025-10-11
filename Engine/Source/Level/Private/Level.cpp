@@ -481,3 +481,14 @@ void ULevel::UpdateSceneBVHComponent(USceneComponent* InComponent)
 		SceneBVH->GetDebugDrawInfo(CachedDebugBoxes, CachedDebugColors, BVHDebugMaxDepth);
 	}
 }
+
+bool ULevel::QueryOverlappingComponentsWithBVH(const FOBB& OBB, TArray<UPrimitiveComponent*>& OutComponents) const
+{
+	if (!SceneBVH)
+	{
+		OutComponents.clear();
+		return false;
+	}
+
+	return SceneBVH->QueryOverlappingComponents(OBB, OutComponents);
+}

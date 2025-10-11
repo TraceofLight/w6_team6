@@ -9,6 +9,7 @@
 #include "Texture/Public/Texture.h"
 #include "Texture/Public/TextureRenderProxy.h"
 #include "Component/Mesh/Public/StaticMeshComponent.h"
+#include "Level/Public/Level.h"
 
 FDecalPass::FDecalPass(UPipeline* InPipeline, ID3D11Buffer* InConstantBufferViewProj, ID3D11VertexShader* InVS, ID3D11PixelShader* InPS, ID3D11InputLayout* InLayout, ID3D11DepthStencilState* InDS_Read, ID3D11BlendState* InBlendState)
     : FRenderPass(InPipeline, InConstantBufferViewProj, nullptr),
@@ -81,17 +82,33 @@ void FDecalPass::Execute(FRenderingContext& Context)
                 Pipeline->SetSamplerState(0, false, Proxy->GetSampler());
             }
         }
-        // TODO: BVH를 이용해서 후보자를 줄여야 함
-        // 1) 기존 기본 프리미티브
-        for (UPrimitiveComponent* Prim : Context.DefaultPrimitives)
-        {
-            DrawDecalReceiver(Prim);
-        }
 
-        // 2) StaticMesh도 수신자로 포함
-        for (UStaticMeshComponent* SM : Context.StaticMeshes)
+        // BVH를 사용하여 DecalOBB와 겹치는 Component만 필터링
+        ULevel* CurrentLevel = GWorld->GetLevel();
+        if (CurrentLevel)
         {
-            DrawDecalReceiver(SM);
+            TArray<UPrimitiveComponent*> OverlappingComponents;
+            if (CurrentLevel->QueryOverlappingComponentsWithBVH(*DecalOBB, OverlappingComponents))
+            {
+                // BVH로 필터링된 겹치는 Component들만 렌더링
+                for (UPrimitiveComponent* Prim : OverlappingComponents)
+                {
+                    DrawDecalReceiver(Prim);
+                }
+            }
+        }
+        else
+        {
+            // BVH가 없는 경우 폴백: 모든 프리미티브 렌더링
+            for (UPrimitiveComponent* Prim : Context.DefaultPrimitives)
+            {
+                DrawDecalReceiver(Prim);
+            }
+
+            for (UStaticMeshComponent* SM : Context.StaticMeshes)
+            {
+                DrawDecalReceiver(SM);
+            }
         }
     }
 }

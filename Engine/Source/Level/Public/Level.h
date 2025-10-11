@@ -137,6 +137,14 @@ public:
 	 */
 	void UpdateSceneBVHComponent(USceneComponent* InComponent);
 
+	/**
+	 * Scene BVH를 사용하여 OBB와 겹치는 Component들 찾기
+	 * @param OBB: 검사할 OBB
+	 * @param OutComponents: 겹치는 Component들 (output)
+	 * @return: 겹치는 Component가 있으면 true
+	 */
+	bool QueryOverlappingComponentsWithBVH(const struct FOBB& OBB, TArray<UPrimitiveComponent*>& OutComponents) const;
+
 	friend class UWorld;
 public:
 	virtual UObject* Duplicate() override;
