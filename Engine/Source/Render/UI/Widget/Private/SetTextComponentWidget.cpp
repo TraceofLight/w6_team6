@@ -51,37 +51,48 @@ void USetTextComponentWidget::Update()
 
 void USetTextComponentWidget::RenderWidget()
 {
-	if (!SelectedActor)
-		return;
+    if (!SelectedActor) return;
+    if (!SelectedTextComponent) return;
 
-	ImGui::Separator();
-	ImGui::Text("Type Text");
+    ImGui::Separator();
+    ImGui::Text("Type Text");
+    ImGui::Spacing();
 
-	ImGui::Spacing();
+    // 선택 변화 감지하여 buf 갱신
+    static UTextComponent* sLastComp = nullptr;
+    static char buf[256] = { 0 };
 
-	// 버퍼를 직접 관리해야 함
-	
-	static char buf[256] = "";
-	const FString& TextOfComponent = SelectedTextComponent->GetText();
-	memcpy(buf, TextOfComponent.c_str(), std::min(sizeof(buf), TextOfComponent.size()));
-	FString TagName = FString("TypeText##") + std::to_string(WidgetNum);
+    if (SelectedTextComponent != sLastComp)
+    {
+        const FString& text = SelectedTextComponent->GetText();
+        size_t n = std::min(text.size(), sizeof(buf) - 1);
+        memcpy(buf, text.c_str(), n);
+        buf[n] = '\0';
+        sLastComp = SelectedTextComponent;
+    }
 
-	if (ImGui::InputText(TagName.c_str(), buf, IM_ARRAYSIZE(buf)))
-	{
-		SelectedTextComponent->SetText(FString(buf));
-	}
-	
-	ImGui::Separator();
-
-	WidgetNum = (WidgetNum + 1) % std::numeric_limits<uint32>::max();
+    ImGui::PushID(SelectedTextComponent);
+    // 텍스트 변경 시마다 즉시 적용 (실시간 반영)
+    if (ImGui::InputText("Type Text", buf, IM_ARRAYSIZE(buf)))
+    {
+        SelectedTextComponent->SetText(FString(buf));
+    }
+    // 포커스 잃은 뒤 최종 커밋도 원하면:
+    if (ImGui::IsItemDeactivatedAfterEdit())
+    {
+        SelectedTextComponent->SetText(FString(buf));
+    }
+    ImGui::PopID();
 }
 
 void USetTextComponentWidget::UpdateTextFromActor()
 {
-	for (UActorComponent* Comp : SelectedActor->GetOwnedComponents())
-	{
-		UTextComponent* TextComp = Cast<UTextComponent>(Comp);
-		if (TextComp)
-			SelectedTextComponent = TextComp;
-	}
+    // 1) 에디터 선택 컴포넌트가 UTextComponent면 우선
+    if (auto* sel = GEditor->GetEditorModule()->GetSelectedComponent())
+        if (auto* txt = Cast<UTextComponent>(sel)) { SelectedTextComponent = txt; return; }
+
+    // 2) 아니면 액터에서 첫 Text를 선택
+    SelectedTextComponent = nullptr;
+    for (UActorComponent* Comp : SelectedActor->GetOwnedComponents())
+        if (auto* txt = Cast<UTextComponent>(Comp)) { SelectedTextComponent = txt; return; }
 }

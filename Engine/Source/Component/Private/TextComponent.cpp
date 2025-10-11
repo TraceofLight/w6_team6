@@ -9,7 +9,7 @@
 IMPLEMENT_CLASS(UTextComponent, UPrimitiveComponent)
 
 /**
- * @brief Level���� �� Actor���� ������ �ִ� UUID�� ������ֱ� ���� ������ Ŭ����
+ * @brief 레벨 내 액터들의 UUID를 화면에 표시하는 텍스트(빌보드) 컴포넌트 클래스
  * Actor has a UBillBoardComponent
  */
 UTextComponent::UTextComponent()
@@ -29,6 +29,12 @@ UTextComponent::UTextComponent()
 
 UTextComponent::~UTextComponent()
 {
+}
+
+FMatrix UTextComponent::GetBoundingTransform() const
+{
+	// 기본 Text는 월드 변환 사용 (빌보드 특성이 없는 경우)
+	return GetWorldTransformMatrix();
 }
 
 void UTextComponent::UpdateRotationMatrix(const FVector& InCameraLocation) {}

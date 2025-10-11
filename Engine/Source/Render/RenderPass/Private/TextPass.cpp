@@ -108,8 +108,8 @@ void FTextPass::RenderTextInternal(const FString& Text, const FMatrix& WorldMatr
 
             // Simplified vertex generation, assuming fixed size
             float y = currentY + i * 1.0f;
-            float z = -2.5f;
-            float charHeight = 2.0f;
+            float z = -0.5f;
+            float charHeight = 1.0f;
 
             FVector p0(0.0f, y, z + charHeight);
             FVector p1(0.0f, y + 1.0f, z + charHeight);

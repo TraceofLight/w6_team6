@@ -80,7 +80,7 @@ D3D11_PRIMITIVE_TOPOLOGY UPrimitiveComponent::GetTopology() const
 
 const IBoundingVolume* UPrimitiveComponent::GetBoundingBox()
 {
-	BoundingBox->Update(GetWorldTransformMatrix());
+	BoundingBox->Update(GetBoundingTransform());
 	return BoundingBox;
 }
 
@@ -105,7 +105,7 @@ void UPrimitiveComponent::GetWorldAABB(FVector& OutMin, FVector& OutMax)
 				FVector(LocalAABB->Min.X, LocalAABB->Max.Y, LocalAABB->Max.Z), FVector(LocalAABB->Max.X, LocalAABB->Max.Y, LocalAABB->Max.Z)
 			};
 
-			const FMatrix& WorldTransform = GetWorldTransformMatrix();
+			const FMatrix& WorldTransform = GetBoundingTransform();
 			FVector WorldMin(+FLT_MAX, +FLT_MAX, +FLT_MAX);
 			FVector WorldMax(-FLT_MAX, -FLT_MAX, -FLT_MAX);
 
