@@ -106,3 +106,34 @@ const FRenderState& UBillBoardComponent::GetClassDefaultRenderState()
     static FRenderState DefaultRenderState { ECullMode::Back, EFillMode::Solid };
     return DefaultRenderState;
 }
+
+void UBillBoardComponent::UpdateBillboardMatrix(const FVector& InCameraLocation)
+{
+    // 1) 부모 트랜스폼 반영된 '자기' 월드 위치
+    const FVector basePos = GetWorldLocation();
+
+    // 2) 먼저 최종 표시 위치 계산(위로 띄우기). 화면상 위가 자연스럽게 보이도록 '빌보드 Up' 기준 또는 월드 Up 기준 선택
+    const FVector worldUp(0, 0, 1);
+    FVector forward = InCameraLocation - basePos;
+    if (forward.LengthSquared() < 1e-8f) forward = FVector(0, 0, 1);
+    forward.Normalize();
+
+    FVector right = worldUp.Cross(forward);
+    if (right.LengthSquared() < 1e-6f) // 정수직 특이점 보정
+    {
+        const FVector altUp(1, 0, 0);
+        right = altUp.Cross(forward);
+    }
+    right.Normalize();
+
+    FVector up = forward.Cross(right);
+    up.Normalize();
+
+    // 오프셋 반영 위치 P (빌보드 Up 축으로 띄우기)
+    const FVector P = basePos + up * ZOffset;
+
+    // 3) 회전 후 번역(엔진 규약: R * T)
+    const FMatrix R = FMatrix(forward, right, up);
+    const FMatrix T = FMatrix::TranslationMatrix(P);
+    RTMatrix = R * T;
+}

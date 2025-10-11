@@ -12,9 +12,9 @@ FBillboardPass::FBillboardPass(UPipeline* InPipeline, ID3D11Buffer* InConstantBu
 void FBillboardPass::Execute(FRenderingContext& Context)
 {
     FRenderState RenderState = UBillBoardComponent::GetClassDefaultRenderState();
+    RenderState.CullMode = ECullMode::None;
     if (Context.ViewMode == EViewModeIndex::VMI_Wireframe)
     {
-        RenderState.CullMode = ECullMode::None;
         RenderState.FillMode = EFillMode::WireFrame;
     }
     static FPipelineInfo PipelineInfo = { InputLayout, VS, FRenderResourceFactory::GetRasterizerState(RenderState), DS, PS, nullptr };
@@ -23,12 +23,14 @@ void FBillboardPass::Execute(FRenderingContext& Context)
     if (!(Context.ShowFlags & EEngineShowFlags::SF_Billboard)) return;
     for (UBillBoardComponent* BillBoardComp : Context.BillBoards)
     {
-        BillBoardComp->FaceCamera(Context.CurrentCamera->GetLocation(), Context.CurrentCamera->GetUp(), Context.CurrentCamera->GetRight());
+        // 1) 카메라를 향하는 빌보드 전용 행렬을 갱신
+        BillBoardComp->UpdateBillboardMatrix(Context.CurrentCamera->GetLocation());
 
         Pipeline->SetVertexBuffer(BillBoardComp->GetVertexBuffer(), sizeof(FNormalVertex));
         Pipeline->SetIndexBuffer(BillBoardComp->GetIndexBuffer(), 0);
 		
-        FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferModel, BillBoardComp->GetWorldTransformMatrix());
+        // 3) 모델 상수버퍼에는 '월드행렬' 대신 '빌보드 RT 행렬'을 사용
+        FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferModel, BillBoardComp->GetRTMatrix());
         Pipeline->SetConstantBuffer(0, true, ConstantBufferModel);
 
         Pipeline->SetTexture(0, false, BillBoardComp->GetSprite().second);
