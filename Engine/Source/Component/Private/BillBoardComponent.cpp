@@ -22,7 +22,7 @@ UBillBoardComponent::UBillBoardComponent()
 	IndexBuffer = ResourceManager.GetIndexbuffer(Type);
 	NumIndices = ResourceManager.GetNumIndices(Type);
 
-	RenderState.CullMode = ECullMode::Back;
+	RenderState.CullMode = ECullMode::None;
 	RenderState.FillMode = EFillMode::Solid;
 	BoundingBox = &ResourceManager.GetAABB(Type);
 
@@ -103,7 +103,7 @@ UClass* UBillBoardComponent::GetSpecificWidgetClass() const
 
 const FRenderState& UBillBoardComponent::GetClassDefaultRenderState()
 {
-    static FRenderState DefaultRenderState { ECullMode::Back, EFillMode::Solid };
+    static FRenderState DefaultRenderState { ECullMode::None, EFillMode::Solid };
     return DefaultRenderState;
 }
 

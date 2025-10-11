@@ -12,9 +12,10 @@ FBillboardPass::FBillboardPass(UPipeline* InPipeline, ID3D11Buffer* InConstantBu
 void FBillboardPass::Execute(FRenderingContext& Context)
 {
     FRenderState RenderState = UBillBoardComponent::GetClassDefaultRenderState();
-    RenderState.CullMode = ECullMode::None;
+
     if (Context.ViewMode == EViewModeIndex::VMI_Wireframe)
     {
+        RenderState.CullMode = ECullMode::None;
         RenderState.FillMode = EFillMode::WireFrame;
     }
     static FPipelineInfo PipelineInfo = { InputLayout, VS, FRenderResourceFactory::GetRasterizerState(RenderState), DS, PS, nullptr };
