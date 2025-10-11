@@ -22,16 +22,32 @@ public:
     // Primitive에서 쓰던 인터페이스 최소 복원
     bool IsVisible() const { return bVisible; }
     void SetVisibility(bool bVisibility) { bVisible = bVisibility; }
+
+    // 데칼 사이즈 API (full size)
+    void SetDecalSize(const FVector& InSize)
+    {
+        // 최소값 클램프 (0에 가까운 값 방지)
+        FVector Clamped = { std::max(0.001f, InSize.X), std::max(0.001f, InSize.Y), std::max(0.001f, InSize.Z) };
+        DecalExtent = { Clamped.X * 0.5f, Clamped.Y * 0.5f, Clamped.Z * 0.5f };
+        MarkAsDirty();
+    }
+    FVector GetDecalSize() const { return { DecalExtent.X * 2.f, DecalExtent.Y * 2.f, DecalExtent.Z * 2.f }; }
     // DecalPass가 쓰는 바운딩 볼륨
     const IBoundingVolume* GetBoundingBox();
 
     // 전용 속성 위젯 연결
     UClass* GetSpecificWidgetClass() const override;
 
+    // TODO - 테스트 못해봄
+    void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
 protected:
     UMaterial* DecalMaterial = nullptr;
     class UTexture* DecalTexture = nullptr;
+
+    bool bVisible = true;
     // 내부 보유 (Primitive가 아니므로 직접 가짐)
     IBoundingVolume* BoundingBox = nullptr;
-    bool bVisible = true;
+
+    // 내부 half-size (OBB Extents)
+    FVector DecalExtent = FVector(GDecalUnitHalfExtent, GDecalUnitHalfExtent, GDecalUnitHalfExtent);
 };

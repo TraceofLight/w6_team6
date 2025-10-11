@@ -13,6 +13,12 @@ namespace Time
 	constexpr int32 FPS_SAMPLE_COUNT = 60;
 }
 
+inline namespace DecalConfig
+{
+	// Do not change: Shader, OBB, UV 매핑과 동기화됨
+	inline constexpr float GDecalUnitHalfExtent = 0.5f;
+}
+
 constexpr float PI = 3.141592f;
 constexpr uint64 KILO = 1024;
 constexpr uint64 MEGA = 1024 * 1024;

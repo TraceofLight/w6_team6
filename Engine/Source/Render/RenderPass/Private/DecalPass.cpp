@@ -8,6 +8,7 @@
 #include "Physics/Public/OBB.h"
 #include "Texture/Public/Texture.h"
 #include "Texture/Public/TextureRenderProxy.h"
+#include "Component/Mesh/Public/StaticMeshComponent.h"
 
 FDecalPass::FDecalPass(UPipeline* InPipeline, ID3D11Buffer* InConstantBufferViewProj, ID3D11VertexShader* InVS, ID3D11PixelShader* InPS, ID3D11InputLayout* InLayout, ID3D11DepthStencilState* InDS_Read, ID3D11BlendState* InBlendState)
     : FRenderPass(InPipeline, InConstantBufferViewProj, nullptr),
@@ -39,8 +40,19 @@ void FDecalPass::Execute(FRenderingContext& Context)
 
         // --- Update Decal Constant Buffer ---
         FDecalConstants DecalConstants;
-        DecalConstants.DecalWorld = Decal->GetWorldTransformMatrix();
-        DecalConstants.DecalWorldInverse = Decal->GetWorldTransformMatrixInverse();
+
+        // 데칼의 사이즈를 추가적으로 곱해주기 위해
+        FVector Size = Decal->GetDecalSize();
+        const float Eps = 1e-4f;
+        Size.X = std::max(Size.X, Eps);
+        Size.Y = std::max(Size.Y, Eps);
+        Size.Z = std::max(Size.Z, Eps);
+
+        const FMatrix Scale = FMatrix::ScaleMatrix(Size);
+        const FMatrix ScaleInv = FMatrix::ScaleMatrixInverse(Size);
+
+        DecalConstants.DecalWorld = Scale * Decal->GetWorldTransformMatrix();
+        DecalConstants.DecalWorldInverse = Decal->GetWorldTransformMatrixInverse() * ScaleInv;
 
         FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferDecal, DecalConstants);
         Pipeline->SetConstantBuffer(2, false, ConstantBufferDecal);
@@ -67,31 +79,43 @@ void FDecalPass::Execute(FRenderingContext& Context)
                 Pipeline->SetSamplerState(0, false, Proxy->GetSampler());
             }
         }
-
+        // 1) 기존 기본 프리미티브
         for (UPrimitiveComponent* Prim : Context.DefaultPrimitives)
         {
-            if (!Prim || !Prim->IsVisible()) { continue; }
+            DrawDecalReceiver(Prim);
+        }
 
-            //const FAABB* PrimWorldAABB = static_cast<const FAABB*>(Prim->GetBoundingBox());
-
-            FModelConstants ModelConstants{ Prim->GetWorldTransformMatrix(), Prim->GetWorldTransformMatrixInverse().Transpose() };
-            FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferPrim, ModelConstants);
-            Pipeline->SetConstantBuffer(0, true, ConstantBufferPrim);
-
-            Pipeline->SetVertexBuffer(Prim->GetVertexBuffer(), sizeof(FNormalVertex));
-            if (Prim->GetIndexBuffer() && Prim->GetIndicesData())
-            {
-                Pipeline->SetIndexBuffer(Prim->GetIndexBuffer(), 0);
-                Pipeline->DrawIndexed(Prim->GetNumIndices(), 0, 0);
-            }
-            else
-            {
-                Pipeline->Draw(Prim->GetNumVertices(), 0);
-            }
+        // 2) StaticMesh도 수신자로 포함
+        for (UStaticMeshComponent* SM : Context.StaticMeshes)
+        {
+            DrawDecalReceiver(SM);
         }
     }
 }
 
+void FDecalPass::DrawDecalReceiver(UPrimitiveComponent* Prim)
+{
+    if (!Prim || !Prim->IsVisible()) return;
+
+    FModelConstants ModelConstants{
+        Prim->GetWorldTransformMatrix(),
+        Prim->GetWorldTransformMatrixInverse().Transpose()
+    };
+    FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferPrim, ModelConstants);
+    Pipeline->SetConstantBuffer(0, true, ConstantBufferPrim);
+
+    Pipeline->SetVertexBuffer(Prim->GetVertexBuffer(), sizeof(FNormalVertex));
+    if (Prim->GetIndexBuffer() && Prim->GetIndicesData())
+    {
+        Pipeline->SetIndexBuffer(Prim->GetIndexBuffer(), 0);
+        Pipeline->DrawIndexed(Prim->GetNumIndices(), 0, 0);
+    }
+    else
+    {
+        Pipeline->Draw(Prim->GetNumVertices(), 0);
+    }
+
+}
 void FDecalPass::Release()
 {
     SafeRelease(ConstantBufferPrim);

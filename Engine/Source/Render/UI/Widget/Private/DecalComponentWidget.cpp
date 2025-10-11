@@ -90,7 +90,6 @@ void UDecalComponentWidget::RenderWidget()
     if (!Decal) return;
 
     ImGui::Text("Decal");
-    ImGui::Separator();
 
     UMaterial* CurrentMat = Decal->GetMaterial();
     FString Preview = CurrentMat ? GetMaterialDisplayName(CurrentMat) : "None";
@@ -110,5 +109,15 @@ void UDecalComponentWidget::RenderWidget()
         }
         ImGui::EndCombo();
     }
-
+    // 사이즈 편집
+    FVector Size = Decal->GetDecalSize();
+    float SizeArr[3] = { Size.X, Size.Y, Size.Z };
+    if (ImGui::DragFloat3("Decal Size", SizeArr, 0.01f, 0.001f, 1000.0f))
+    {
+        // 최소값 방어
+        SizeArr[0] = std::max(0.001f, SizeArr[0]);
+        SizeArr[1] = std::max(0.001f, SizeArr[1]);
+        SizeArr[2] = std::max(0.001f, SizeArr[2]);
+        Decal->SetDecalSize(FVector(SizeArr[0], SizeArr[1], SizeArr[2]));
+    }
 }
