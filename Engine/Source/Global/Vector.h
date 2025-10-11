@@ -138,6 +138,25 @@ struct FVector
 		return Diff.LengthSquared();
 	}
 
+	/**
+	 * @brief Static Dot 함수
+	 */
+	static float Dot(const FVector& V1, const FVector& V2)
+	{
+		return (V1.X * V2.X) + (V1.Y * V2.Y) + (V1.Z * V2.Z);
+	}
+
+	/**
+	 * @brief Static Cross 함수
+	 */
+	static FVector Cross(const FVector& V1, const FVector& V2)
+	{
+		return FVector(
+			V1.Y * V2.Z - V1.Z * V2.Y,
+			V1.Z * V2.X - V1.X * V2.Z,
+			V1.X * V2.Y - V1.Y * V2.X
+		);
+	}
 
 	// Constant Vector (definition from UE5)
 	static FVector ZeroVector() { return {0.0f, 0.0f, 0.0f}; }
@@ -206,6 +225,14 @@ struct FVector2
 	 * @brief 자신의 벡터의 각 성분을 제곱하여 더한 값을 반환하는 함수 (루트 사용 X)
 	 */
 	inline float LengthSquared() const { return (X * X) + (Y * Y); }
+
+	/**
+	 * @brief Static Dot 함수
+	 */
+	static float Dot(const FVector2& V1, const FVector2& V2)
+	{
+		return (V1.X * V2.X) + (V1.Y * V2.Y);
+	}
 };
 
 FArchive& operator<<(FArchive& Ar, FVector2& Vector);
@@ -307,6 +334,14 @@ struct alignas(16) FVector4
 		return X * InOtherVector.X + Y * InOtherVector.Y + Z * InOtherVector.Z;
 	}
 
+	/**
+	 * @brief Static Dot 함수
+	 */
+	static float Dot(const FVector4& V1, const FVector4& V2)
+	{
+		return (V1.X * V2.X) + (V1.Y * V2.Y) + (V1.Z * V2.Z) + (V1.W * V2.W);
+	}
+	
 	// Constant Vector (definition from UE5)
 	static FVector4 ZeroVector() { return { 0.0f, 0.0f, 0.0f, 1.0f }; }
 	static FVector4 OneVector() { return { 1.0f, 1.0f, 1.0f, 1.0f }; }
