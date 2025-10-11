@@ -46,9 +46,22 @@ void FDecalPass::Execute(FRenderingContext& Context)
         Pipeline->SetConstantBuffer(2, false, ConstantBufferDecal);
 
         // --- Bind Decal Texture ---
-        if (UTexture* DecalTexture = Decal->GetTexture())
+        UTexture* BoundTexture = nullptr;
+        if (UMaterial* Mat = Decal->GetMaterial())
         {
-            if (auto* Proxy = DecalTexture->GetRenderProxy())
+            // 알파 먼저(데칼 컷아웃에 유용), 없으면 디퓨즈, 없으면 앰비언트
+            BoundTexture = Mat->GetAlphaTexture();
+            if (!BoundTexture) BoundTexture = Mat->GetDiffuseTexture();
+            if (!BoundTexture) BoundTexture = Mat->GetAmbientTexture();
+        }
+        if (!BoundTexture)
+        {
+            BoundTexture = Decal->GetTexture(); // 최후 폴백
+        }
+
+        if (BoundTexture)
+        {
+            if (auto* Proxy = BoundTexture->GetRenderProxy())
             {
                 Pipeline->SetTexture(0, false, Proxy->GetSRV());
                 Pipeline->SetSamplerState(0, false, Proxy->GetSampler());

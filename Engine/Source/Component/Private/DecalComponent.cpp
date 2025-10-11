@@ -3,6 +3,7 @@
 #include "Physics/Public/OBB.h"
 #include "Manager/Asset/Public/AssetManager.h"
 #include "Texture/Public/Texture.h"
+#include "Render/UI/Widget/Public/DecalComponentWidget.h"
 
 IMPLEMENT_CLASS(UDecalComponent, USceneComponent)
 
@@ -21,4 +22,9 @@ UDecalComponent::~UDecalComponent()
 const IBoundingVolume* UDecalComponent::GetBoundingBox()
 {
     return BoundingBox;
+}
+
+UClass* UDecalComponent::GetSpecificWidgetClass() const
+{
+    return UDecalComponentWidget::StaticClass();
 }

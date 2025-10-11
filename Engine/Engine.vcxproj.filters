@@ -371,6 +371,7 @@
     <ClCompile Include="Source\Component\Private\DecalComponent.cpp" />
     <ClCompile Include="Source\Actor\Private\DecalActor.cpp" />
     <ClCompile Include="Source\Render\RenderPass\Private\DecalPass.cpp" />
+    <ClCompile Include="Source\Render\UI\Widget\Private\DecalComponentWidget.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
@@ -765,6 +766,7 @@
     <ClInclude Include="Source\Component\Public\DecalComponent.h" />
     <ClInclude Include="Source\Actor\Public\DecalActor.h" />
     <ClInclude Include="Source\Render\RenderPass\Public\DecalPass.h" />
+    <ClInclude Include="Source\Render\UI\Widget\Public\DecalComponentWidget.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Source">

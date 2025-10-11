@@ -62,7 +62,7 @@ class UMaterial : public UObject
 
 public:
 	UMaterial() {};
-	UMaterial(const FName& InName) {};
+	UMaterial(const FName& InName) : UObject(InName) {};
 	~UMaterial() override;
 
 	FVector GetAmbientColor() const { return MaterialData.Ka; }

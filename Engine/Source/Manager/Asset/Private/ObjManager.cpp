@@ -199,6 +199,22 @@ void FObjManager::CreateMaterialsFromMTL(UStaticMesh* StaticMesh, FStaticMesh* S
 		const FMaterial& MaterialInfo = StaticMeshAsset->MaterialInfo[i];
 		auto* Material = new UMaterial();
 
+		// 머티리얼 표시용 이름 우선순위: MTL Name > KdMap 파일명 > Fallback
+		if (!MaterialInfo.Name.empty())
+		{
+			Material->SetName(FName(MaterialInfo.Name));
+		}
+		else if (!MaterialInfo.KdMap.empty())
+		{
+			std::filesystem::path kd(MaterialInfo.KdMap);
+			Material->SetName(FName(kd.stem().generic_string()));
+		}
+		else
+		{
+			Material->SetName(FName(FNameTable::GetInstance().GetUniqueName("Material").ToString()));
+		}
+
+
 		// Diffuse 텍스처 로드 (map_Kd)
 		if (!MaterialInfo.KdMap.empty())
 		{
