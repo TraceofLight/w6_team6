@@ -3,6 +3,7 @@
 #include "Level/Public/Level.h"
 
 class UMaterial;
+class USpriteMaterial;
 class ULevel;
 
 UCLASS()
@@ -14,8 +15,11 @@ public:
     UDecalComponent();
     ~UDecalComponent();
     // 머티리얼 기반으로 전환
-    void SetMaterial(UMaterial* InMaterial) { DecalMaterial = InMaterial; }
+    void SetMaterial(UMaterial* InMaterial);
     UMaterial* GetMaterial() const { return DecalMaterial; }
+
+    void SetSpriteMaterial(USpriteMaterial* InMaterial);
+    USpriteMaterial* GetSpriteMaterial() const { return SpriteMaterial; }
 
     // 하위 호환: 텍스처 선택
     void SetTexture(class UTexture* InTexture) { DecalTexture = InTexture; }
@@ -73,6 +77,7 @@ public:
 protected:
     UMaterial* DecalMaterial = nullptr;
     class UTexture* DecalTexture = nullptr;
+    USpriteMaterial* SpriteMaterial = nullptr;
 
     bool bVisible = true;
     // 내부 보유 (Primitive가 아니므로 직접 가짐)
@@ -81,6 +86,9 @@ protected:
     // 내부 half-size (OBB Extents)
     FVector DecalExtent = FVector(GDecalUnitHalfExtent, GDecalUnitHalfExtent, GDecalUnitHalfExtent);
 private:
+    void RefreshTickState();
+    bool NeedsTick() const;
+
     // ============ Fade ============
     enum class EFadePhase : uint8 
     {

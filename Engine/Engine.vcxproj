@@ -451,6 +451,7 @@
     <ClInclude Include="Source\Render\UI\Window\Public\UIWindow.h" />
     <ClInclude Include="Source\Render\UI\Window\Public\ViewportClientWindow.h" />
     <ClInclude Include="Source\Texture\Public\Material.h" />
+    <ClInclude Include="Source\Texture\Public\SpriteMaterial.h" />
     <ClInclude Include="Source\Texture\Public\Texture.h" />
     <ClInclude Include="Source\Texture\Public\TextureRenderProxy.h" />
     <ClInclude Include="Source\Utility\Public\ActorTypeMapper.h">
@@ -598,8 +599,9 @@
     <ClCompile Include="Source\Render\UI\Window\Private\UIWindow.cpp" />
     <ClCompile Include="Source\Render\UI\Window\Private\ViewportClientWindow.cpp" />
     <ClCompile Include="Source\Texture\Private\Material.cpp">
-      <DeploymentContent>false</DeploymentContent>
-    </ClCompile>
+       <DeploymentContent>false</DeploymentContent>
+     </ClCompile>
+    <ClCompile Include="Source\Texture\Private\SpriteMaterial.cpp" />
     <ClCompile Include="Source\Texture\Private\Texture.cpp" />
     <ClCompile Include="Source\Utility\Private\ActorTypeMapper.cpp">
       <DeploymentContent>false</DeploymentContent>

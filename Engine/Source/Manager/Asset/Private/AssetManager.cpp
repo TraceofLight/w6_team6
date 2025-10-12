@@ -7,8 +7,111 @@
 #include "Physics/Public/AABB.h"
 #include "Texture/Public/TextureRenderProxy.h"
 #include "Texture/Public/Texture.h"
+#include "Texture/Public/SpriteMaterial.h"
 #include "Manager/Asset/Public/ObjManager.h"
 #include "Render/Renderer/Public/RenderResourceFactory.h"
+
+#include <unordered_map>
+#include <algorithm>
+#include <sstream>
+
+namespace
+{
+	struct FSpriteMaterialMetadata
+	{
+		int32 Rows = 1;
+		int32 Cols = 1;
+		float FPS = 10.0f;
+		bool bLoop = true;
+		bool bAutoPlay = true;
+		int32 StartFrame = 0;
+		bool bHasSubUVData = false;
+	};
+
+	std::unordered_map<std::string, FSpriteMaterialMetadata> ParseSpriteMaterialMetadata(const std::filesystem::path& FilePath)
+	{
+		std::unordered_map<std::string, FSpriteMaterialMetadata> Result;
+		std::ifstream File(FilePath);
+		if (!File)
+		{
+			return Result;
+		}
+
+		std::string Line;
+		std::string CurrentMaterialName;
+		FSpriteMaterialMetadata CurrentMetadata;
+
+		auto CommitCurrentMaterial = [&]()
+		{
+			if (!CurrentMaterialName.empty() && CurrentMetadata.bHasSubUVData)
+			{
+				Result.emplace(CurrentMaterialName, CurrentMetadata);
+			}
+
+			CurrentMaterialName.clear();
+			CurrentMetadata = FSpriteMaterialMetadata{};
+		};
+
+		while (std::getline(File, Line))
+		{
+			std::istringstream Stream(Line);
+			std::string Prefix;
+			if (!(Stream >> Prefix))
+			{
+				continue;
+			}
+
+			if (Prefix == "newmtl")
+			{
+				CommitCurrentMaterial();
+				Stream >> CurrentMaterialName;
+				continue;
+			}
+
+			if (Prefix == "subuv_rows")
+			{
+				Stream >> CurrentMetadata.Rows;
+				CurrentMetadata.Rows = std::max(1, CurrentMetadata.Rows);
+				CurrentMetadata.bHasSubUVData = true;
+			}
+			else if (Prefix == "subuv_cols")
+			{
+				Stream >> CurrentMetadata.Cols;
+				CurrentMetadata.Cols = std::max(1, CurrentMetadata.Cols);
+				CurrentMetadata.bHasSubUVData = true;
+			}
+			else if (Prefix == "subuv_fps")
+			{
+				Stream >> CurrentMetadata.FPS;
+				CurrentMetadata.FPS = std::max(0.1f, CurrentMetadata.FPS);
+				CurrentMetadata.bHasSubUVData = true;
+			}
+			else if (Prefix == "subuv_loop")
+			{
+				int32 LoopValue = 1;
+				Stream >> LoopValue;
+				CurrentMetadata.bLoop = LoopValue != 0;
+				CurrentMetadata.bHasSubUVData = true;
+			}
+			else if (Prefix == "subuv_autoplay")
+			{
+				int32 AutoValue = 1;
+				Stream >> AutoValue;
+				CurrentMetadata.bAutoPlay = AutoValue != 0;
+				CurrentMetadata.bHasSubUVData = true;
+			}
+			else if (Prefix == "subuv_startframe")
+			{
+				Stream >> CurrentMetadata.StartFrame;
+				CurrentMetadata.StartFrame = std::max(0, CurrentMetadata.StartFrame);
+				CurrentMetadata.bHasSubUVData = true;
+			}
+		}
+
+		CommitCurrentMaterial();
+		return Result;
+	}
+}
 
 IMPLEMENT_SINGLETON_CLASS_BASE(UAssetManager)
 
@@ -675,11 +778,14 @@ TArray<UMaterial*> UAssetManager::LoadMaterialsFromMTL(const FName& InMtlPath)
 
 	// FObjInfo를 임시로 생성 (mtl 데이터를 받기 위해)
 	FObjInfo TempObjInfo;
+	const std::string MtlPathString = InMtlPath.ToString();
+	const std::filesystem::path MtlPath = std::filesystem::path(MtlPathString);
+	auto SpriteMetadataByMaterial = ParseSpriteMaterialMetadata(MtlPath);
 
 	// ObjImporter의 LoadMaterial 함수 호출
-	if (!FObjImporter::LoadMaterial(InMtlPath.ToString(), &TempObjInfo))
+	if (!FObjImporter::LoadMaterial(MtlPathString, &TempObjInfo))
 	{
-		UE_LOG_ERROR("AssetManager: MTL 파일 로드 실패 - %s", InMtlPath.ToString().c_str());
+		UE_LOG_ERROR("AssetManager: MTL 파일 로드 실패 - %s", MtlPathString.c_str());
 		return LoadedMaterials;
 	}
 
@@ -701,17 +807,43 @@ TArray<UMaterial*> UAssetManager::LoadMaterialsFromMTL(const FName& InMtlPath)
 			continue;
 		}
 
-		UMaterial* NewMaterial = NewObject<UMaterial>();
-		NewMaterial->SetName(MatName);
-		
-		if (!NewMaterial)
+		UMaterial* NewMaterial = nullptr;
+
+		if (auto SpriteMetaIter = SpriteMetadataByMaterial.find(MatInfo.Name); SpriteMetaIter != SpriteMetadataByMaterial.end())
 		{
-			UE_LOG_ERROR("AssetManager: UMaterial 생성 실패 - %s", MatInfo.Name.c_str());
-			continue;
+			const FSpriteMaterialMetadata& Meta = SpriteMetaIter->second;
+			USpriteMaterial* SpriteMaterial = NewObject<USpriteMaterial>();
+			if (!SpriteMaterial)
+			{
+				UE_LOG_ERROR("AssetManager: SpriteMaterial 생성 실패 - %s", MatInfo.Name.c_str());
+				continue;
+			}
+
+			SpriteMaterial->SetSubUVParams(Meta.Rows, Meta.Cols, Meta.FPS);
+			SpriteMaterial->SetLooping(Meta.bLoop);
+			SpriteMaterial->SetAutoPlay(Meta.bAutoPlay);
+			SpriteMaterial->SetCurrentFrame(std::clamp(Meta.StartFrame, 0, std::max(0, SpriteMaterial->GetTotalFrames() - 1)));
+			if (!Meta.bAutoPlay)
+			{
+				SpriteMaterial->Pause();
+			}
+
+			NewMaterial = SpriteMaterial;
+		}
+		else
+		{
+			NewMaterial = NewObject<UMaterial>();
+			if (!NewMaterial)
+			{
+				UE_LOG_ERROR("AssetManager: UMaterial 생성 실패 - %s", MatInfo.Name.c_str());
+				continue;
+			}
 		}
 
+		NewMaterial->SetName(MatName);
+
 		// 텍스처 로드 및 설정
-		std::filesystem::path MtlDir = std::filesystem::path(InMtlPath.ToString()).parent_path();
+		std::filesystem::path MtlDir = MtlPath.parent_path();
 
 		if (!MatInfo.KdMap.empty())
 		{

@@ -13,6 +13,7 @@ struct FDecalConstants
     FMatrix DecalWorld;
     FMatrix DecalWorldInverse;
     FVector4 DecalFadeParams; // x = FadeAlpha, YZW = padding
+    FVector4 SubUVParams; // (Rows, Cols, CurrentFrame, TotalFrames)
 };
 
 class FDecalPass : public FRenderPass

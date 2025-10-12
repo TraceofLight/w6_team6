@@ -8,6 +8,7 @@
 #include "Physics/Public/OBB.h"
 #include "Texture/Public/Texture.h"
 #include "Texture/Public/TextureRenderProxy.h"
+#include "Texture/Public/SpriteMaterial.h"
 #include "Component/Mesh/Public/StaticMeshComponent.h"
 #include "Level/Public/Level.h"
 
@@ -57,6 +58,12 @@ void FDecalPass::Execute(FRenderingContext& Context)
         DecalConstants.DecalWorld = Scale * Decal->GetWorldTransformMatrix();
         DecalConstants.DecalWorldInverse = Decal->GetWorldTransformMatrixInverse() * ScaleInv;
         DecalConstants.DecalFadeParams = FVector4(Decal->GetFadeAlpha(), 0, 0, 0);
+        DecalConstants.SubUVParams = FVector4(1.0f, 1.0f, 0.0f, 1.0f);
+
+        if (USpriteMaterial* SpriteMaterial = Decal->GetSpriteMaterial())
+        {
+            DecalConstants.SubUVParams = SpriteMaterial->GetSubUVParams();
+        }
 
         FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferDecal, DecalConstants);
         Pipeline->SetConstantBuffer(2, false, ConstantBufferDecal);

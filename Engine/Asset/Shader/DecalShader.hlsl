@@ -15,6 +15,7 @@ cbuffer DecalConstants : register(b2)
     row_major float4x4 DecalWorld;
     row_major float4x4 DecalWorldInverse;
     float4 DecalFadeParams; // x = FadeAlpha[0..1]
+    float4 SubUVParams;     // (Rows, Cols, CurrentFrame, TotalFrames)
 };
 
 Texture2D DecalTexture : register(t0);
@@ -49,6 +50,22 @@ PS_INPUT mainVS(VS_INPUT Input)
     return Output;
 }
 
+float2 CalculateSubUVCoord(float2 BaseUV, float4 Params)
+{
+    float Rows = max(1.0f, Params.x);
+    float Cols = max(1.0f, Params.y);
+    int Frame = (int)Params.z;
+
+    int RowIndex = Frame / (int)Cols;
+    int ColIndex = Frame - RowIndex * (int)Cols;
+
+    float2 CellSize = float2(1.0f / Cols, 1.0f / Rows);
+    float2 CellUV = BaseUV * CellSize;
+    float2 CellOffset = float2((float)ColIndex, (float)RowIndex) * CellSize;
+
+    return CellUV + CellOffset;
+}
+
 float4 mainPS(PS_INPUT Input) : SV_TARGET
 {
 	// Normal Test
@@ -66,7 +83,8 @@ float4 mainPS(PS_INPUT Input) : SV_TARGET
     }
 
 	// UV Transition ([-0.5~0.5], [-0.5~0.5]) -> ([0~1.0], [1.0~0])
-    float2 DecalUV = DecalLocalPos.yz * float2(1, -1) + 0.5f;
+    float2 BaseUV = DecalLocalPos.yz * float2(1, -1) + 0.5f;
+    float2 DecalUV = CalculateSubUVCoord(BaseUV, SubUVParams);
     float4 DecalColor = DecalTexture.Sample(DecalSampler, DecalUV);
     DecalColor.a *= DecalFadeParams.x; // fade 적용
     if (DecalColor.a < 0.001f)
