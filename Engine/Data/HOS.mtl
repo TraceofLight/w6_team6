@@ -1,0 +1,22 @@
+# SubUV material example for Sprite_1_6.png
+newmtl Gizmos
+Kd 1.0 1.0 1.0
+Ka 0.0 0.0 0.0
+Ks 0.0 0.0 0.0
+Ns 0.0
+Ni 1.0
+d 1.0
+illum 1
+
+# Sprite sheet texture (1 row x 6 columns)
+map_Kd HOS_SubUV.png
+map_d HOS_SubUV.png
+
+# SubUV metadata (parsed by AssetManager)
+subuv_rows 16
+subuv_cols 15
+subuv_fps 45.0
+subuv_loop 1
+subuv_autoplay 1
+subuv_startframe 0
+
