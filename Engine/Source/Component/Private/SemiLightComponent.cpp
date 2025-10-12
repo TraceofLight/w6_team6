@@ -11,7 +11,8 @@ IMPLEMENT_CLASS(USemiLightComponent, USceneComponent)
 
 USemiLightComponent::USemiLightComponent()
 {
-	// 컴포넌트는 Actor의 생성자에서 생성됨
+	// Scale 변경 감지를 위해 Tick 활성화
+	bCanEverTick = true;
 }
 
 USemiLightComponent::~USemiLightComponent() = default;
@@ -34,36 +35,9 @@ void USemiLightComponent::BeginPlay()
 void USemiLightComponent::TickComponent()
 {
 	Super::TickComponent();
-}
 
-void USemiLightComponent::SynchronizePropertiesFromDecal()
-{
-	if (!DecalComponent)
-	{
-		return;
-	}
-
-	// Decal 크기를 DecalBoxSize에 반영
-	const FVector NewDecalSize = DecalComponent->GetDecalSize();
-	DecalBoxSize = NewDecalSize;
-
-	// 새로운 박스 크기에 맞는 최대 각도 계산
-	const float MaxAngle = GetMaxAngleForDecalBox();
-
-	// 현재 각도가 최대치를 초과하면 자동으로 조정
-	if (SpotAngle > MaxAngle)
-	{
-		SpotAngle = MaxAngle;
-
-		// DecalComponent의 SpotAngle도 업데이트
-		if (DecalComponent)
-		{
-			DecalComponent->SetSpotAngle(SpotAngle);
-		}
-	}
-
-	// 프로퍼티가 변경되었으므로, 위치 등을 다시 동기화
-	UpdateDecalProperties();
+	SetWorldScale3D({1.0f, 1.0f, 1.0f});
+	UpdateDecalBoxFromScale();
 }
 
 void USemiLightComponent::SetDecalTexture(UTexture* InTexture)
@@ -98,9 +72,26 @@ void USemiLightComponent::SetBlendFactor(float InFactor)
 	}
 }
 
-void USemiLightComponent::SetProjectionDistance(float InDistance)
+void USemiLightComponent::SetProjectionDistance3D(const FVector& InDistance)
 {
-	ProjectionDistance = InDistance;
+	ProjectionDistance3D = InDistance;
+	UpdateDecalProperties();
+
+	// 새로운 박스 크기에 맞는 최대 각도 계산
+	const float MaxAngle = GetMaxAngleForDecalBox();
+
+	// 현재 각도가 최대치를 초과하면 자동으로 조정
+	if (SpotAngle > MaxAngle)
+	{
+		SpotAngle = MaxAngle;
+
+		// DecalComponent의 SpotAngle도 업데이트
+		if (DecalComponent)
+		{
+			DecalComponent->SetSpotAngle(SpotAngle);
+		}
+	}
+
 	UpdateDecalProperties();
 }
 
@@ -120,9 +111,8 @@ void USemiLightComponent::UpdateDecalProperties()
 	// 데칼의 로컬 X 방향이 투사 방향(월드 -Z)이므로 DecalBoxSize.X를 사용
 	const float BoxDepth = DecalBoxSize.X;
 
-	// 광원 위치(원점)부터 박스가 시작되도록 중심을 -Z 방향으로 BoxDepth/2만큼 이동
-	// 박스의 로컬 X=-BoxDepth/2가 월드 Z=0(광원)에 위치
-	const FVector DecalRelativeLocation = FVector(0.0f, 0.0f, -BoxDepth * 0.5f);
+	// 광원 위치(원점)부터 박스가 시작되도록 중심을 X 방향으로 BoxDepth/2만큼 이동
+	const FVector DecalRelativeLocation = FVector(BoxDepth * 0.5f, 0.0f, 0.0f);
 
 	// 데칼 박스 크기는 DecalBoxSize 그대로 사용
 	DecalComponent->SetRelativeLocation(DecalRelativeLocation);
@@ -148,6 +138,24 @@ float USemiLightComponent::GetMaxAngleForDecalBox() const
 	const float MaxAngle = FVector::GetRadianToDegree(2.0f * atanf(BoxRadius / BoxDepth));
 
 	return MaxAngle;
+}
+
+void USemiLightComponent::UpdateDecalBoxFromScale()
+{
+	// Scale에 따라 DecalBoxSize 업데이트
+	FVector CurrentScale = GetWorldScale3D();
+
+	// DecalComponent는 Y축 90도 회전 → 로컬 X축=부모 -Z, 로컬 Y=부모 Y, 로컬 Z=부모 X
+	// DecalBoxSize는 DecalComponent 로컬 좌표계 기준
+	DecalBoxSize.X = ProjectionDistance3D.X * CurrentScale.Z;  // DecalBox 깊이 (투사 방향) = 부모 Z Scale
+	DecalBoxSize.Y = ProjectionDistance3D.Y * CurrentScale.Y;  // DecalBox Y 반경 = 부모 Y Scale
+	DecalBoxSize.Z = ProjectionDistance3D.Z * CurrentScale.X;  // DecalBox Z 반경 = 부모 X Scale
+
+	// Decal 프로퍼티 업데이트
+	UpdateDecalProperties();
+
+	// SpotAngle도 최대치를 넘지 않도록 재조정
+	SetSpotAngle(SpotAngle);
 }
 
 void USemiLightComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)

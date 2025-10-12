@@ -228,11 +228,28 @@ void UEditor::UpdateBatchLines()
 				const FVector Apex = SemiLightComponent->GetWorldLocation();
 				const float Angle = SemiLightComponent->GetSpotAngle();
 				const FVector DecalBoxSize = SemiLightComponent->GetDecalBoxSize();
-				const float Depth = DecalBoxSize.X;
-				const float RadiusX = DecalBoxSize.Y * 0.5f;
-				const float RadiusY = DecalBoxSize.Z * 0.5f;
 
-				BatchLines.UpdateConeVertices(Apex, Angle, Depth, RadiusX, RadiusY);
+				// DecalComponent의 WorldTransform 행렬에서 직접 축 벡터 추출
+				UDecalComponent* DecalComponent = SemiLightComponent->GetDecalComponent();
+				if (DecalComponent)
+				{
+					const FMatrix& DecalWorldMatrix = DecalComponent->GetWorldTransformMatrix();
+
+					// Row-major 행렬: Data[row][column]
+					// X축 = Data[0][0~2], Y축 = Data[1][0~2], Z축 = Data[2][0~2]
+					FVector Direction = FVector(DecalWorldMatrix.Data[0][0],
+					                            DecalWorldMatrix.Data[0][1],
+					                            DecalWorldMatrix.Data[0][2]);
+					FVector UpVector = FVector(DecalWorldMatrix.Data[1][0],
+					                          DecalWorldMatrix.Data[1][1],
+					                          DecalWorldMatrix.Data[1][2]);
+
+					Direction.Normalize();
+					UpVector.Normalize();
+
+					BatchLines.UpdateConeVertices(Apex, Direction, UpVector, Angle, DecalBoxSize);
+				}
+
 				BatchLines.DisableRenderBoundingBox();
 				return;
 			}

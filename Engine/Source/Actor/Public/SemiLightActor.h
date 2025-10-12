@@ -25,8 +25,8 @@ public:
 	// 하위 호환성을 위한 Forwarding API
 	void SetDecalTexture(UTexture* InTexture);
 	void SetSpotAngle(float InAngle);
-	void SetProjectionDistance(float InDistance);
-	virtual UClass* GetDefaultRootComponent() override;
+	void SetProjectionDistance3D(const FVector& InDistance) const;
+	UClass* GetDefaultRootComponent() override;
 	void InitializeComponents() override;
 private:
 	USemiLightComponent* SemiLightComponent = nullptr;

@@ -66,9 +66,10 @@ void UBatchLines::UpdateBoundingBoxVertices(const IBoundingVolume* NewBoundingVo
 	bChangedVertices = true;
 }
 
-void UBatchLines::UpdateConeVertices(const FVector& Apex, float Angle, float Depth, float RadiusX, float RadiusY)
+void UBatchLines::UpdateConeVertices(const FVector& Apex, const FVector& Direction, const FVector& UpVector,
+                                     float Angle, const FVector& DecalBoxSize)
 {
-	ConeLines.UpdateVertices(Apex, Angle, Depth, RadiusX, RadiusY);
+	ConeLines.UpdateVertices(Apex, Direction, UpVector, Angle, DecalBoxSize);
 	ConeLines.MergeVerticesAt(Vertices, Grid.GetNumVertices() + BoundingBoxLines.GetNumVertices());
 	bChangedVertices = true;
 }

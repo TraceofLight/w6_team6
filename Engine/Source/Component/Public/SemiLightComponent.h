@@ -14,54 +14,51 @@ class UTexture;
 UCLASS()
 class USemiLightComponent : public USceneComponent
 {
-	GENERATED_BODY()
-	DECLARE_CLASS(USemiLightComponent, USceneComponent)
+    GENERATED_BODY()
+    DECLARE_CLASS(USemiLightComponent, USceneComponent)
 
 public:
-	USemiLightComponent();
-	~USemiLightComponent() override;
+    USemiLightComponent();
+    ~USemiLightComponent() override;
 
-	void BeginPlay() override;
-	void TickComponent() override;
+    void BeginPlay() override;
+    void TickComponent() override;
 
-	// Component Setters (Actor에서 생성 후 설정)
-	void SetIconComponent(UBillBoardComponent* InIconComponent);
-	void SetDecalComponent(UDecalComponent* InDecalComponent);
+    // Component Setters (Actor에서 생성 후 설정)
+    void SetIconComponent(UBillBoardComponent* InIconComponent);
+    void SetDecalComponent(UDecalComponent* InDecalComponent);
 
-	// Public API
-	void SetDecalTexture(UTexture* InTexture);
-	void SetSpotAngle(float InAngle);
-	void SetProjectionDistance(float InDistance);
-	void SetBlendFactor(float InFactor);
-	void SetDecalBoxSize(const FVector& InSize);
+    // Public API
+    void SetDecalTexture(UTexture* InTexture);
+    void SetSpotAngle(float InAngle);
+    void SetBlendFactor(float InFactor);
+    void SetProjectionDistance3D(const FVector& InDistance);
+    void SetDecalBoxSize(const FVector& InSize);
 
-	// 에디터에서 Decal 위젯을 조작했을 때 호출할 동기화 함수
-	void SynchronizePropertiesFromDecal();
+    float GetSpotAngle() const { return SpotAngle; }
+    FVector GetProjectionDistance3D() const { return ProjectionDistance3D; }
+    float GetBlendFactor() const { return BlendFactor; }
+    FVector GetDecalBoxSize() const { return DecalBoxSize; }
+    float GetMaxAngleForDecalBox() const;
 
-	float GetSpotAngle() const { return SpotAngle; }
-	float GetProjectionDistance() const { return ProjectionDistance; }
-	float GetBlendFactor() const { return BlendFactor; }
-	FVector GetDecalBoxSize() const { return DecalBoxSize; }
-	float GetMaxAngleForDecalBox() const;
-
-	UBillBoardComponent* GetIconComponent() const { return IconComponent; }
-	UDecalComponent* GetDecalComponent() const { return DecalComponent; }
-
-	// Serialization
-	void Serialize(bool bInIsLoading, JSON& InOutHandle) override;
+    UBillBoardComponent* GetIconComponent() const { return IconComponent; }
+    UDecalComponent* GetDecalComponent() const { return DecalComponent; }
+    // Serialization
+    void Serialize(bool bInIsLoading, JSON& InOutHandle) override;
 
 private:
-	void UpdateDecalProperties();
+    void UpdateDecalProperties();
+    void UpdateDecalBoxFromScale();
 
-	// Child Components
-	UBillBoardComponent* IconComponent = nullptr;
-	UDecalComponent* DecalComponent = nullptr;
+    // Child Components
+    UBillBoardComponent* IconComponent = nullptr;
+    UDecalComponent* DecalComponent = nullptr;
 
 	// Properties
 	float SpotAngle = 45.0f;
-	float ProjectionDistance = 500.0f;
+	FVector ProjectionDistance3D = FVector(10.f, 10.f, 10.f);
 	float BlendFactor = 1.0f;
-	FVector DecalBoxSize = FVector(10.0f, 10.0f, 10.0f);  // 기본 박스 크기
+	FVector DecalBoxSize = FVector(10.0f, 10.0f, 10.0f);
 public:
 	virtual UObject* Duplicate() override;
 protected:

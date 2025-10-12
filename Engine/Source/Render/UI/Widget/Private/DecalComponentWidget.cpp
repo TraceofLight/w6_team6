@@ -124,7 +124,7 @@ void UDecalComponentWidget::RenderWidget()
         // 부모가 SemiLightComponent이면 역동기화
         if(USemiLightComponent* SemiLight = Cast<USemiLightComponent>(Decal->GetParentAttachment()))
         {
-            SemiLight->SynchronizePropertiesFromDecal();
+            SemiLight->SetProjectionDistance3D(FVector(SizeArr[0], SizeArr[1], SizeArr[2]));
         }
     }
 
