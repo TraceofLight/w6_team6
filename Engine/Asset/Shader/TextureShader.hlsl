@@ -101,5 +101,7 @@ float4 mainPS(PS_INPUT input) : SV_TARGET
 	float2 ScrollSpeed = float2(0.0f, 0.1f);
 	float2 UV = frac(input.tex + ScrollSpeed * Time);
 	float4 texColor = DiffuseTexture.Sample(SamplerWrap, UV);
+	// 빌보드 투명하게 보이게
+    clip(texColor.a - 0.1f);
 	return texColor;
 }
