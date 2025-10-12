@@ -252,17 +252,19 @@ void URenderer::RenderLevel(UCamera* InCurrentCamera)
 {
 	const ULevel* CurrentLevel = GWorld->GetLevel();
 	if (!CurrentLevel) { return; }
-
-	// 오클루전 컬링 수행
-	TIME_PROFILE(Occlusion)
-	static COcclusionCuller Culler;
+	
 	const FViewProjConstants& ViewProj = InCurrentCamera->GetFViewProjConstants();
-	Culler.InitializeCuller(ViewProj.View, ViewProj.Projection);
-	TArray<UPrimitiveComponent*> FinalVisiblePrims = Culler.PerformCulling(
-		InCurrentCamera->GetViewVolumeCuller().GetRenderableObjects(),
-		InCurrentCamera->GetLocation()
-	);
-	TIME_PROFILE_END(Occlusion)
+	TArray<UPrimitiveComponent*> FinalVisiblePrims = InCurrentCamera->GetViewVolumeCuller().GetRenderableObjects();
+
+	// // 오클루전 컬링 수행
+	// TIME_PROFILE(Occlusion)
+	// static COcclusionCuller Culler;
+	// Culler.InitializeCuller(ViewProj.View, ViewProj.Projection);
+	// FinalVisiblePrims = Culler.PerformCulling(
+	// 	InCurrentCamera->GetViewVolumeCuller().GetRenderableObjects(),
+	// 	InCurrentCamera->GetLocation()
+	// );
+	// TIME_PROFILE_END(Occlusion)
 
 	FRenderingContext RenderingContext(&ViewProj, InCurrentCamera, GEditor->GetEditorModule()->GetViewMode(), CurrentLevel->GetShowFlags());
 	RenderingContext.AllPrimitives = FinalVisiblePrims;
