@@ -56,7 +56,7 @@ void FDecalPass::Execute(FRenderingContext& Context)
         DecalConstants.DecalWorld = Scale * Decal->GetWorldTransformMatrix();
         DecalConstants.DecalWorldInverse = Decal->GetWorldTransformMatrixInverse() * ScaleInv;
         DecalConstants.SpotAngle = Decal->GetSpotAngle();
-        DecalConstants.Padding1 = 0.0f;
+        DecalConstants.BlendFactor = Decal->GetBlendFactor();
         DecalConstants.Padding2 = 0.0f;
         DecalConstants.Padding3 = 0.0f;
 

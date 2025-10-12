@@ -5,9 +5,6 @@ class UBillBoardComponent;
 class UDecalComponent;
 class UTexture;
 
-namespace json { class JSON; }
-using JSON = json::JSON;
-
 /**
  * @brief 스포트라이트 효과를 위한 통합 컴포넌트
  * - 원점 표시용 빌보드 아이콘 (스포트라이트 심볼)
@@ -35,18 +32,23 @@ public:
 	void SetDecalTexture(UTexture* InTexture);
 	void SetSpotAngle(float InAngle);
 	void SetProjectionDistance(float InDistance);
+	void SetBlendFactor(float InFactor);
+	void SetDecalBoxSize(const FVector& InSize);
 
 	// 에디터에서 Decal 위젯을 조작했을 때 호출할 동기화 함수
 	void SynchronizePropertiesFromDecal();
 
 	float GetSpotAngle() const { return SpotAngle; }
 	float GetProjectionDistance() const { return ProjectionDistance; }
+	float GetBlendFactor() const { return BlendFactor; }
+	FVector GetDecalBoxSize() const { return DecalBoxSize; }
+	float GetMaxAngleForDecalBox() const;
 
 	UBillBoardComponent* GetIconComponent() const { return IconComponent; }
 	UDecalComponent* GetDecalComponent() const { return DecalComponent; }
 
 	// Serialization
-	void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
+	void Serialize(bool bInIsLoading, JSON& InOutHandle) override;
 
 private:
 	void UpdateDecalProperties();
@@ -58,4 +60,6 @@ private:
 	// Properties
 	float SpotAngle = 45.0f;
 	float ProjectionDistance = 500.0f;
+	float BlendFactor = 1.0f;
+	FVector DecalBoxSize = FVector(10.0f, 10.0f, 10.0f);  // 기본 박스 크기
 };

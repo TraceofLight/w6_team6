@@ -37,6 +37,10 @@ public:
     void SetSpotAngle(float InAngle) { SpotAngle = InAngle; }
     float GetSpotAngle() const { return SpotAngle; }
 
+    // 블렌딩 강도 (0.0 ~ 1.0)
+    void SetBlendFactor(float InFactor) { BlendFactor = std::clamp(InFactor, 0.0f, 1.0f); }
+    float GetBlendFactor() const { return BlendFactor; }
+
     // DecalPass가 쓰는 바운딩 볼륨
     const IBoundingVolume* GetBoundingBox();
 
@@ -58,4 +62,7 @@ protected:
 
     // 원뿔 프러스텀 각도 (degree). < 0이면 일반 박스 데칼, >= 0이면 SemiLight 원뿔
     float SpotAngle = -1.0f;
+
+    // 블렌딩 강도 (기본값 1.0 = 완전 적용)
+    float BlendFactor = 1.0f;
 };

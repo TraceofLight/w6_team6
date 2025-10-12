@@ -74,6 +74,36 @@ void UActorDetailWidget::RenderWidget()
 
 	// 선택된 컴포넌트의 트랜스폼 정보 렌더링
 	RenderTransformEdit();
+
+	// Decal Detail
+	for (auto Component : SelectedActor->GetOwnedComponents())
+	{
+		// SemiLightComponent 특별 처리
+		if (USemiLightComponent* SemiLight = Cast<USemiLightComponent>(Component))
+		{
+			ImGui::Separator();
+			ImGui::Text("Semi Light Properties");
+
+			// 박스 크기에 따른 최대 각도 계산
+			float MaxAngle = SemiLight->GetMaxAngleForDecalBox();
+			float Angle = SemiLight->GetSpotAngle();
+			if(ImGui::DragFloat("Spot Angle", &Angle, 0.5f, 1.0f, MaxAngle, "%.1f"))
+			{
+				SemiLight->SetSpotAngle(Angle);
+			}
+
+			// 최대 각도 표시
+			ImGui::SameLine();
+			ImGui::TextDisabled("(Max: %.1f)", MaxAngle);
+
+			float Blend = SemiLight->GetBlendFactor();
+			if(ImGui::SliderFloat("Blend Factor", &Blend, 0.0f, 1.0f))
+			{
+				SemiLight->SetBlendFactor(Blend);
+			}
+		}
+	}
+	
 	// 선택된 컴포넌트의 속성 UI
 	EnsureSelectedPropertyWidget();
 	if (SelectedPropertyWidget)

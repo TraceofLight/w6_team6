@@ -15,7 +15,7 @@ cbuffer DecalConstants : register(b2)
     row_major float4x4 DecalWorld;
     row_major float4x4 DecalWorldInverse;
     float SpotAngle;           // < 0: 박스 클리핑, >= 0: 원뿔 프러스텀
-    float Padding1;
+    float BlendFactor;         // 블렌딩 강도 (0.0 ~ 1.0)
     float Padding2;
     float Padding3;
 };
@@ -60,15 +60,21 @@ float4 mainPS(PS_INPUT Input) : SV_TARGET
     {
 		discard;
     }
-	
+
 	// Decal Local Transition
     float3 DecalLocalPos = mul(Input.WorldPos, DecalWorldInverse).xyz;
+
+    // 박스 중심 좌표계 [-0.5, 0.5]를 [0, 1] 범위로 변환
+    DecalLocalPos += 0.5f;
+
+    // 거리 기반 감쇠 (기본값 1.0)
+    float attenuation = 1.0f;
 
     // SpotAngle 기반 조건부 클리핑
     if (SpotAngle < 0.0f)
     {
-        // 일반 박스 데칼: 박스 클리핑
-        if (abs(DecalLocalPos.x) > 0.5f || abs(DecalLocalPos.y) > 0.5f || abs(DecalLocalPos.z) > 0.5f)
+        // 일반 박스 데칼: 박스 클리핑 [0, 1] 범위
+        if (any(DecalLocalPos < 0.0f) || any(DecalLocalPos > 1.0f))
         {
             discard;
         }
@@ -82,27 +88,48 @@ float4 mainPS(PS_INPUT Input) : SV_TARGET
             discard;
         }
 
-        // 원뿔 프러스텀: 꼭짓점(0)에서 밑면(1)까지 반지름이 선형 증가
+        // 원뿔 프러스텀: 꼭짓점(0)에서 밑면(1)까지 반지름이 SpotAngle에 따라 증가
         float normalizedDepth = DecalLocalPos.x;
-        float maxRadius = normalizedDepth * 0.5f;
 
-        // 중심으로부터의 거리 계산 (YZ 평면)
-        float distanceFromCenter = length(DecalLocalPos.yz);
+        // SpotAngle을 기반으로 반지름 계산
+        // 정규화된 좌표 [0, 1]에서:
+        // - normalizedDepth: 광원(0)에서 최대거리(1)까지
+        // - maxRadius: 중심(0.5)에서 가장자리(0~1)까지의 거리
+        float halfAngleRad = radians(SpotAngle * 0.5f);
+        float maxRadius = normalizedDepth * tan(halfAngleRad);
+
+        // 중심으로부터의 거리 계산 (YZ 평면, 중심은 0.5)
+        float distanceFromCenter = length(DecalLocalPos.yz - 0.5f);
 
         // 원뿔 프러스텀 밖이면 버림
         if (distanceFromCenter > maxRadius)
         {
             discard;
         }
+
+        // 반경 방향 감쇠 (중심에서 멀어질수록 어두워짐)
+        float radialDistanceRatio = distanceFromCenter / max(maxRadius, 0.001f);
+        float radialAttenuation = 1.0f - (radialDistanceRatio * radialDistanceRatio);
+
+        // 깊이 방향 감쇠 (광원에서 멀어질수록 어두워짐)
+        // normalizedDepth는 0(광원)에서 1(최대 거리)까지
+        float depthAttenuation = 1.0f - normalizedDepth;
+
+        // 최종 감쇠: 두 감쇠를 모두 적용
+        attenuation = radialAttenuation * depthAttenuation;
     }
 
-	// UV Transition ([-0.5~0.5], [-0.5~0.5]) -> ([0~1.0], [1.0~0])
-    float2 DecalUV = DecalLocalPos.yz * float2(1, -1) + 0.5f;
+	// UV Transition ([0~1], [0~1]) -> ([0~1.0], [1.0~0])
+    float2 DecalUV = float2(DecalLocalPos.y, 1.0f - DecalLocalPos.z);
     float4 DecalColor = DecalTexture.Sample(DecalSampler, DecalUV);
+
+    // BlendFactor와 attenuation으로 알파 값 조정
+    DecalColor.a *= BlendFactor * attenuation;
+
     if (DecalColor.a < 0.001f)
     {
         discard;
     }
-	
+
     return DecalColor;
 }

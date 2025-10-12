@@ -61,7 +61,7 @@ void URenderer::Init(HWND InWindowHandle)
 	RenderPasses.push_back(PrimitivePass);
 
 	FDecalPass* DecalPass = new FDecalPass(Pipeline, ConstantBufferViewProj,
-		DecalVertexShader, DecalPixelShader, DecalInputLayout, DecalDepthStencilState, AlphaBlendState);
+		DecalVertexShader, DecalPixelShader, DecalInputLayout, DecalDepthStencilState, AdditiveBlendState);
 	RenderPasses.push_back(DecalPass);
 
 	FBillboardPass* BillboardPass = new FBillboardPass(Pipeline, ConstantBufferViewProj, ConstantBufferModels,
@@ -129,6 +129,18 @@ void URenderer::CreateBlendState()
     blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
     blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
     GetDevice()->CreateBlendState(&blendDesc, &AlphaBlendState);
+
+    // Additive Blending (for lights)
+    D3D11_BLEND_DESC additiveDesc = {};
+    additiveDesc.RenderTarget[0].BlendEnable = TRUE;
+    additiveDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+    additiveDesc.RenderTarget[0].DestBlend = D3D11_BLEND_ONE;
+    additiveDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+    additiveDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+    additiveDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
+    additiveDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+    additiveDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+    GetDevice()->CreateBlendState(&additiveDesc, &AdditiveBlendState);
 }
 
 void URenderer::CreateDefaultShader()
@@ -197,6 +209,7 @@ void URenderer::ReleaseDepthStencilState()
 void URenderer::ReleaseBlendState()
 {
     SafeRelease(AlphaBlendState);
+    SafeRelease(AdditiveBlendState);
 }
 
 void URenderer::Update()
