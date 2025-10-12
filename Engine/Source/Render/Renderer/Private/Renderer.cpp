@@ -311,22 +311,6 @@ void URenderer::RenderLevel(UCamera* InCurrentCamera)
 	const bool bWantsDecal = (CurrentLevel->GetShowFlags() & EEngineShowFlags::SF_Decal) != 0;
 	if (bWantsDecal)
 	{
-		// // TODO: 모든 액터 순회하면서 데칼 수집 하는 거 없애야 됨.
-		// for (AActor* Actor : CurrentLevel->GetActors())
-		// {
-		// 	for (UActorComponent* Comp : Actor->GetOwnedComponents())
-		// 	{
-		// 		if (auto* Decal = Cast<UDecalComponent>(Comp))
-		// 		{
-		// 			// SceneComponent 기반 데칼도 수집
-		// 			if (Decal->IsVisible())
-		// 			{
-		// 				RenderingContext.Decals.push_back(Decal);
-		// 			}
-		// 		}
-		// 	}
-		// }
-	
 		for (auto Decal : CurrentLevel->GetVisibleDecals())
 		{
 			if (Cast<USemiLightComponent>(Decal->GetParentAttachment()))
@@ -339,48 +323,12 @@ void URenderer::RenderLevel(UCamera* InCurrentCamera)
 			}
 		}
 		
-	
-        
 		UStatOverlay::GetInstance().RecordDecalCollection(
-			CurrentLevel->GetAllDecals().size(),
-			CurrentLevel->GetVisibleDecals().size()
+			static_cast<uint32>(CurrentLevel->GetAllDecals().size()),
+			static_cast<uint32>(CurrentLevel->GetVisibleDecals().size())
 			);
 	}
 
-	// const bool bWantsDecal = (CurrentLevel->GetShowFlags() & EEngineShowFlags::SF_Decal) != 0;
-	// if (bWantsDecal)
-	// {
-	// 	UStatOverlay::GetInstance().ResetDecalFrame();
-	// 	uint32 Collected = 0;
-	// 	uint32 Visible = 0;
-	// 	// TODO - 모든 액터 순회하는 거 없애야 됨.
-	// 	for (AActor* Actor : CurrentLevel->GetActors())
-	// 	{
-	// 		for (UActorComponent* Comp : Actor->GetOwnedComponents())
-	// 		{
-	// 			if (auto* Decal = Cast<UDecalComponent>(Comp))
-	// 			{
-	// 				++Collected;
-	// 				// SceneComponent 기반 데칼도 수집
-	// 				if (Decal->IsVisible())
-	// 				{
-	// 					++Visible;
-	// 					// SemiLightComponent 자식이면 Additive, 아니면 Alpha 목록으로 분류
-	// 					if (Cast<USemiLightComponent>(Decal->GetParentAttachment()))
-	// 					{
-	// 						RenderingContext.AdditiveDecals.push_back(Decal);
-	// 					}
-	// 					else
-	// 					{
-	// 						RenderingContext.AlphaDecals.push_back(Decal);
-	// 					}
-	// 				}
-	// 			}
-	// 		}
-	// 	}
-	// 	UStatOverlay::GetInstance().RecordDecalCollection(Collected, Visible);
-	// }
-	
 	for (auto RenderPass: RenderPasses)
 	{
 		RenderPass->Execute(RenderingContext);

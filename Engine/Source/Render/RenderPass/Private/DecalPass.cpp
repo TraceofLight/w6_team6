@@ -29,7 +29,10 @@ void FDecalPass::Execute(FRenderingContext& Context)
     if (!(Context.ShowFlags & EEngineShowFlags::SF_Decal)) { return; }
 
     const auto& DecalsToRender = bIsAdditivePass ? Context.AdditiveDecals : Context.AlphaDecals;
-    if (DecalsToRender.empty()) { return; }
+    if (DecalsToRender.empty())
+    {
+        return;
+    }
 
     auto t0 = Clock::now();
     uint32 DrawCalls = 0;
@@ -45,10 +48,16 @@ void FDecalPass::Execute(FRenderingContext& Context)
     // --- Render Decals ---
     for (UDecalComponent* Decal : DecalsToRender)
     {
-        if (!Decal || !Decal->IsVisible()) { continue; }
+        if (!Decal || !Decal->IsVisible())
+        {
+            continue;
+        }
 
         const IBoundingVolume* DecalBV = Decal->GetBoundingBox();
-        if (!DecalBV || DecalBV->GetType() != EBoundingVolumeType::OBB) { continue; }
+        if (!DecalBV || DecalBV->GetType() != EBoundingVolumeType::OBB)
+        {
+            continue;
+        }
 
         const FOBB* DecalOBB = static_cast<const FOBB*>(DecalBV);
         const FAABB DecalWorldAABB = DecalOBB->ToWorldAABB();
