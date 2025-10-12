@@ -145,6 +145,11 @@ public:
 	 */
 	bool QueryOverlappingComponentsWithBVH(const struct FOBB& OBB, TArray<UPrimitiveComponent*>& OutComponents) const;
 
+	/**
+	 * 레벨 틱 (BVH 리빌드 등 처리)
+	 */
+	void TickLevel();
+
 	friend class UWorld;
 public:
 	virtual UObject* Duplicate() override;
@@ -181,6 +186,7 @@ private:
 	// ========================================
 	FSceneBVH* SceneBVH = nullptr;
 	bool bShowSceneBVH = false;
+	bool bBVHNeedsRebuild = false;
 	int32 BVHDebugMaxDepth = -1;
 
 	// 디버그 렌더링용 데이터

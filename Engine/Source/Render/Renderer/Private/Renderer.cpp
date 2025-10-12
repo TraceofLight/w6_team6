@@ -289,7 +289,7 @@ void URenderer::RenderLevel(UCamera* InCurrentCamera)
 	const bool bWantsDecal = (CurrentLevel->GetShowFlags() & EEngineShowFlags::SF_Decal) != 0;
 	if (bWantsDecal)
 	{
-		// TODO - 모든 액터 순회하는 거 없애야 됨.
+		// TODO: 모든 액터 순회하면서 데칼 수집 하는 거 없애야 됨.
 		for (AActor* Actor : CurrentLevel->GetActors())
 		{
 			for (UActorComponent* Comp : Actor->GetOwnedComponents())

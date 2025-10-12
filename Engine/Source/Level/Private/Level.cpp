@@ -14,6 +14,8 @@
 #include "Global/SceneBVH.h"
 #include <json.hpp>
 
+#include "Component/Public/UUIDTextComponent.h"
+
 IMPLEMENT_CLASS(ULevel, UObject)
 
 ULevel::ULevel()
@@ -59,7 +61,7 @@ void ULevel::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 			UConfigManager::GetInstance().SetCameraSettingsFromJson(PerspectiveCameraData);
 			URenderer::GetInstance().GetViewportClient()->ApplyAllCameraDataToViewportClients();
 		}
-		
+
 		JSON ActorsJson;
 		if (FJsonSerializer::ReadObject(InOutHandle, "Actors", ActorsJson))
 		{
@@ -72,9 +74,13 @@ void ULevel::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 				FJsonSerializer::ReadString(ActorDataJson, "Type", TypeString);
 
 				UClass* NewClass = FActorTypeMapper::TypeToActor(TypeString);
-				AActor* NewActor = SpawnActorToLevel(NewClass, IdString, &ActorDataJson); 
+				AActor* NewActor = SpawnActorToLevel(NewClass, IdString, &ActorDataJson);
 			}
 		}
+
+		// 모든 액터 로드 완료 후 BVH 리빌드 플래그 설정
+		// 실제 빌드는 다음 프레임 TickLevel()에서 수행 (World Transform 갱신 후)
+		bBVHNeedsRebuild = true;
 	}
 
 	// 저장
@@ -92,7 +98,7 @@ void ULevel::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 		{
 			JSON ActorJson;
 			ActorJson["Type"] = FActorTypeMapper::ActorToType(Actor->GetClass());
-			Actor->Serialize(bInIsLoading, ActorJson); 
+			Actor->Serialize(bInIsLoading, ActorJson);
 
 			ActorsJson[std::to_string(Actor->GetUUID())] = ActorJson;
 		}
@@ -104,12 +110,17 @@ void ULevel::Init()
 {
 	// TEST CODE
 
-	// SceneBVH 테스트: 자동으로 BVH 구축 및 시각화
-	if (!DynamicPrimitives.empty())
+	// SceneBVH 생성 (비어있는 상태로)
+	if (!SceneBVH)
 	{
-		BuildSceneBVH();
-		ToggleSceneBVHVisualization(true, -1); // 모든 레벨 표시
+		SceneBVH = new FSceneBVH();
 	}
+
+	// BVH 빌드는 TickLevel()에서 수행 (Transform 갱신 후)
+	bBVHNeedsRebuild = true;
+
+	// 디버그 시각화는 필요 시 활성화
+	// ToggleSceneBVHVisualization(true, -1);
 }
 
 AActor* ULevel::SpawnActorToLevel(UClass* InActorClass, const FName& InName, JSON* ActorJsonData)
@@ -137,6 +148,14 @@ AActor* ULevel::SpawnActorToLevel(UClass* InActorClass, const FName& InName, JSO
 		}
 		NewActor->BeginPlay();
 		AddPrimitiveComponent(NewActor);
+
+		// 에디터에서 단일 액터 스폰 시 BVH 리빌드 플래그 설정
+		// (ActorJsonData가 nullptr이면 에디터에서 스폰한 것임)
+		if (ActorJsonData == nullptr)
+		{
+			bBVHNeedsRebuild = true;
+		}
+
 		return NewActor;
 	}
 
@@ -197,11 +216,8 @@ void ULevel::AddPrimitiveComponent(AActor* Actor)
 		}
 	}
 
-	// SceneBVH 테스트: Dynamic Primitive가 추가되면 BVH 재구축
-	if (!DynamicPrimitives.empty() && bShowSceneBVH)
-	{
-		BuildSceneBVH();
-	}
+	// BVH 재구축은 호출자가 명시적으로 수행
+	// (World Transform이 제대로 설정된 후에 호출되어야 함)
 }
 
 // Level에서 Actor 제거하는 함수
@@ -409,9 +425,32 @@ void ULevel::BuildSceneBVH()
 
 	// 새 BVH 생성 및 구축
 	SceneBVH = new FSceneBVH();
-	SceneBVH->Build(DynamicPrimitives);
 
-	UE_LOG("Level: Scene BVH built with %d nodes", SceneBVH->GetNodeCount());
+	// StaticOctree와 DynamicPrimitives 모두 포함
+	TArray<UPrimitiveComponent*> AllPrimitives;
+	for (auto& Actor : Actors)
+	{
+		if (!Actor) continue;
+
+		for (auto& Component : Actor->GetOwnedComponents())
+		{
+			UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(Component);
+			if (!PrimitiveComponent)
+			{
+				continue;
+			}
+			if (Cast<UUUIDTextComponent>(PrimitiveComponent))
+			{
+				continue;
+			}
+			AllPrimitives.push_back(PrimitiveComponent);
+		}
+	}
+
+	SceneBVH->Build(AllPrimitives);
+
+	UE_LOG("Level: Scene BVH built with %d nodes (Total primitives: %d)",
+	       SceneBVH->GetNodeCount(), AllPrimitives.size());
 }
 
 void ULevel::ToggleSceneBVHVisualization(bool bShow, int32 MaxDepth)
@@ -463,6 +502,10 @@ void ULevel::UpdateSceneBVHComponent(USceneComponent* InComponent)
 	// 현재 컴포넌트가 PrimitiveComponent면 BVH 업데이트
 	if (UPrimitiveComponent* Primitive = Cast<UPrimitiveComponent>(InComponent))
 	{
+		if (Cast<UUUIDTextComponent>(Primitive))
+		{
+			return;
+		}
 		SceneBVH->UpdateComponent(Primitive);
 	}
 
@@ -491,4 +534,17 @@ bool ULevel::QueryOverlappingComponentsWithBVH(const FOBB& OBB, TArray<UPrimitiv
 	}
 
 	return SceneBVH->QueryOverlappingComponents(OBB, OutComponents);
+}
+
+void ULevel::TickLevel()
+{
+	// BVH 리빌드가 필요한 경우
+	if (bBVHNeedsRebuild && SceneBVH)
+	{
+		// 이 시점에는 모든 World Transform이 갱신됨
+		BuildSceneBVH();
+		bBVHNeedsRebuild = false;
+
+		UE_LOG("Level: BVH rebuilt during TickLevel()");
+	}
 }
