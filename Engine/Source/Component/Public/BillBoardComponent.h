@@ -19,6 +19,7 @@ public:
 
 	const TPair<FName, ID3D11ShaderResourceView*>& GetSprite() const;
 	void SetSprite(const TPair<FName, ID3D11ShaderResourceView*>& Sprite);
+	void SetSprite(const UTexture* InSprite);
 
 	ID3D11SamplerState* GetSampler() const;
 
