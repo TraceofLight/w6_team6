@@ -72,8 +72,18 @@ public:
 	const TArray<uint32>& GetIndices() const;
 
 	// Material Data
+	/**
+	 * @brief Material 슬롯에서 Material 가져오기
+	 * @note UStaticMesh는 Material을 소유하지 않고, AssetManager가 소유함
+	 */
 	UMaterial* GetMaterial(int32 MaterialIndex) const;
+
+	/**
+	 * @brief Material 슬롯에 Material 설정
+	 * @note UStaticMesh는 Material 포인터만 참조하며, 소유권은 AssetManager에 있음
+	 */
 	void SetMaterial(int32 MaterialIndex, UMaterial* Material);
+
 	int32 GetNumMaterials() const;
 	const TArray<FMeshSection>& GetSections() const;
 
@@ -85,5 +95,7 @@ private:
 	// 이 데이터의 실제 소유권 및 생명주기는 AssetManager가 책임집니다.
 	FStaticMesh* StaticMeshAsset;
 
+	// Material에 대한 비소유(non-owning) 포인터 배열
+	// Material의 실제 소유권 및 생명주기는 AssetManager의 MaterialCache가 책임집니다.
 	TArray<UMaterial*> Materials;
 };
