@@ -68,6 +68,7 @@ public:
 	ID3D11DepthStencilState* GetDefaultDepthStencilState() const { return DefaultDepthStencilState; }
 	ID3D11DepthStencilState* GetDisabledDepthStencilState() const { return DisabledDepthStencilState; }
 	ID3D11BlendState* GetAlphaBlendState() const { return AlphaBlendState; }
+	ID3D11BlendState* GetAdditiveBlendState() const { return AdditiveBlendState; }
 	ID3D11Buffer* GetConstantBufferModels() const { return ConstantBufferModels; }
 	ID3D11Buffer* GetConstantBufferViewProj() const { return ConstantBufferViewProj; }
 
@@ -84,6 +85,7 @@ private:
 	ID3D11DepthStencilState* DecalDepthStencilState = nullptr;
 	ID3D11DepthStencilState* DisabledDepthStencilState = nullptr;
 	ID3D11BlendState* AlphaBlendState = nullptr;
+	ID3D11BlendState* AdditiveBlendState = nullptr;
 
 	// Constant Buffers
 	ID3D11Buffer* ConstantBufferModels = nullptr;

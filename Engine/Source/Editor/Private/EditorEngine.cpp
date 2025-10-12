@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "Core/Public/Object.h"
 #include "Editor/Public/EditorEngine.h"
 #include "Editor/Public/Editor.h"
@@ -91,7 +91,11 @@ void UEditorEngine::StartPIE()
     PIEState = EPIEState::Playing;
     UWorld* EditorWorld = GetEditorWorldContext().World();
     if (!EditorWorld) { return; }
-
+    if (EditorModule)
+    {
+        EditorModule->SelectComponent(nullptr);
+        EditorModule->SelectActor(nullptr);
+    }
     UWorld* PIEWorld = Cast<UWorld>(EditorWorld->Duplicate());
     
     if (PIEWorld)
@@ -109,6 +113,11 @@ void UEditorEngine::StartPIE()
 void UEditorEngine::EndPIE()
 {
     if (!(PIEState == EPIEState::Playing || PIEState == EPIEState::Paused)) { return; }
+    if (EditorModule)
+    {
+        EditorModule->SelectComponent(nullptr);
+        EditorModule->SelectActor(nullptr);
+    }
     PIEState = EPIEState::Stopped;
     if (FWorldContext* PIEContext = GetPIEWorldContext())
     {

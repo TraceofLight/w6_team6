@@ -11,10 +11,13 @@
 #include "Texture/Public/SpriteMaterial.h"
 #include "Component/Mesh/Public/StaticMeshComponent.h"
 #include "Level/Public/Level.h"
+#include "Render/UI/Overlay/Public/StatOverlay.h"
 
-FDecalPass::FDecalPass(UPipeline* InPipeline, ID3D11Buffer* InConstantBufferViewProj, ID3D11VertexShader* InVS, ID3D11PixelShader* InPS, ID3D11InputLayout* InLayout, ID3D11DepthStencilState* InDS_Read, ID3D11BlendState* InBlendState)
+using Clock = std::chrono::high_resolution_clock;
+
+FDecalPass::FDecalPass(UPipeline* InPipeline, ID3D11Buffer* InConstantBufferViewProj, ID3D11VertexShader* InVS, ID3D11PixelShader* InPS, ID3D11InputLayout* InLayout, ID3D11DepthStencilState* InDS_Read, ID3D11BlendState* InBlendState, bool bInIsAdditive)
     : FRenderPass(InPipeline, InConstantBufferViewProj, nullptr),
-    VS(InVS), PS(InPS), InputLayout(InLayout), DS_Read(InDS_Read), BlendState(InBlendState)
+    VS(InVS), PS(InPS), InputLayout(InLayout), DS_Read(InDS_Read), BlendState(InBlendState), bIsAdditivePass(bInIsAdditive)
 {
     ConstantBufferPrim = FRenderResourceFactory::CreateConstantBuffer<FModelConstants>();
     ConstantBufferDecal = FRenderResourceFactory::CreateConstantBuffer<FDecalConstants>();
@@ -24,8 +27,15 @@ void FDecalPass::Execute(FRenderingContext& Context)
 {
     // 플래그가 꺼져 있으면 전체 스킵
     if (!(Context.ShowFlags & EEngineShowFlags::SF_Decal)) { return; }
-    if (Context.Decals.empty()) { return; }
 
+    const auto& DecalsToRender = bIsAdditivePass ? Context.AdditiveDecals : Context.AlphaDecals;
+    if (DecalsToRender.empty()) { return; }
+
+    auto t0 = Clock::now();
+    uint32 DrawCalls = 0;
+    uint32 TexBinds = 0, TexFallbacks = 0;
+    uint32 MatSeen = 0, MatBinds = 0;
+    TIME_PROFILE(DecalPass);
     // --- Set Pipeline State ---
     FPipelineInfo PipelineInfo = { InputLayout, VS, FRenderResourceFactory::GetRasterizerState({ ECullMode::Back, EFillMode::Solid }),
         DS_Read, PS, BlendState };
@@ -33,7 +43,7 @@ void FDecalPass::Execute(FRenderingContext& Context)
     Pipeline->SetConstantBuffer(1, true, ConstantBufferViewProj);
 
     // --- Render Decals ---
-    for (UDecalComponent* Decal : Context.Decals)
+    for (UDecalComponent* Decal : DecalsToRender)
     {
         if (!Decal || !Decal->IsVisible()) { continue; }
 
@@ -41,7 +51,7 @@ void FDecalPass::Execute(FRenderingContext& Context)
         if (!DecalBV || DecalBV->GetType() != EBoundingVolumeType::OBB) { continue; }
 
         const FOBB* DecalOBB = static_cast<const FOBB*>(DecalBV);
-        
+        const FAABB DecalWorldAABB = DecalOBB->ToWorldAABB();
         // --- Update Decal Constant Buffer ---
         FDecalConstants DecalConstants;
 
@@ -57,6 +67,10 @@ void FDecalPass::Execute(FRenderingContext& Context)
 
         DecalConstants.DecalWorld = Scale * Decal->GetWorldTransformMatrix();
         DecalConstants.DecalWorldInverse = Decal->GetWorldTransformMatrixInverse() * ScaleInv;
+        DecalConstants.SpotAngle = Decal->GetSpotAngle();
+        DecalConstants.BlendFactor = Decal->GetBlendFactor();
+        DecalConstants.Padding2 = 0.0f;
+        DecalConstants.Padding3 = 0.0f;
         DecalConstants.DecalFadeParams = FVector4(Decal->GetFadeAlpha(), 0, 0, 0);
         DecalConstants.SubUVParams = FVector4(1.0f, 1.0f, 0.0f, 1.0f);
 
@@ -70,16 +84,20 @@ void FDecalPass::Execute(FRenderingContext& Context)
 
         // --- Bind Decal Texture ---
         UTexture* BoundTexture = nullptr;
+        bool FromMaterial = false;
         if (UMaterial* Mat = Decal->GetMaterial())
         {
+            ++MatSeen;
             // 알파 먼저(데칼 컷아웃에 유용), 없으면 디퓨즈, 없으면 앰비언트
             BoundTexture = Mat->GetAlphaTexture();
             if (!BoundTexture) BoundTexture = Mat->GetDiffuseTexture();
             if (!BoundTexture) BoundTexture = Mat->GetAmbientTexture();
+            if (BoundTexture) FromMaterial = true;
         }
         if (!BoundTexture)
         {
             BoundTexture = Decal->GetTexture(); // 최후 폴백
+            if (BoundTexture) ++TexFallbacks;
         }
 
         if (BoundTexture)
@@ -88,6 +106,8 @@ void FDecalPass::Execute(FRenderingContext& Context)
             {
                 Pipeline->SetTexture(0, false, Proxy->GetSRV());
                 Pipeline->SetSamplerState(0, false, Proxy->GetSampler());
+                ++TexBinds;
+                if (FromMaterial) ++MatBinds;
             }
         }
 
@@ -119,6 +139,13 @@ void FDecalPass::Execute(FRenderingContext& Context)
             }
         }
     }
+    TIME_PROFILE_END(DecalPass);
+    auto t1 = Clock::now();
+    float ms = std::chrono::duration<float, std::milli>(t1 - t0).count();
+    UStatOverlay::GetInstance().RecordDecalDrawCalls(DrawCalls);
+    UStatOverlay::GetInstance().RecordDecalTextureStats(TexBinds, TexFallbacks);
+    UStatOverlay::GetInstance().RecordDecalMaterialStats(MatSeen, MatBinds);
+    UStatOverlay::GetInstance().RecordDecalPassMs(ms);
 }
 
 void FDecalPass::DrawDecalReceiver(UPrimitiveComponent* Prim)

@@ -14,6 +14,7 @@
 #include "Component/Mesh/Public/TriangleComponent.h"
 #include "Component/Mesh/Public/CubeComponent.h"
 #include "Component/Mesh/Public/MeshComponent.h"
+#include "Component/Public/SemiLightComponent.h"
 #include "Global/Quaternion.h"
 #include "Global/Vector.h"
 
@@ -73,6 +74,36 @@ void UActorDetailWidget::RenderWidget()
 
 	// 선택된 컴포넌트의 트랜스폼 정보 렌더링
 	RenderTransformEdit();
+
+	// Decal Detail
+	for (auto Component : SelectedActor->GetOwnedComponents())
+	{
+		// SemiLightComponent 특별 처리
+		if (USemiLightComponent* SemiLight = Cast<USemiLightComponent>(Component))
+		{
+			ImGui::Separator();
+			ImGui::Text("Semi Light Properties");
+
+			// 박스 크기에 따른 최대 각도 계산
+			float MaxAngle = SemiLight->GetMaxAngleForDecalBox();
+			float Angle = SemiLight->GetSpotAngle();
+			if(ImGui::DragFloat("Spot Angle", &Angle, 0.5f, 1.0f, MaxAngle, "%.1f"))
+			{
+				SemiLight->SetSpotAngle(Angle);
+			}
+
+			// 최대 각도 표시
+			ImGui::SameLine();
+			ImGui::TextDisabled("(Max: %.1f)", MaxAngle);
+
+			float Blend = SemiLight->GetBlendFactor();
+			if(ImGui::SliderFloat("Blend Factor", &Blend, 0.0f, 1.0f))
+			{
+				SemiLight->SetBlendFactor(Blend);
+			}
+		}
+	}
+	
 	// 선택된 컴포넌트의 속성 UI
 	EnsureSelectedPropertyWidget();
 	if (SelectedPropertyWidget)
@@ -370,7 +401,7 @@ void UActorDetailWidget::RenderAddComponentButton(AActor* InSelectedActor)
 		// TODO - mesh 컴포넌트는 추후에 메쉬가 없어도 추가될 수 있도록
 		const char* componentNames[] = {
 			"Triangle", "Sphere", "Square", "Cube",
-			"Static Mesh", "BillBoard", "Text", "Decal"
+			"Static Mesh", "BillBoard", "Text", "Decal", "SemiLight"
 		};
 
 		// 반복문 안에서 헬퍼 함수를 호출하여 원하는 UI를 그립니다.
@@ -453,6 +484,10 @@ void UActorDetailWidget::AddComponentByName(AActor* InSelectedActor, const FStri
 	else if (InComponentName == "Decal")
 	{
 		NewComponent = InSelectedActor->AddComponent<UDecalComponent>(NewComponentName);
+	}
+	else if (InComponentName == "SemiLight")
+	{
+		NewComponent = InSelectedActor->AddComponent<USemiLightComponent>(NewComponentName);
 	}
 	else
 	{
@@ -588,6 +623,13 @@ void UActorDetailWidget::RenderTransformEdit()
 			SceneComponent->SetRelativeScale3D(ComponentScale);
 		}
 	}
+
+	// 드래그가 끝났는지 확인
+	if (ImGui::IsItemDeactivatedAfterEdit())
+	{
+		bNeedsBVHUpdate = true;
+	}
+	
 	bool bUniform = SceneComponent->IsUniformScale();
 	if (ImGui::Checkbox("Uniform Scale", &bUniform))
 	{
@@ -600,11 +642,7 @@ void UActorDetailWidget::RenderTransformEdit()
 		}
 		SceneComponent->SetUniformScale(bUniform);
 	}
-	// 드래그가 끝났는지 확인
-	if (ImGui::IsItemDeactivatedAfterEdit())
-	{
-		bNeedsBVHUpdate = true;
-	}
+
 
 	ImGui::PopID();
 

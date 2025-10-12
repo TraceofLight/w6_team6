@@ -82,6 +82,7 @@ void UStatOverlay::Render()
     if (IsStatEnabled(EStatType::Memory))  RenderMemory(D2DCtx);
     if (IsStatEnabled(EStatType::Picking)) RenderPicking(D2DCtx);
     if (IsStatEnabled(EStatType::Time))    RenderTimeInfo(D2DCtx);
+    if (IsStatEnabled(EStatType::Decal))  RenderDecal(D2DCtx);
 
     D2DCtx->EndDraw();
     D2DCtx->SetTarget(nullptr);
@@ -213,4 +214,100 @@ void UStatOverlay::RecordPickingStats(float elapsedMs)
     ++PickAttempts;
     LastPickingTimeMs = elapsedMs;
     AccumulatedPickingTimeMs += elapsedMs;
+}
+
+void UStatOverlay::RenderDecal(ID2D1DeviceContext* ctx)
+{
+    // 위 섹션들과 동일하게 Offset 누적
+    float OffsetY = 0.0f;
+    if (IsStatEnabled(EStatType::FPS))    OffsetY += 20.0f;
+    if (IsStatEnabled(EStatType::Memory)) OffsetY += 20.0f;
+    if (IsStatEnabled(EStatType::Picking)) OffsetY += 20.0f;
+    if (IsStatEnabled(EStatType::Time))   OffsetY += 20.0f;
+
+    const float Y = OverlayY + OffsetY;
+    const float LineH = 20.0f;
+
+    // 1줄: 데칼 카운트 정보만
+    {
+        char Line[96];
+        sprintf_s(Line, sizeof(Line), "Decal: Collected %u, Visible %u, Drawcalls %u",
+            DecalStats.Collected, DecalStats.Visible, DecalStats.DrawCalls);
+        RenderText(ctx, Line, OverlayX, Y, 0.75f, 0.85f, 1.0f);
+    }
+
+    // 2줄: 텍스처/머티리얼(바인딩/폴백)
+    {
+        char Line[128];
+        // MaterialSeen을 함께 보이고 싶으면 MatSeen도 노출
+        sprintf_s(Line, sizeof(Line), "Tex: Bind %u (Fallback %u), Mat: Bind %u / Seen %u",
+            DecalStats.TextureBinds, DecalStats.TextureFallbacks,
+            DecalStats.MaterialBinds, DecalStats.MaterialSeen);
+        RenderText(ctx, Line, OverlayX, Y + LineH, 0.6f, 0.9f, 1.0f);
+    }
+    {
+        // 3줄: 패스 시간(Last/Avg)
+        const float avgMs = DecalAvgMs;
+        char Line[96];
+        sprintf_s(Line, sizeof(Line), "LastPass: %.2f ms (Recent 10 Pass Avg %.2f)", DecalStats.LastPassMs, avgMs);
+
+        float r = 0.8f, g = 0.8f, b = 0.8f;
+        if (DecalStats.LastPassMs > 5.0f) { r = 1.0f; g = 0.0f; b = 0.0f; }
+        else if (DecalStats.LastPassMs > 2.0f) { r = 1.0f; g = 1.0f; b = 0.0f; }
+
+        RenderText(ctx, Line, OverlayX, Y + LineH * 2, r, g, b);
+    }
+}
+
+void UStatOverlay::ResetDecalFrame()
+{
+    DecalStats.Collected = DecalStats.Visible = 0;
+    DecalStats.DrawCalls = 0;
+    DecalStats.TextureBinds = DecalStats.TextureFallbacks = 0;
+    DecalStats.MaterialSeen = DecalStats.MaterialBinds = 0;
+    DecalStats.LastPassMs = 0.0f;
+    // 누적은 유지
+}
+
+void UStatOverlay::RecordDecalCollection(uint32 Collected, uint32 Visible)
+{
+    DecalStats.Collected += Collected;
+    DecalStats.Visible += Visible;
+}
+
+void UStatOverlay::RecordDecalDrawCalls(uint32 Calls)
+{
+    DecalStats.DrawCalls += Calls;
+}
+
+void UStatOverlay::RecordDecalTextureStats(uint32 Binds, uint32 Fallbacks)
+{
+    DecalStats.TextureBinds += Binds;
+    DecalStats.TextureFallbacks += Fallbacks;
+}
+
+void UStatOverlay::RecordDecalPassMs(float Ms)
+{
+    DecalStats.LastPassMs = Ms;
+
+    // 1) 링 버퍼 삽입
+    if (DecalMsCount < 10)
+    {
+        DecalMsHistory[DecalMsCount++] = Ms;
+    }
+    else
+    {
+        DecalMsHistory[DecalMsIndex] = Ms;
+        DecalMsIndex = (DecalMsIndex + 1) % 10;
+    }
+
+    // 2) 평균 재계산
+    float sum = 0.0f;
+    for (uint32 i = 0; i < DecalMsCount; ++i) sum += DecalMsHistory[i];
+    DecalAvgMs = (DecalMsCount > 0) ? (sum / DecalMsCount) : 0.0f;
+}
+void UStatOverlay::RecordDecalMaterialStats(uint32 Seen, uint32 Binds)
+{
+    DecalStats.MaterialSeen += Seen;
+    DecalStats.MaterialBinds += Binds;
 }

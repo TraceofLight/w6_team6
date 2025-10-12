@@ -5,6 +5,7 @@
 #include "Component/Public/PrimitiveComponent.h"
 #include "Component/Mesh/Public/StaticMeshComponent.h"
 #include "Component/Public/DecalComponent.h"
+#include "Component/Public/SemiLightComponent.h"
 #include "Editor/Public/Editor.h"
 #include "Editor/Public/Viewport.h"
 #include "Editor/Public/ViewportClient.h"
@@ -60,9 +61,15 @@ void URenderer::Init(HWND InWindowHandle)
 		DefaultVertexShader, DefaultPixelShader, DefaultInputLayout, DefaultDepthStencilState);
 	RenderPasses.push_back(PrimitivePass);
 
-	FDecalPass* DecalPass = new FDecalPass(Pipeline, ConstantBufferViewProj,
-		DecalVertexShader, DecalPixelShader, DecalInputLayout, DecalDepthStencilState, AlphaBlendState);
-	RenderPasses.push_back(DecalPass);
+	// 알파 블렌딩을 사용하는 일반 데칼 패스
+	FDecalPass* AlphaDecalPass = new FDecalPass(Pipeline, ConstantBufferViewProj,
+		DecalVertexShader, DecalPixelShader, DecalInputLayout, DecalDepthStencilState, AlphaBlendState, false);
+	RenderPasses.push_back(AlphaDecalPass);
+
+	// 가산 혼합을 사용하는 SemiLight 데칼 패스
+	FDecalPass* AdditiveDecalPass = new FDecalPass(Pipeline, ConstantBufferViewProj,
+		DecalVertexShader, DecalPixelShader, DecalInputLayout, DecalDepthStencilState, AdditiveBlendState, true);
+	RenderPasses.push_back(AdditiveDecalPass);
 
 	FBillboardPass* BillboardPass = new FBillboardPass(Pipeline, ConstantBufferViewProj, ConstantBufferModels,
 		TextureVertexShader, TexturePixelShader, TextureInputLayout, DefaultDepthStencilState);
@@ -129,6 +136,18 @@ void URenderer::CreateBlendState()
     blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
     blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
     GetDevice()->CreateBlendState(&blendDesc, &AlphaBlendState);
+
+    // Additive Blending (for lights)
+    D3D11_BLEND_DESC additiveDesc = {};
+    additiveDesc.RenderTarget[0].BlendEnable = TRUE;
+    additiveDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+    additiveDesc.RenderTarget[0].DestBlend = D3D11_BLEND_ONE;
+    additiveDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+    additiveDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+    additiveDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
+    additiveDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+    additiveDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+    GetDevice()->CreateBlendState(&additiveDesc, &AdditiveBlendState);
 }
 
 void URenderer::CreateDefaultShader()
@@ -197,6 +216,7 @@ void URenderer::ReleaseDepthStencilState()
 void URenderer::ReleaseBlendState()
 {
     SafeRelease(AlphaBlendState);
+    SafeRelease(AdditiveBlendState);
 }
 
 void URenderer::Update()
@@ -306,9 +326,61 @@ void URenderer::RenderLevel(UCamera* InCurrentCamera)
 		// 		}
 		// 	}
 		// }
-		RenderingContext.Decals = CurrentLevel->GetVisibleDecals();
+	
+		for (auto Decal : CurrentLevel->GetVisibleDecals())
+		{
+			if (Cast<USemiLightComponent>(Decal->GetParentAttachment()))
+			{
+				RenderingContext.AdditiveDecals.push_back(Decal);
+			}
+			else
+			{
+				RenderingContext.AlphaDecals.push_back(Decal);
+			}
+		}
+		
+	
+        
+		UStatOverlay::GetInstance().RecordDecalCollection(
+			CurrentLevel->GetAllDecals().size(),
+			CurrentLevel->GetVisibleDecals().size()
+			);
 	}
 
+	// const bool bWantsDecal = (CurrentLevel->GetShowFlags() & EEngineShowFlags::SF_Decal) != 0;
+	// if (bWantsDecal)
+	// {
+	// 	UStatOverlay::GetInstance().ResetDecalFrame();
+	// 	uint32 Collected = 0;
+	// 	uint32 Visible = 0;
+	// 	// TODO - 모든 액터 순회하는 거 없애야 됨.
+	// 	for (AActor* Actor : CurrentLevel->GetActors())
+	// 	{
+	// 		for (UActorComponent* Comp : Actor->GetOwnedComponents())
+	// 		{
+	// 			if (auto* Decal = Cast<UDecalComponent>(Comp))
+	// 			{
+	// 				++Collected;
+	// 				// SceneComponent 기반 데칼도 수집
+	// 				if (Decal->IsVisible())
+	// 				{
+	// 					++Visible;
+	// 					// SemiLightComponent 자식이면 Additive, 아니면 Alpha 목록으로 분류
+	// 					if (Cast<USemiLightComponent>(Decal->GetParentAttachment()))
+	// 					{
+	// 						RenderingContext.AdditiveDecals.push_back(Decal);
+	// 					}
+	// 					else
+	// 					{
+	// 						RenderingContext.AlphaDecals.push_back(Decal);
+	// 					}
+	// 				}
+	// 			}
+	// 		}
+	// 	}
+	// 	UStatOverlay::GetInstance().RecordDecalCollection(Collected, Visible);
+	// }
+	
 	for (auto RenderPass: RenderPasses)
 	{
 		RenderPass->Execute(RenderingContext);

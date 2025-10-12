@@ -73,6 +73,12 @@ public:
 	void OnDecalVisibilityChanged(UDecalComponent* InDecal, bool bVisible);
 
 	/**
+	 * 전체 Decal 목록
+	 * @return 레벨에 속한 모든 Decal 배열 (const 참조)
+	 */
+	const TArray<UDecalComponent*>& GetAllDecals() const { return AllDecals; }
+	
+	/**
 	 * Renderer가 사용할 가시 Decal 목록
 	 * @return 렌더링 가능한 Decal 배열 (const 참조)
 	 */

@@ -313,6 +313,7 @@
     <ClInclude Include="Source\Actor\Public\CubeActor.h" />
     <ClInclude Include="Source\Actor\Public\DecalActor.h" />
     <ClInclude Include="Source\Actor\Public\MovingCubeActor.h" />
+    <ClInclude Include="Source\Actor\Public\SemiLightActor.h" />
     <ClInclude Include="Source\Actor\Public\SphereActor.h" />
     <ClInclude Include="Source\Actor\Public\SquareActor.h" />
     <ClInclude Include="Source\Actor\Public\StaticMeshActor.h">
@@ -330,6 +331,7 @@
     <ClInclude Include="Source\Component\Public\ActorComponent.h" />
     <ClInclude Include="Source\Component\Public\BillBoardComponent.h" />
     <ClInclude Include="Source\Component\Public\DecalComponent.h" />
+    <ClInclude Include="Source\Component\Public\SemiLightComponent.h" />
     <ClInclude Include="Source\Component\Public\TextComponent.h" />
     <ClInclude Include="Source\Component\Public\UUIDTextComponent.h" />
     <ClInclude Include="Source\Component\Public\LineComponent.h" />
@@ -345,6 +347,7 @@
     <ClInclude Include="Source\Core\Public\ObjectIterator.h" />
     <ClInclude Include="Source\Core\Public\WindowsBinReader.h" />
     <ClInclude Include="Source\Core\Public\WindowsBinWriter.h" />
+    <ClInclude Include="Source\Editor\Public\ConeLines.h" />
     <ClInclude Include="Source\Editor\Public\EditorEngine.h" />
     <ClInclude Include="Source\Editor\Public\SplitterWindow.h" />
     <ClInclude Include="Source\Editor\Public\ViewportClient.h" />
@@ -472,6 +475,7 @@
     <ClCompile Include="Source\Actor\Private\DecalActor.cpp" />
     <ClCompile Include="Source\Actor\Private\MovingCubeActor.cpp">
     </ClCompile>
+    <ClCompile Include="Source\Actor\Private\SemiLightActor.cpp" />
     <ClCompile Include="Source\Actor\Private\SphereActor.cpp" />
     <ClCompile Include="Source\Actor\Private\SquareActor.cpp" />
     <ClCompile Include="Source\Actor\Private\StaticMeshActor.cpp">
@@ -491,6 +495,7 @@
     <ClCompile Include="Source\Component\Private\ActorComponent.cpp" />
     <ClCompile Include="Source\Component\Private\BillBoardComponent.cpp" />
     <ClCompile Include="Source\Component\Private\DecalComponent.cpp" />
+    <ClCompile Include="Source\Component\Private\SemiLightComponent.cpp" />
     <ClCompile Include="Source\Component\Private\TextComponent.cpp" />
     <ClCompile Include="Source\Component\Private\UUIDTextComponent.cpp" />
     <ClCompile Include="Source\Component\Private\LineComponent.cpp" />
@@ -505,6 +510,7 @@
     <ClCompile Include="Source\Core\Private\ObjectIterator.cpp" />
     <ClCompile Include="Source\Core\Private\WindowsBinWriter.cpp" />
     <ClCompile Include="Source\Core\Public\WindowsBinReader.cpp" />
+    <ClCompile Include="Source\Editor\Private\ConeLines.cpp" />
     <ClCompile Include="Source\Editor\Private\EditorEngine.cpp">
     </ClCompile>
     <ClCompile Include="Source\Editor\Private\SplitterWindow.cpp" />

@@ -5,6 +5,8 @@
 #include "Physics/Public/AABB.h"
 #include "Render/Renderer/Public/RenderResourceFactory.h"
 #include "Render/UI/Widget/Public/SpriteSelectionWidget.h"
+#include "Texture/Public/Texture.h"
+#include "Texture/Public/TextureRenderProxy.h"
 
 IMPLEMENT_CLASS(UBillBoardComponent, UPrimitiveComponent)
 
@@ -91,6 +93,12 @@ void UBillBoardComponent::SetSprite(const TPair<FName, ID3D11ShaderResourceView*
     Sprite = InSprite;
 }
 
+void UBillBoardComponent::SetSprite(const UTexture* InSprite)
+{
+    FName SpriteName = InSprite->GetName();
+    Sprite = { SpriteName, InSprite->GetRenderProxy()->GetSRV() };
+}
+
 ID3D11SamplerState* UBillBoardComponent::GetSampler() const
 { 
     return Sampler;
@@ -136,4 +144,23 @@ void UBillBoardComponent::UpdateBillboardMatrix(const FVector& InCameraLocation)
     const FMatrix R = FMatrix(forward, right, up);
     const FMatrix T = FMatrix::TranslationMatrix(P);
     RTMatrix = R * T;
+}
+
+UObject* UBillBoardComponent::Duplicate()
+{
+    UBillBoardComponent* BillBoardComponent = Cast<UBillBoardComponent>(Super::Duplicate());
+
+    // 고유 필드 복사
+    BillBoardComponent->Sprite = Sprite;
+    BillBoardComponent->ZOffset = ZOffset;
+    BillBoardComponent->RTMatrix = RTMatrix;
+
+    // COM 리소스 공유 시 AddRef 필요(둘 다 Release 호출하므로)
+    BillBoardComponent->Sampler = Sampler;
+    if (BillBoardComponent->Sampler) 
+    { 
+        BillBoardComponent->Sampler->AddRef(); 
+    }
+
+    return BillBoardComponent;
 }

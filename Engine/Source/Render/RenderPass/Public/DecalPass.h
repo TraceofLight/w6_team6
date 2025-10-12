@@ -14,6 +14,10 @@ struct FDecalConstants
     FMatrix DecalWorldInverse;
     FVector4 DecalFadeParams; // x = FadeAlpha, YZW = padding
     FVector4 SubUVParams; // (Rows, Cols, CurrentFrame, TotalFrames)
+    float SpotAngle;           // 원뿔 각도 (degree). < 0이면 박스 클리핑, >= 0이면 원뿔 프러스텀
+    float BlendFactor;         // 블렌딩 강도 (0.0 ~ 1.0)
+    float Padding2;
+    float Padding3;
 };
 
 class FDecalPass : public FRenderPass
@@ -22,13 +26,15 @@ public:
     FDecalPass(
         UPipeline* InPipeline,
         ID3D11Buffer* InConstantBufferViewProj,
-        ID3D11VertexShader* InVS, ID3D11PixelShader* InPS, ID3D11InputLayout* InLayout, ID3D11DepthStencilState* InDS_Read, ID3D11BlendState* InBlendState
+        ID3D11VertexShader* InVS, ID3D11PixelShader* InPS, ID3D11InputLayout* InLayout, 
+        ID3D11DepthStencilState* InDS_Read, ID3D11BlendState* InBlendState, bool bInIsAdditive
     );
     void Execute(FRenderingContext& Context) override;
     void DrawDecalReceiver(UPrimitiveComponent* Prim);
     void Release() override;
 
 private:
+    bool bIsAdditivePass = false;
     ID3D11VertexShader* VS = nullptr;
     ID3D11PixelShader* PS = nullptr;
     ID3D11InputLayout* InputLayout = nullptr;

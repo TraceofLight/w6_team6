@@ -22,6 +22,7 @@ UDecalComponent::UDecalComponent()
     BoundingBox = new FOBB(FVector(0.f, 0.f, 0.f), FVector(GDecalUnitHalfExtent, GDecalUnitHalfExtent, GDecalUnitHalfExtent), FMatrix::Identity());
 
     // 머터리얼이 지정되지 않았다면 기본 텍스처로 적용
+    // TODO - 추후에 지우고, 머터리얼로만 동작하도록
     SetTexture(UAssetManager::GetInstance().CreateTexture(FName("Asset/Texture/texture.png"), FName("Texture")));
     // 기본은 비활성. 토글 시에만 활성화
     SetCanTick(false);
@@ -30,7 +31,9 @@ UDecalComponent::UDecalComponent()
 UDecalComponent::~UDecalComponent()
 {
     SafeDelete(BoundingBox);
-    SafeDelete(DecalTexture);
+    // TODO - 에셋 매니저에서 해제해주는 것인지?
+    // 복제시 텍스쳐는 얕은 복사이므로, 소멸자에서 지우면 안됨!
+    // SafeDelete(DecalTexture);
 }
 
 const IBoundingVolume* UDecalComponent::GetBoundingBox()
@@ -247,6 +250,46 @@ bool UDecalComponent::NeedsTick() const
     return false;
 }
 
+UObject* UDecalComponent::Duplicate()
+{
+    UDecalComponent* DecalComponent = Cast<UDecalComponent>(Super::Duplicate());
+    
+    // 데칼 고유 상태 복사
+    DecalComponent->DecalMaterial = DecalMaterial;         // 공유 (자원 매니저 관리)
+    DecalComponent->DecalTexture = DecalTexture;          // 현재 코드가 소유 삭제(SafeDelete)라면 별도 정책 고려(아래 주의 참조)
+    DecalComponent->bVisible = bVisible;
+    DecalComponent->DecalExtent = DecalExtent;
+    
+    // 페이드 설정/상태 복사(PIE에서 동일 미리보기 원하면 권장)
+    DecalComponent->bFadeEnabled = bFadeEnabled;
+    DecalComponent->bFadeLoop = bFadeLoop;
+    DecalComponent->FadeInDuration = FadeInDuration;
+    DecalComponent->FadeOutDuration = FadeOutDuration;
+    DecalComponent->MinOpacity = MinOpacity;
+    DecalComponent->MaxOpacity = MaxOpacity;
+    DecalComponent->FadeAlpha = FadeAlpha;
+    DecalComponent->FadePhase = FadePhase;
+    DecalComponent->PhaseTime = PhaseTime;
 
+    // 바운딩 박스 복제(반드시 새로 생성)
+    {
+        FOBB* Old = static_cast<FOBB*>(BoundingBox);
+        const FVector Center = Old ? Old->Center : FVector(0.f, 0.f, 0.f);
+        const FMatrix Rot = Old ? Old->ScaleRotation : FMatrix::Identity();
+        const FVector Extents = DecalExtent; // 또는 Old ? Old->Extents : DecalExtent
 
+        DecalComponent->BoundingBox = new FOBB(Center, Extents, Rot);
 
+        // 현재 상태와 동기화(Extents/월드 변환 재적용)
+        FOBB* NewOBB = static_cast<FOBB*>(DecalComponent->BoundingBox);
+        NewOBB->Extents = DecalComponent->DecalExtent;
+        NewOBB->Update(DecalComponent->GetWorldTransformMatrix());
+    }
+
+    // Enable 상태면 Tick 보장
+    if (DecalComponent->bFadeEnabled)
+    {
+        DecalComponent->SetCanTick(true);
+    }
+    return DecalComponent;
+}

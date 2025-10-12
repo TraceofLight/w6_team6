@@ -4,6 +4,7 @@
 #include "Editor/Public/EditorPrimitive.h"
 #include "Editor/Public/Grid.h"
 #include "Editor/Public/BoundingBoxLines.h"
+#include "Editor/Public/ConeLines.h"
 
 struct FVertex;
 
@@ -16,6 +17,7 @@ public:
 	// 종류별 Vertices 업데이트
 	void UpdateUGridVertices(const float newCellSize);
 	void UpdateBoundingBoxVertices(const IBoundingVolume* NewBoundingVolume);
+	void UpdateConeVertices(const FVector& Apex, float Angle, float Depth, float RadiusX, float RadiusY);
 
 	// GPU VertexBuffer에 복사
 	void UpdateVertexBuffer();
@@ -33,6 +35,13 @@ public:
 	void DisableRenderBoundingBox()
 	{
 		UpdateBoundingBoxVertices(BoundingBoxLines.GetDisabledBoundingBox());
+	}
+
+	void DisableRenderCone()
+	{
+		ConeLines.Disable();
+		ConeLines.MergeVerticesAt(Vertices, Grid.GetNumVertices() + BoundingBoxLines.GetNumVertices());
+		bChangedVertices = true;
 	}
 
 	//void UpdateConstant(FBoundingBox boundingBoxInfo);
@@ -56,6 +65,7 @@ private:
 
 	UGrid Grid;
 	UBoundingBoxLines BoundingBoxLines;
+	UConeLines ConeLines;
 
 	bool bRenderBox;
 };
