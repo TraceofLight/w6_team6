@@ -128,11 +128,22 @@ bool CheckIntersectionOBBAABB(const FOBB& OBB, const FAABB& AABB)
 	FVector AABBCenter = AABB.GetCenter();
 	FVector AABBExtents = (AABB.Max - AABB.Min) * 0.5f;
 
-	// OBB의 3개 축 추출 (회전 행렬의 각 열)
+	// OBB의 3개 축 추출 (회전 행렬의 각 열) - 스케일 포함
 	FVector OBBAxis[3];
 	OBBAxis[0] = FVector(OBB.ScaleRotation.Data[0][0], OBB.ScaleRotation.Data[1][0], OBB.ScaleRotation.Data[2][0]);
 	OBBAxis[1] = FVector(OBB.ScaleRotation.Data[0][1], OBB.ScaleRotation.Data[1][1], OBB.ScaleRotation.Data[2][1]);
 	OBBAxis[2] = FVector(OBB.ScaleRotation.Data[0][2], OBB.ScaleRotation.Data[1][2], OBB.ScaleRotation.Data[2][2]);
+
+	// OBB Extents에 스케일 적용 (축의 길이 = 스케일)
+	FVector ScaledExtents;
+	ScaledExtents.X = OBB.Extents.X * OBBAxis[0].Length();
+	ScaledExtents.Y = OBB.Extents.Y * OBBAxis[1].Length();
+	ScaledExtents.Z = OBB.Extents.Z * OBBAxis[2].Length();
+
+	// 축을 정규화 (방향만 남김)
+	OBBAxis[0].Normalize();
+	OBBAxis[1].Normalize();
+	OBBAxis[2].Normalize();
 
 	// 중심 간 거리 벡터
 	FVector T = OBB.Center - AABBCenter;
@@ -155,17 +166,17 @@ bool CheckIntersectionOBBAABB(const FOBB& OBB, const FAABB& AABB)
 	{
 		// X축
 		float Ra = AABBExtents.X;
-		float Rb = OBB.Extents.X * AbsR[0][0] + OBB.Extents.Y * AbsR[1][0] + OBB.Extents.Z * AbsR[2][0];
+		float Rb = ScaledExtents.X * AbsR[0][0] + ScaledExtents.Y * AbsR[1][0] + ScaledExtents.Z * AbsR[2][0];
 		if (fabs(T.X) > Ra + Rb) return false;
 
 		// Y축
 		Ra = AABBExtents.Y;
-		Rb = OBB.Extents.X * AbsR[0][1] + OBB.Extents.Y * AbsR[1][1] + OBB.Extents.Z * AbsR[2][1];
+		Rb = ScaledExtents.X * AbsR[0][1] + ScaledExtents.Y * AbsR[1][1] + ScaledExtents.Z * AbsR[2][1];
 		if (fabs(T.Y) > Ra + Rb) return false;
 
 		// Z축
 		Ra = AABBExtents.Z;
-		Rb = OBB.Extents.X * AbsR[0][2] + OBB.Extents.Y * AbsR[1][2] + OBB.Extents.Z * AbsR[2][2];
+		Rb = ScaledExtents.X * AbsR[0][2] + ScaledExtents.Y * AbsR[1][2] + ScaledExtents.Z * AbsR[2][2];
 		if (fabs(T.Z) > Ra + Rb) return false;
 	}
 
@@ -174,7 +185,7 @@ bool CheckIntersectionOBBAABB(const FOBB& OBB, const FAABB& AABB)
 	{
 		float Projection = T.X * OBBAxis[i].X + T.Y * OBBAxis[i].Y + T.Z * OBBAxis[i].Z;
 		float Ra = AABBExtents.X * AbsR[i][0] + AABBExtents.Y * AbsR[i][1] + AABBExtents.Z * AbsR[i][2];
-		float Rb = (i == 0) ? OBB.Extents.X : (i == 1) ? OBB.Extents.Y : OBB.Extents.Z;
+		float Rb = (i == 0) ? ScaledExtents.X : (i == 1) ? ScaledExtents.Y : ScaledExtents.Z;
 		if (fabs(Projection) > Ra + Rb) return false;
 	}
 
@@ -183,7 +194,7 @@ bool CheckIntersectionOBBAABB(const FOBB& OBB, const FAABB& AABB)
 	{
 		float Projection = T.Z * OBBAxis[0].Y - T.Y * OBBAxis[0].Z;
 		float Ra = AABBExtents.Y * AbsR[0][2] + AABBExtents.Z * AbsR[0][1];
-		float Rb = OBB.Extents.Y * AbsR[2][0] + OBB.Extents.Z * AbsR[1][0];
+		float Rb = ScaledExtents.Y * AbsR[2][0] + ScaledExtents.Z * AbsR[1][0];
 		if (fabs(Projection) > Ra + Rb) return false;
 	}
 
@@ -191,7 +202,7 @@ bool CheckIntersectionOBBAABB(const FOBB& OBB, const FAABB& AABB)
 	{
 		float Projection = T.Z * OBBAxis[1].Y - T.Y * OBBAxis[1].Z;
 		float Ra = AABBExtents.Y * AbsR[1][2] + AABBExtents.Z * AbsR[1][1];
-		float Rb = OBB.Extents.X * AbsR[2][0] + OBB.Extents.Z * AbsR[0][0];
+		float Rb = ScaledExtents.X * AbsR[2][0] + ScaledExtents.Z * AbsR[0][0];
 		if (fabs(Projection) > Ra + Rb) return false;
 	}
 
@@ -199,7 +210,7 @@ bool CheckIntersectionOBBAABB(const FOBB& OBB, const FAABB& AABB)
 	{
 		float Projection = T.Z * OBBAxis[2].Y - T.Y * OBBAxis[2].Z;
 		float Ra = AABBExtents.Y * AbsR[2][2] + AABBExtents.Z * AbsR[2][1];
-		float Rb = OBB.Extents.X * AbsR[1][0] + OBB.Extents.Y * AbsR[0][0];
+		float Rb = ScaledExtents.X * AbsR[1][0] + ScaledExtents.Y * AbsR[0][0];
 		if (fabs(Projection) > Ra + Rb) return false;
 	}
 
@@ -207,7 +218,7 @@ bool CheckIntersectionOBBAABB(const FOBB& OBB, const FAABB& AABB)
 	{
 		float Projection = T.X * OBBAxis[0].Z - T.Z * OBBAxis[0].X;
 		float Ra = AABBExtents.X * AbsR[0][2] + AABBExtents.Z * AbsR[0][0];
-		float Rb = OBB.Extents.Y * AbsR[2][1] + OBB.Extents.Z * AbsR[1][1];
+		float Rb = ScaledExtents.Y * AbsR[2][1] + ScaledExtents.Z * AbsR[1][1];
 		if (fabs(Projection) > Ra + Rb) return false;
 	}
 
@@ -215,7 +226,7 @@ bool CheckIntersectionOBBAABB(const FOBB& OBB, const FAABB& AABB)
 	{
 		float Projection = T.X * OBBAxis[1].Z - T.Z * OBBAxis[1].X;
 		float Ra = AABBExtents.X * AbsR[1][2] + AABBExtents.Z * AbsR[1][0];
-		float Rb = OBB.Extents.X * AbsR[2][1] + OBB.Extents.Z * AbsR[0][1];
+		float Rb = ScaledExtents.X * AbsR[2][1] + ScaledExtents.Z * AbsR[0][1];
 		if (fabs(Projection) > Ra + Rb) return false;
 	}
 
@@ -223,7 +234,7 @@ bool CheckIntersectionOBBAABB(const FOBB& OBB, const FAABB& AABB)
 	{
 		float Projection = T.X * OBBAxis[2].Z - T.Z * OBBAxis[2].X;
 		float Ra = AABBExtents.X * AbsR[2][2] + AABBExtents.Z * AbsR[2][0];
-		float Rb = OBB.Extents.X * AbsR[1][1] + OBB.Extents.Y * AbsR[0][1];
+		float Rb = ScaledExtents.X * AbsR[1][1] + ScaledExtents.Y * AbsR[0][1];
 		if (fabs(Projection) > Ra + Rb) return false;
 	}
 
@@ -231,7 +242,7 @@ bool CheckIntersectionOBBAABB(const FOBB& OBB, const FAABB& AABB)
 	{
 		float Projection = T.Y * OBBAxis[0].X - T.X * OBBAxis[0].Y;
 		float Ra = AABBExtents.X * AbsR[0][1] + AABBExtents.Y * AbsR[0][0];
-		float Rb = OBB.Extents.Y * AbsR[2][2] + OBB.Extents.Z * AbsR[1][2];
+		float Rb = ScaledExtents.Y * AbsR[2][2] + ScaledExtents.Z * AbsR[1][2];
 		if (fabs(Projection) > Ra + Rb) return false;
 	}
 
@@ -239,7 +250,7 @@ bool CheckIntersectionOBBAABB(const FOBB& OBB, const FAABB& AABB)
 	{
 		float Projection = T.Y * OBBAxis[1].X - T.X * OBBAxis[1].Y;
 		float Ra = AABBExtents.X * AbsR[1][1] + AABBExtents.Y * AbsR[1][0];
-		float Rb = OBB.Extents.X * AbsR[2][2] + OBB.Extents.Z * AbsR[0][2];
+		float Rb = ScaledExtents.X * AbsR[2][2] + ScaledExtents.Z * AbsR[0][2];
 		if (fabs(Projection) > Ra + Rb) return false;
 	}
 
@@ -247,7 +258,7 @@ bool CheckIntersectionOBBAABB(const FOBB& OBB, const FAABB& AABB)
 	{
 		float Projection = T.Y * OBBAxis[2].X - T.X * OBBAxis[2].Y;
 		float Ra = AABBExtents.X * AbsR[2][1] + AABBExtents.Y * AbsR[2][0];
-		float Rb = OBB.Extents.X * AbsR[1][2] + OBB.Extents.Y * AbsR[0][2];
+		float Rb = ScaledExtents.X * AbsR[1][2] + ScaledExtents.Y * AbsR[0][2];
 		if (fabs(Projection) > Ra + Rb) return false;
 	}
 

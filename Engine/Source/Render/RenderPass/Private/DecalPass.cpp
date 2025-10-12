@@ -41,6 +41,8 @@ void FDecalPass::Execute(FRenderingContext& Context)
 
         const FOBB* DecalOBB = static_cast<const FOBB*>(DecalBV);
 
+        UE_LOG("Decal Size %f, %f, %f", DecalOBB->Extents.X, DecalOBB->Extents.Y, DecalOBB->Extents.Z);
+        
         // --- Update Decal Constant Buffer ---
         FDecalConstants DecalConstants;
 
