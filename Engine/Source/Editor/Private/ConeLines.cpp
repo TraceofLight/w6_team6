@@ -16,7 +16,8 @@ UConeLines::UConeLines()
 
 UConeLines::~UConeLines() = default;
 
-void UConeLines::UpdateVertices(const FVector& Apex, float Angle, float Depth, float RadiusX, float RadiusY)
+void UConeLines::UpdateVertices(const FVector& Apex, const FVector& Direction, const FVector& UpVector,
+                                float Angle, float Depth, float RadiusX, float RadiusY)
 {
 	if (Vertices.size() < NumVertices)
 	{
@@ -25,13 +26,13 @@ void UConeLines::UpdateVertices(const FVector& Apex, float Angle, float Depth, f
 
 	bIsEnabled = true;
 
-	// 첫 번째 정점: Cone의 꼭지점 (Apex)
+	// 첫 번째 정점: Cone의 꼭지점 (Apex) - 광원 위치
 	Vertices[0] = Apex;
 
 	// Angle에 따른 실제 투사 반지름 계산
 	// Shader와 동일하게 계산: radius = depth * tan(Angle / 2)
 	const float PI = 3.14159265358979323846f;
-	const float HalfAngleRad = (Angle * PI / 180.0f) * 0.5f;  // degree를 radian으로 변환하고 절반
+	const float HalfAngleRad = (Angle * PI / 180.0f) * 0.5f;
 
 	// 정규화된 깊이 1.0에서의 반지름 (Shader와 동일)
 	const float NormalizedRadius = tanf(HalfAngleRad);
@@ -43,8 +44,23 @@ void UConeLines::UpdateVertices(const FVector& Apex, float Angle, float Depth, f
 	float ActualRadiusX = (CalculatedRadius < RadiusX) ? CalculatedRadius : RadiusX;
 	float ActualRadiusY = (CalculatedRadius < RadiusY) ? CalculatedRadius : RadiusY;
 
-	// 바닥면의 중심 (Apex에서 Z축 아래 방향으로 Depth만큼)
-	FVector BottomCenter = Apex + FVector(0.0f, 0.0f, -Depth);
+	// Direction 벡터로 로컬 좌표계 구성
+	FVector Forward = Direction;
+	Forward.Normalize();
+
+	FVector Up = UpVector;
+	Up.Normalize();
+
+	// Right 벡터 계산 (Forward x Up)
+	FVector Right = Forward.Cross(Up);
+	Right.Normalize();
+
+	// Up 벡터 재계산 (Right x Forward)
+	Up = Right.Cross(Forward);
+	Up.Normalize();
+
+	// 바닥면의 중심 (Apex에서 Direction 방향으로 Depth만큼)
+	FVector BottomCenter = Apex + Forward * Depth;
 
 	// 바닥면의 원/타원 위의 점들 계산
 	const float AngleStep = (2.0f * PI) / static_cast<float>(NumSegments);
@@ -53,12 +69,14 @@ void UConeLines::UpdateVertices(const FVector& Apex, float Angle, float Depth, f
 	{
 		float CurrentAngle = static_cast<float>(i) * AngleStep;
 
-		// 타원 위의 점 계산 (XY 평면에서 회전)
-		float X = BottomCenter.X + ActualRadiusX * cosf(CurrentAngle);
-		float Y = BottomCenter.Y + ActualRadiusY * sinf(CurrentAngle);
-		float Z = BottomCenter.Z;
+		// 로컬 좌표계에서 타원 위의 점 계산
+		float LocalX = ActualRadiusX * cosf(CurrentAngle);
+		float LocalY = ActualRadiusY * sinf(CurrentAngle);
 
-		Vertices[1 + i] = FVector(X, Y, Z);
+		// 로컬 좌표를 월드 좌표로 변환
+		FVector WorldPos = BottomCenter + Right * LocalX + Up * LocalY;
+
+		Vertices[1 + i] = WorldPos;
 	}
 }
 

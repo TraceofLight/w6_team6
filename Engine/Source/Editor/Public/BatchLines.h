@@ -17,7 +17,8 @@ public:
 	// 종류별 Vertices 업데이트
 	void UpdateUGridVertices(const float newCellSize);
 	void UpdateBoundingBoxVertices(const IBoundingVolume* NewBoundingVolume);
-	void UpdateConeVertices(const FVector& Apex, float Angle, float Depth, float RadiusX, float RadiusY);
+	void UpdateConeVertices(const FVector& Apex, const FVector& Direction, const FVector& UpVector,
+							float Angle, float Depth, float RadiusX, float RadiusY);
 
 	// GPU VertexBuffer에 복사
 	void UpdateVertexBuffer();

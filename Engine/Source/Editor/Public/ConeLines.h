@@ -16,12 +16,15 @@ public:
 	/**
 	 * @brief Cone 와이어프레임 정점 업데이트
 	 * @param Apex Cone의 꼭지점 (광원 위치)
+	 * @param Direction Cone의 투사 방향 (정규화된 벡터)
+	 * @param UpVector Cone의 Up 벡터 (회전 기준)
 	 * @param Angle Cone의 각도 (degree)
 	 * @param Depth Cone의 깊이 (투사 거리)
 	 * @param RadiusX 바닥면 X 방향 반지름
 	 * @param RadiusY 바닥면 Y 방향 반지름
 	 */
-	void UpdateVertices(const FVector& Apex, float Angle, float Depth, float RadiusX, float RadiusY);
+	void UpdateVertices(const FVector& Apex, const FVector& Direction, const FVector& UpVector,
+	                    float Angle, float Depth, float RadiusX, float RadiusY);
 
 	/**
 	 * @brief 정점들을 대상 배열의 특정 위치에 병합
