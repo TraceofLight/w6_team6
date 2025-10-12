@@ -20,6 +20,7 @@
 #include "Render/UI/Overlay/Public/StatOverlay.h"
 #include "Component/Public/UUIDTextComponent.h"
  #include "Component/Public/DecalComponent.h"
+#include "Component/Public/SemiLightComponent.h"
 
 UEditor::UEditor()
 {
@@ -199,17 +200,34 @@ void UEditor::UpdateBatchLines()
 				{
 					BatchLines.UpdateBoundingBoxVertices(PrimitiveComponent->GetBoundingBox());
 				}
+				BatchLines.DisableRenderCone();
 				return;
 			}
 			else if (UDecalComponent* DecalComponent = Cast<UDecalComponent>(Component))
 			{
 				// 데칼도 바운딩 갱신 후 라인 업데이트
 				BatchLines.UpdateBoundingBoxVertices(DecalComponent->GetBoundingBox());
+				BatchLines.DisableRenderCone();
+				return;
+			}
+			else if (USemiLightComponent* SemiLightComponent = Cast<USemiLightComponent>(Component))
+			{
+				// SemiLight의 Cone 와이어프레임 표시
+				const FVector Apex = SemiLightComponent->GetWorldLocation();
+				const float Angle = SemiLightComponent->GetSpotAngle();
+				const FVector DecalBoxSize = SemiLightComponent->GetDecalBoxSize();
+				const float Depth = DecalBoxSize.X;
+				const float RadiusX = DecalBoxSize.Y * 0.5f;
+				const float RadiusY = DecalBoxSize.Z * 0.5f;
+
+				BatchLines.UpdateConeVertices(Apex, Angle, Depth, RadiusX, RadiusY);
+				BatchLines.DisableRenderBoundingBox();
 				return;
 			}
 		}
 	}
 	BatchLines.DisableRenderBoundingBox();
+	BatchLines.DisableRenderCone();
 }
 
 void UEditor::UpdateLayout()

@@ -5,13 +5,14 @@
 #include "Manager/Asset/Public/AssetManager.h"
 #include "Render/Renderer/Public/RenderResourceFactory.h"
 
-UBatchLines::UBatchLines() : Grid(), BoundingBoxLines()
+UBatchLines::UBatchLines() : Grid(), BoundingBoxLines(), ConeLines()
 {
-	Vertices.reserve(Grid.GetNumVertices() + BoundingBoxLines.GetNumVertices());
-	Vertices.resize(Grid.GetNumVertices() + BoundingBoxLines.GetNumVertices());
+	Vertices.reserve(Grid.GetNumVertices() + BoundingBoxLines.GetNumVertices() + ConeLines.GetNumVertices());
+	Vertices.resize(Grid.GetNumVertices() + BoundingBoxLines.GetNumVertices() + ConeLines.GetNumVertices());
 
 	Grid.MergeVerticesAt(Vertices, 0);
 	BoundingBoxLines.MergeVerticesAt(Vertices, Grid.GetNumVertices());
+	ConeLines.MergeVerticesAt(Vertices, Grid.GetNumVertices() + BoundingBoxLines.GetNumVertices());
 
 	SetIndices();
 
@@ -62,6 +63,13 @@ void UBatchLines::UpdateBoundingBoxVertices(const IBoundingVolume* NewBoundingVo
 {
 	BoundingBoxLines.UpdateVertices(NewBoundingVolume);
 	BoundingBoxLines.MergeVerticesAt(Vertices, Grid.GetNumVertices());
+	bChangedVertices = true;
+}
+
+void UBatchLines::UpdateConeVertices(const FVector& Apex, float Angle, float Depth, float RadiusX, float RadiusY)
+{
+	ConeLines.UpdateVertices(Apex, Angle, Depth, RadiusX, RadiusY);
+	ConeLines.MergeVerticesAt(Vertices, Grid.GetNumVertices() + BoundingBoxLines.GetNumVertices());
 	bChangedVertices = true;
 }
 
@@ -117,5 +125,23 @@ void UBatchLines::SetIndices()
 	for (uint32 i = 0; i < std::size(boundingBoxLineIdx); ++i)
 	{
 		Indices.push_back(numGridVertices + boundingBoxLineIdx[i]);
+	}
+
+	// Cone 라인 인덱스 (LineList)
+	const uint32 coneBaseOffset = numGridVertices + BoundingBoxLines.GetNumVertices();
+	const uint32 numSegments = ConeLines.GetNumSegments();
+
+	// Apex(0)에서 바닥면 각 정점으로 연결하는 선들
+	for (uint32 i = 0; i < numSegments; ++i)
+	{
+		Indices.push_back(coneBaseOffset + 0);        // Apex
+		Indices.push_back(coneBaseOffset + 1 + i);    // 바닥면 정점
+	}
+
+	// 바닥면의 원을 구성하는 선들
+	for (uint32 i = 0; i < numSegments; ++i)
+	{
+		Indices.push_back(coneBaseOffset + 1 + i);                    // 현재 정점
+		Indices.push_back(coneBaseOffset + 1 + ((i + 1) % numSegments)); // 다음 정점 (마지막은 첫 번째로)
 	}
 }
