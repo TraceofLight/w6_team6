@@ -311,6 +311,51 @@ void ULevel::DuplicateSubObjects(UObject* DuplicatedObject)
 		AActor* DuplicatedActor = Cast<AActor>(Actor->Duplicate());
 		DuplicatedLevel->Actors.push_back(DuplicatedActor);
 		DuplicatedLevel->AddPrimitiveComponent(DuplicatedActor);
+
+		// DecalComponent도 등록 (PrimitiveComponent와 별도 관리)
+		for (auto& Component : DuplicatedActor->GetOwnedComponents())
+		{
+			if (UDecalComponent* DecalComp = Cast<UDecalComponent>(Component))
+			{
+				DuplicatedLevel->RegisterDecalComponent(DecalComp);
+			}
+		}
+	}
+
+	// SceneBVH 복제
+	// PIE 월드에서도 BVH를 사용할 수 있도록 복제
+	if (SceneBVH)
+	{
+		// 기존 BVH가 있으면 삭제
+		if (DuplicatedLevel->SceneBVH)
+		{
+			SafeDelete(DuplicatedLevel->SceneBVH);
+		}
+
+		// 새로운 BVH 생성하고 복제된 컴포넌트들로 빌드
+		DuplicatedLevel->SceneBVH = new FSceneBVH();
+
+		// 복제된 레벨의 모든 PrimitiveComponent 수집
+		TArray<UPrimitiveComponent*> DuplicatedPrimitives;
+		for (AActor* Actor : DuplicatedLevel->Actors)
+		{
+			if (!Actor) continue;
+
+			for (auto& Component : Actor->GetOwnedComponents())
+			{
+				UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(Component);
+				if (!PrimitiveComponent) continue;
+				if (Cast<UUUIDTextComponent>(PrimitiveComponent)) continue;
+
+				DuplicatedPrimitives.push_back(PrimitiveComponent);
+			}
+		}
+
+		// 복제된 컴포넌트들로 BVH 빌드
+		DuplicatedLevel->SceneBVH->Build(DuplicatedPrimitives);
+
+		UE_LOG("Level: Duplicated Scene BVH built with %d nodes (Total primitives: %d)",
+		       DuplicatedLevel->SceneBVH->GetNodeCount(), DuplicatedPrimitives.size());
 	}
 }
 
