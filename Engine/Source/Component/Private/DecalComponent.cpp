@@ -97,6 +97,16 @@ void UDecalComponent::SetFadeEnabled(bool bEnabled)
     {
         SetCanTick(true);
         StartFadeIn();
+        // 데칼 페이드가 켜질 때, 소유 액터의 에디터 틱을 자동으로 보장
+        // 액터의 에디터 틱에 다른 로직이 있고, 에디터에서 작동하지 않는걸 바란다면 삭제해야함.
+        if (GWorld && GWorld->GetWorldType() == EWorldType::Editor)
+        {
+            if (AActor* Owner = GetOwner())
+            {
+                Owner->SetTickInEditor(true);
+                Owner->SetCanTick(true);
+            }
+        }
     }
     else
     {
