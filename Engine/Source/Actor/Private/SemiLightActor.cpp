@@ -43,10 +43,12 @@ void ASemiLightActor::SetProjectionDistance(float InDistance)
 		SemiLightComponent->SetProjectionDistance(InDistance);
 	}
 }
+
 UClass* ASemiLightActor::GetDefaultRootComponent()
 {
 	return USemiLightComponent::StaticClass();
 }
+
 void ASemiLightActor::InitializeComponents()
 {
 	Super::InitializeComponents();
@@ -60,6 +62,8 @@ void ASemiLightActor::InitializeComponents()
 	UTexture* Light = UAssetManager::GetInstance().CreateTexture("Asset/Texture/semilight.png");
 	DecalComponent->SetTexture(Light);
 
+	SemiLightComponent = Cast<USemiLightComponent>(GetRootComponent());
+
 	// SemiLightComponent에 전달
 	if (SemiLightComponent)
 	{
@@ -67,7 +71,7 @@ void ASemiLightActor::InitializeComponents()
 		SemiLightComponent->SetDecalComponent(DecalComponent);
 		SemiLightComponent->SetWorldLocation(GetActorLocation());
 	}
-	SetRootComponent(SemiLightComponent);
+
 	// 부모-자식 관계 설정
 	if (IconComponent)
 	{
