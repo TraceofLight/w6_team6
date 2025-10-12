@@ -311,6 +311,7 @@ void URenderer::RenderLevel(UCamera* InCurrentCamera)
 	const bool bWantsDecal = (CurrentLevel->GetShowFlags() & EEngineShowFlags::SF_Decal) != 0;
 	if (bWantsDecal)
 	{
+		UStatOverlay::GetInstance().ResetDecalFrame();
 		for (auto Decal : CurrentLevel->GetVisibleDecals())
 		{
 			if (Cast<USemiLightComponent>(Decal->GetParentAttachment()))

@@ -131,6 +131,7 @@ void FDecalPass::Execute(FRenderingContext& Context)
                 for (UPrimitiveComponent* Prim : OverlappingComponents)
                 {
                     DrawDecalReceiver(Prim);
+                    ++DrawCalls;
                 }
             }
         }
@@ -140,11 +141,13 @@ void FDecalPass::Execute(FRenderingContext& Context)
             for (UPrimitiveComponent* Prim : Context.DefaultPrimitives)
             {
                 DrawDecalReceiver(Prim);
+                ++DrawCalls;
             }
 
             for (UStaticMeshComponent* SM : Context.StaticMeshes)
             {
                 DrawDecalReceiver(SM);
+                ++DrawCalls;
             }
         }
     }
