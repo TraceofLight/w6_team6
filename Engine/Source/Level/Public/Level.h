@@ -127,9 +127,9 @@ public:
 	const TArray<FVector4>& GetCachedDebugColors() const { return CachedDebugColors; }
 
 	/**
-	 * Scene BVH 활성화 여부 확인
+	 * Scene BVH 보임 여부 확인
 	 */
-	bool IsSceneBVHEnabled() const { return bShowSceneBVH; }
+	bool IsSceneBVHShown() const { return bShowSceneBVH; }
 
 	/**
 	 * Scene BVH에서 특정 Component와 그 자식들 재귀적으로 업데이트

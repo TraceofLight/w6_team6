@@ -184,6 +184,12 @@ void ULevel::RegisterPrimitiveComponent(UPrimitiveComponent* InComponent)
 		}
 	}
 
+	// SceneBVH가 존재하면 BVH에 추가 (RefitComponent는 내부에서 InsertLeaf 호출)
+	if (SceneBVH && !Cast<UUUIDTextComponent>(InComponent))
+	{
+		SceneBVH->RefitComponent(InComponent);
+	}
+
 	UE_LOG("Level: '%s' 컴포넌트를 씬에 등록했습니다.", InComponent->GetName().ToString().data());
 }
 
@@ -202,6 +208,12 @@ void ULevel::UnregisterPrimitiveComponent(UPrimitiveComponent* InComponent)
 			*It = std::move(DynamicPrimitives.back());
 			DynamicPrimitives.pop_back();
 		}
+	}
+
+	// SceneBVH가 존재하면 BVH에서도 제거
+	if (SceneBVH && !Cast<UUUIDTextComponent>(InComponent))
+	{
+		SceneBVH->RemoveComponent(InComponent);
 	}
 }
 
@@ -229,7 +241,7 @@ bool ULevel::DestroyActor(AActor* InActor)
 {
 	if (!InActor) return false;
 
-	// 컴포넌트들을 옥트리에서 제거
+	// 컴포넌트들을 옥트리와 BVH에서 제거
 	for (auto& Component : InActor->GetOwnedComponents())
 	{
 		UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(Component);
@@ -237,8 +249,7 @@ bool ULevel::DestroyActor(AActor* InActor)
 		UDecalComponent* DecalComponent = Cast<UDecalComponent>(Component);
 		UnregisterDecalComponent(DecalComponent);
 	}
-	
-	
+
 	// LevelActors 리스트에서 제거
 	if (auto It = std::find(Actors.begin(), Actors.end(), InActor); It != Actors.end())
 	{
@@ -367,7 +378,8 @@ void ULevel::UpdateDecalDirtyFlag(UDecalComponent* InDecal)
 	DirtyDecals.insert(InDecal);
 	bDecalsDirty = true;
 
-	UE_LOG("Level: Decal '%s' marked dirty", InDecal->GetName().ToString().data());
+	// 디버깅 필요 시 활성화
+	// UE_LOG("Level: Decal '%s' marked dirty", InDecal->GetName().ToString().data());
 }
 
 void ULevel::OnDecalVisibilityChanged(UDecalComponent* InDecal, bool bVisible)
@@ -489,9 +501,14 @@ void ULevel::RenderSceneBVHDebug()
 
 void ULevel::UpdateSceneBVHComponent(USceneComponent* InComponent)
 {
-	if (!InComponent || !SceneBVH)
+	if (!InComponent)
 	{
 		return;
+	}
+
+	if (!SceneBVH)
+	{
+		BuildSceneBVH();
 	}
 
 	// 현재 컴포넌트가 PrimitiveComponent면 BVH 업데이트
@@ -501,7 +518,9 @@ void ULevel::UpdateSceneBVHComponent(USceneComponent* InComponent)
 		{
 			return;
 		}
-		SceneBVH->UpdateComponent(Primitive);
+		// Transform 변경만 → Refit 사용 (O(depth), 빠름)
+		// 노드 구조는 그대로, AABB만 갱신
+		SceneBVH->RefitComponent(Primitive);
 	}
 
 	// 자식 컴포넌트들도 재귀적으로 업데이트
@@ -534,7 +553,7 @@ bool ULevel::QueryOverlappingComponentsWithBVH(const FOBB& OBB, TArray<UPrimitiv
 void ULevel::TickLevel()
 {
 	// BVH 리빌드가 필요한 경우
-	if (bBVHNeedsRebuild && SceneBVH)
+	if (bBVHNeedsRebuild)
 	{
 		// 이 시점에는 모든 World Transform이 갱신됨
 		BuildSceneBVH();

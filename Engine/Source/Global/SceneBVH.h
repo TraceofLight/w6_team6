@@ -86,8 +86,17 @@ public:
 	* @brief: 특정 Component의 Transform이 변경되었을 때 BVH에서 해당 노드 업데이트
 	* @param InComponent: 업데이트할 Component
 	* @return: 업데이트 성공 여부
+	* @note: 제거/재삽입 방식 (느림, 구조 변경 시 사용)
 	*/
 	bool UpdateComponent(UPrimitiveComponent* InComponent);
+
+	/**
+	* @brief: 특정 Component의 Transform만 변경되었을 때 AABB만 갱신 (빠름)
+	* @param InComponent: 업데이트할 Component
+	* @return: 업데이트 성공 여부
+	* @note: 트리 구조는 그대로, AABB만 리핏 (O(depth))
+	*/
+	bool RefitComponent(UPrimitiveComponent* InComponent);
 
 	/**
 	* @brief: 특정 Component를 BVH에서 제거

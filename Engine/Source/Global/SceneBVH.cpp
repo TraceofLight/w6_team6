@@ -684,3 +684,34 @@ bool FSceneBVH::RemoveComponent(UPrimitiveComponent* InComponent)
 	RemoveLeaf(LeafIndex);
 	return true;
 }
+
+bool FSceneBVH::RefitComponent(UPrimitiveComponent* InComponent)
+{
+	if (!InComponent)
+	{
+		return false;
+	}
+
+	// 1. Component에 해당하는 Leaf 노드 찾기
+	int32 LeafIndex = FindLeafNode(InComponent);
+	if (LeafIndex == -1)
+	{
+		// BVH에 없는 Component면 새로 삽입
+		InsertLeaf(InComponent);
+		return true;
+	}
+
+	// 2. Leaf 노드의 AABB를 새 Transform에 맞춰 갱신
+	FVector WorldMin, WorldMax;
+	InComponent->GetWorldAABB(WorldMin, WorldMax);
+	FAABB NewLeafAABB(WorldMin, WorldMax);
+
+	FSceneNode& LeafNode = Nodes[LeafIndex];
+	LeafNode.Box = NewLeafAABB;
+
+	// 3. 부모 노드부터 루트까지 올라가며 AABB 리핏
+	// RefitAncestors는 내부적으로 부모부터 시작하므로 LeafIndex 전달
+	RefitAncestors(LeafIndex);
+
+	return true;
+}

@@ -406,7 +406,7 @@ void UEditor::ProcessMouseInput()
 			if (USceneComponent* SceneComp = Cast<USceneComponent>(Gizmo.GetSelectedComponent()))
 			{
 				ULevel* Level = GWorld->GetLevel();
-				if (Level && Level->IsSceneBVHEnabled())
+				if (Level)
 				{
 					Level->UpdateSceneBVHComponent(SceneComp);
 				}

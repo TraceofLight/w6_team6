@@ -53,11 +53,8 @@ void UDecalComponent::MarkAsDirty()
     // 부모 클래스의 MarkAsDirty 호출 (트랜스폼 더티 플래그 설정)
     Super::MarkAsDirty();
 
-    // Level에 Decal 변경 알림
-    if (ULevel* Level = GWorld->GetLevel())
-    {
-        Level->UpdateDecalDirtyFlag(this);
-    }
+    // SceneBVH는 Editor/ActorDetailWidget에서 드래그 종료 시 RefitComponent로 업데이트
+    // 여기서는 Transform Dirty Flag만 설정하고, BVH 업데이트는 드래그 완료 시에만 수행
 }
 
 void UDecalComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)

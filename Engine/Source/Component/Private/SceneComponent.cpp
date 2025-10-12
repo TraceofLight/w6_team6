@@ -121,20 +121,14 @@ void USceneComponent::SetRelativeLocation(const FVector& Location)
 	RelativeLocation = Location;
 	MarkAsDirty();
 
-	ULevel* Level = GWorld->GetLevel();
-
-	// Primitive 업데이트 (기존)
+	// Primitive 업데이트 (Octree 동적 이동)
 	if (auto PrimitiveComponent = Cast<UPrimitiveComponent>(this))
 	{
+		ULevel* Level = GWorld->GetLevel();
 		Level->UpdatePrimitiveInOctree(PrimitiveComponent);
 
-		// BVH 업데이트는 Editor에서 기즈모 드래그 종료 시에만 수행
+		// SceneBVH 업데이트는 Editor에서 기즈모 드래그 종료 시에만 수행
 		// (매 프레임 업데이트하면 성능 저하 발생)
-	}
-	// Decal 업데이트 (새로 추가)
-	else if (auto Decal = Cast<UDecalComponent>(this))
-	{
-		Level->UpdateDecalDirtyFlag(Decal);
 	}
 }
 
@@ -143,20 +137,14 @@ void USceneComponent::SetRelativeRotation(const FVector& Rotation)
 	RelativeRotation = Rotation;
 	MarkAsDirty();
 
-	ULevel* Level = GWorld->GetLevel();
-
-	// Primitive 업데이트 (기존)
+	// Primitive 업데이트 (Octree 동적 이동)
 	if (auto PrimitiveComponent = Cast<UPrimitiveComponent>(this))
 	{
+		ULevel* Level = GWorld->GetLevel();
 		Level->UpdatePrimitiveInOctree(PrimitiveComponent);
 
-		// BVH 업데이트는 Editor에서 기즈모 드래그 종료 시에만 수행
+		// SceneBVH 업데이트는 Editor에서 기즈모 드래그 종료 시에만 수행
 		// (매 프레임 업데이트하면 성능 저하 발생)
-	}
-	// Decal 업데이트 (새로 추가)
-	else if (auto Decal = Cast<UDecalComponent>(this))
-	{
-		Level->UpdateDecalDirtyFlag(Decal);
 	}
 }
 
@@ -165,20 +153,14 @@ void USceneComponent::SetRelativeScale3D(const FVector& Scale)
 	RelativeScale3D = Scale;
 	MarkAsDirty();
 
-	ULevel* Level = GWorld->GetLevel();
-
-	// Primitive 업데이트 (기존)
+	// Primitive 업데이트 (Octree 동적 이동)
 	if (auto PrimitiveComponent = Cast<UPrimitiveComponent>(this))
 	{
+		ULevel* Level = GWorld->GetLevel();
 		Level->UpdatePrimitiveInOctree(PrimitiveComponent);
 
-		// BVH 업데이트는 Editor에서 기즈모 드래그 종료 시에만 수행
+		// SceneBVH 업데이트는 Editor에서 기즈모 드래그 종료 시에만 수행
 		// (매 프레임 업데이트하면 성능 저하 발생)
-	}
-	// Decal 업데이트 (새로 추가)
-	else if (auto Decal = Cast<UDecalComponent>(this))
-	{
-		Level->UpdateDecalDirtyFlag(Decal);
 	}
 }
 

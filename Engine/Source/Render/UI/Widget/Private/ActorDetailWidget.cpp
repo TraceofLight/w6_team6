@@ -612,7 +612,7 @@ void UActorDetailWidget::RenderTransformEdit()
 	if (bNeedsBVHUpdate)
 	{
 		ULevel* Level = GWorld->GetLevel();
-		if (Level && Level->IsSceneBVHEnabled())
+		if (Level)
 		{
 			Level->UpdateSceneBVHComponent(SceneComponent);
 		}
