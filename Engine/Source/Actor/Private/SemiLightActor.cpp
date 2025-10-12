@@ -1,85 +1,73 @@
 #include "pch.h"
 #include "Actor/Public/SemiLightActor.h"
-
+#include "Component/Public/SemiLightComponent.h"
 #include "Component/Public/BillBoardComponent.h"
 #include "Component/Public/DecalComponent.h"
-#include "Component/Public/SceneComponent.h"
 #include "Manager/Asset/Public/AssetManager.h"
-#include "Texture/Public/Texture.h"
 
 IMPLEMENT_CLASS(ASemiLightActor, AActor)
 
 ASemiLightActor::ASemiLightActor()
 {
-    // 1. 루트 컴포넌트 생성
-    DefaultSceneRoot = AddComponent<USceneComponent>(FName("DefaultSceneRoot"));
-    SetRootComponent(DefaultSceneRoot);
+	bCanEverTick = false;  // USemiLightComponent가 Tick을 처리
+	
+	// SemiLightComponent 생성 및 루트로 설정
+	SemiLightComponent = CreateDefaultSubobject<USemiLightComponent>(FName("SemiLightComponent"));
+	SetRootComponent(SemiLightComponent);
 
-    // 2. 자식 컴포넌트 생성 및 부착
-    IconComponent = AddComponent<UBillBoardComponent>(FName("IconComponent"));
-    IconComponent->SetParentAttachment(GetRootComponent());
+	// 자식 컴포넌트 생성
+	UBillBoardComponent* IconComponent = CreateDefaultSubobject<UBillBoardComponent>(FName("IconComponent"));
+	UTexture* Icon = UAssetManager::GetInstance().CreateTexture("Asset/Icon/PointLight_64x.png");
+	IconComponent->SetSprite(Icon);
 
-    DecalComponent = AddComponent<UDecalComponent>(FName("DecalComponent"));
-    DecalComponent->SetParentAttachment(GetRootComponent());
+	UDecalComponent* DecalComponent = CreateDefaultSubobject<UDecalComponent>(FName("DecalComponent"));
+	UTexture* Light = UAssetManager::GetInstance().CreateTexture("Asset/Texture/semilight.png");
+	DecalComponent->SetTexture(Light);
 
-    // 3. 에셋 로드 및 설정
-    UAssetManager& AssetManager = UAssetManager::GetInstance();
-    auto IconSrv = AssetManager.GetTexture("Icon/SpotLight_64x.png");
-    if (IconSrv)
-    {
-        IconComponent->SetSprite({ FName("Icon/SpotLight_64x.png"), IconSrv.Get() });
-    }
+	// SemiLightComponent에 전달
+	if (SemiLightComponent)
+	{
+		SemiLightComponent->SetIconComponent(IconComponent);
+		SemiLightComponent->SetDecalComponent(DecalComponent);
+		SemiLightComponent->SetWorldLocation(GetActorLocation());
+	}
 
-    UTexture* DecalTexture = AssetManager.CreateTexture("Texture/texture.png", FName("DefaultDecal"));
-    if (DecalTexture)
-    {
-        DecalComponent->SetTexture(DecalTexture);
-    }
+	// 부모-자식 관계 설정
+	if (IconComponent)
+	{
+		IconComponent->SetParentAttachment(SemiLightComponent);
+	}
 
-    // 4. 데칼 초기 방향 설정 (하방으로 -90도 회전)
-    DecalComponent->SetRelativeRotation(FVector(-90.0f, 0.0f, 0.0f));
-
-    // 5. 초기 프로퍼티 적용
-    UpdateDecalProperties();
+	if (DecalComponent)
+	{
+		DecalComponent->SetParentAttachment(SemiLightComponent);
+		// 데칼 초기 방향
+		DecalComponent->SetRelativeRotation(FVector(0.0f, 180.0f, 0.0f));
+	}
 }
 
 ASemiLightActor::~ASemiLightActor() = default;
 
 void ASemiLightActor::SetDecalTexture(UTexture* InTexture)
 {
-    if (DecalComponent)
-    {
-        DecalComponent->SetTexture(InTexture);
-    }
+	if (SemiLightComponent)
+	{
+		SemiLightComponent->SetDecalTexture(InTexture);
+	}
 }
 
 void ASemiLightActor::SetSpotAngle(float InAngle)
 {
-    SpotAngle = InAngle;
-    UpdateDecalProperties();
+	if (SemiLightComponent)
+	{
+		SemiLightComponent->SetSpotAngle(InAngle);
+	}
 }
 
 void ASemiLightActor::SetProjectionDistance(float InDistance)
 {
-    ProjectionDistance = InDistance;
-    UpdateDecalProperties();
-}
-
-void ASemiLightActor::UpdateDecalProperties()
-{
-    if (!DecalComponent)
-    {
-        return;
-    }
-
-    // 크기 계산
-    const float Radius = tanf(FVector::GetDegreeToRadian(SpotAngle * 0.5f)) * ProjectionDistance;
-    const float BoxDepth = ProjectionDistance;
-
-    // 위치 계산 (데칼 박스는 중심 기준이므로, 투사 방향으로 깊이의 절반만큼 이동)
-    const FVector DecalRelativeLocation = FVector(0.0f, 0.0f, BoxDepth * 0.5f);
-
-    // 프로퍼티 설정
-    DecalComponent->SetRelativeLocation(DecalRelativeLocation);
-    DecalComponent->SetDecalSize(FVector(BoxDepth, Radius * 2.0f, Radius * 2.0f));
+	if (SemiLightComponent)
+	{
+		SemiLightComponent->SetProjectionDistance(InDistance);
+	}
 }

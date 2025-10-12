@@ -5,6 +5,8 @@
 #include "Physics/Public/AABB.h"
 #include "Render/Renderer/Public/RenderResourceFactory.h"
 #include "Render/UI/Widget/Public/SpriteSelectionWidget.h"
+#include "Texture/Public/Texture.h"
+#include "Texture/Public/TextureRenderProxy.h"
 
 IMPLEMENT_CLASS(UBillBoardComponent, UPrimitiveComponent)
 
@@ -89,6 +91,12 @@ const TPair<FName, ID3D11ShaderResourceView*>& UBillBoardComponent::GetSprite() 
 void UBillBoardComponent::SetSprite(const TPair<FName, ID3D11ShaderResourceView*>& InSprite)
 {
     Sprite = InSprite;
+}
+
+void UBillBoardComponent::SetSprite(const UTexture* InSprite)
+{
+    FName SpriteName = InSprite->GetName();
+    Sprite = { SpriteName, InSprite->GetRenderProxy()->GetSRV() };
 }
 
 ID3D11SamplerState* UBillBoardComponent::GetSampler() const

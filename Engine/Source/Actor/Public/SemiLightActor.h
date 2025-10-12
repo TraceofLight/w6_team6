@@ -2,30 +2,31 @@
 #include "Actor/Public/Actor.h"
 #include "Core/Public/Class.h"
 
-class UBillBoardComponent;
-class UDecalComponent;
+class USemiLightComponent;
 
+/**
+ * @brief 스포트라이트 효과를 표현하는 액터
+ * - USemiLightComponent를 루트 컴포넌트로 소유
+ * - 모든 기능은 USemiLightComponent에 위임
+ */
 UCLASS()
 class ASemiLightActor : public AActor
 {
-    GENERATED_BODY()
-    DECLARE_CLASS(ASemiLightActor, AActor)
+	GENERATED_BODY()
+	DECLARE_CLASS(ASemiLightActor, AActor)
 
 public:
-    ASemiLightActor();
-    ~ASemiLightActor() override;
+	ASemiLightActor();
+	~ASemiLightActor() override;
 
-    void SetDecalTexture(UTexture* InTexture);
-    void SetSpotAngle(float InAngle);
-    void SetProjectionDistance(float InDistance);
+	// Getter
+	USemiLightComponent* GetSemiLightComponent() const { return SemiLightComponent; }
+
+	// 하위 호환성을 위한 Forwarding API
+	void SetDecalTexture(UTexture* InTexture);
+	void SetSpotAngle(float InAngle);
+	void SetProjectionDistance(float InDistance);
 
 private:
-    void UpdateDecalProperties();
-
-    USceneComponent* DefaultSceneRoot = nullptr;
-    UBillBoardComponent* IconComponent = nullptr;
-    UDecalComponent* DecalComponent = nullptr;
-
-    float SpotAngle = 45.0f;
-    float ProjectionDistance = 500.0f;
+	USemiLightComponent* SemiLightComponent = nullptr;
 };
