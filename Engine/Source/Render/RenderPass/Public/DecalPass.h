@@ -12,11 +12,11 @@ struct FDecalConstants
 {
     FMatrix DecalWorld;
     FMatrix DecalWorldInverse;
+    FVector4 DecalFadeParams; // x = FadeAlpha, YZW = padding
     float SpotAngle;           // 원뿔 각도 (degree). < 0이면 박스 클리핑, >= 0이면 원뿔 프러스텀
     float BlendFactor;         // 블렌딩 강도 (0.0 ~ 1.0)
     float Padding2;
     float Padding3;
-    FVector4 DecalFadeParams; // x = FadeAlpha, YZW = padding
 };
 
 class FDecalPass : public FRenderPass

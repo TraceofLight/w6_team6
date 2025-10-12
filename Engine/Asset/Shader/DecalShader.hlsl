@@ -14,11 +14,11 @@ cbuffer DecalConstants : register(b2)
 {
     row_major float4x4 DecalWorld;
     row_major float4x4 DecalWorldInverse;
+    float4 DecalFadeParams; // x = FadeAlpha[0..1]
     float SpotAngle;           // < 0: 박스 클리핑, >= 0: 원뿔 프러스텀
     float BlendFactor;         // 블렌딩 강도 (0.0 ~ 1.0)
     float Padding2;
     float Padding3;
-    float4 DecalFadeParams; // x = FadeAlpha[0..1]
 };
 
 Texture2D DecalTexture : register(t0);
