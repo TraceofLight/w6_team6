@@ -385,11 +385,8 @@ UObject* UDecalComponent::Duplicate()
         NewOBB->Update(DecalComponent->GetWorldTransformMatrix());
     }
 
-    // Enable 상태면 Tick 보장
-    if (DecalComponent->bFadeEnabled)
-    {
-        DecalComponent->SetCanTick(true);
-    }
+    // RefreshTickState는 SetMaterial 내부에서 이미 호출됨
+    // 중복 호출 방지를 위해 제거
     return DecalComponent;
 }
 
