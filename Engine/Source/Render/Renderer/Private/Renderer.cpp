@@ -291,21 +291,22 @@ void URenderer::RenderLevel(UCamera* InCurrentCamera)
 	const bool bWantsDecal = (CurrentLevel->GetShowFlags() & EEngineShowFlags::SF_Decal) != 0;
 	if (bWantsDecal)
 	{
-		// TODO: 모든 액터 순회하면서 데칼 수집 하는 거 없애야 됨.
-		for (AActor* Actor : CurrentLevel->GetActors())
-		{
-			for (UActorComponent* Comp : Actor->GetOwnedComponents())
-			{
-				if (auto* Decal = Cast<UDecalComponent>(Comp))
-				{
-					// SceneComponent 기반 데칼도 수집
-					if (Decal->IsVisible())
-					{
-						RenderingContext.Decals.push_back(Decal);
-					}
-				}
-			}
-		}
+		// // TODO: 모든 액터 순회하면서 데칼 수집 하는 거 없애야 됨.
+		// for (AActor* Actor : CurrentLevel->GetActors())
+		// {
+		// 	for (UActorComponent* Comp : Actor->GetOwnedComponents())
+		// 	{
+		// 		if (auto* Decal = Cast<UDecalComponent>(Comp))
+		// 		{
+		// 			// SceneComponent 기반 데칼도 수집
+		// 			if (Decal->IsVisible())
+		// 			{
+		// 				RenderingContext.Decals.push_back(Decal);
+		// 			}
+		// 		}
+		// 	}
+		// }
+		RenderingContext.Decals = CurrentLevel->GetVisibleDecals();
 	}
 
 	for (auto RenderPass: RenderPasses)

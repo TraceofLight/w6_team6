@@ -15,6 +15,7 @@
 #include <json.hpp>
 
 #include "Component/Public/UUIDTextComponent.h"
+#include "Render/UI/Widget/Public/DecalComponentWidget.h"
 
 IMPLEMENT_CLASS(ULevel, UObject)
 
@@ -156,6 +157,9 @@ AActor* ULevel::SpawnActorToLevel(UClass* InActorClass, const FName& InName, JSO
 			bBVHNeedsRebuild = true;
 		}
 
+		// TODO: DecalActor 특수처리한거임, 나중에는 삭제요망
+		RegisterDecalComponent(Cast<UDecalComponent>(NewActor->GetRootComponent()));
+		
 		return NewActor;
 	}
 
