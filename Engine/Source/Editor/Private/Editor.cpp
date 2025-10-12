@@ -458,9 +458,7 @@ void UEditor::ProcessMouseInput()
 					Candidate.insert(Candidate.end(), DynamicCandidates.begin(), DynamicCandidates.end());
 				}
 				
-
-				TStatId StatId("Picking");
-				FScopeCycleCounter PickCounter(StatId);
+				FScopeCycleCounter PickCounter;
 				UPrimitiveComponent* PrimitiveCollided = ObjectPicker.PickPrimitive(CurrentCamera, WorldRay, Candidate, &ActorDistance);
 				ActorPicked = PrimitiveCollided ? PrimitiveCollided->GetOwner() : nullptr;
 				float ElapsedMs = PickCounter.Finish(); // 피킹 시간 측정 종료

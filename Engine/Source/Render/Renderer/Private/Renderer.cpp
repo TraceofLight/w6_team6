@@ -302,6 +302,9 @@ void URenderer::RenderLevel(UCamera* InCurrentCamera)
 	const bool bWantsDecal = (CurrentLevel->GetShowFlags() & EEngineShowFlags::SF_Decal) != 0;
 	if (bWantsDecal)
 	{
+		UStatOverlay::GetInstance().ResetDecalFrame();
+		uint32 Collected = 0;
+		uint32 Visible = 0;
 		// TODO - 모든 액터 순회하는 거 없애야 됨.
 		for (AActor* Actor : CurrentLevel->GetLevelActors())
 		{
@@ -309,14 +312,17 @@ void URenderer::RenderLevel(UCamera* InCurrentCamera)
 			{
 				if (auto* Decal = Cast<UDecalComponent>(Comp))
 				{
+					++Collected;
 					// SceneComponent 기반 데칼도 수집
 					if (Decal->IsVisible())
 					{
+						++Visible;
 						RenderingContext.Decals.push_back(Decal);
 					}
 				}
 			}
 		}
+		UStatOverlay::GetInstance().RecordDecalCollection(Collected, Visible);
 	}
 
 	for (auto RenderPass: RenderPasses)

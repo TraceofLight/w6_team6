@@ -9,6 +9,9 @@
 #include "Texture/Public/Texture.h"
 #include "Texture/Public/TextureRenderProxy.h"
 #include "Component/Mesh/Public/StaticMeshComponent.h"
+#include "Render/UI/Overlay/Public/StatOverlay.h"
+
+using Clock = std::chrono::high_resolution_clock;
 
 FDecalPass::FDecalPass(UPipeline* InPipeline, ID3D11Buffer* InConstantBufferViewProj, ID3D11VertexShader* InVS, ID3D11PixelShader* InPS, ID3D11InputLayout* InLayout, ID3D11DepthStencilState* InDS_Read, ID3D11BlendState* InBlendState)
     : FRenderPass(InPipeline, InConstantBufferViewProj, nullptr),
@@ -24,6 +27,11 @@ void FDecalPass::Execute(FRenderingContext& Context)
     if (!(Context.ShowFlags & EEngineShowFlags::SF_Decal)) { return; }
     if (Context.Decals.empty()) { return; }
 
+    auto t0 = Clock::now();
+    uint32 DrawCalls = 0;
+    uint32 TexBinds = 0, TexFallbacks = 0;
+    uint32 MatSeen = 0, MatBinds = 0;
+    TIME_PROFILE(DecalPass);
     // --- Set Pipeline State ---
     FPipelineInfo PipelineInfo = { InputLayout, VS, FRenderResourceFactory::GetRasterizerState({ ECullMode::Back, EFillMode::Solid }),
         DS_Read, PS, BlendState };
@@ -39,7 +47,7 @@ void FDecalPass::Execute(FRenderingContext& Context)
         if (!DecalBV || DecalBV->GetType() != EBoundingVolumeType::OBB) { continue; }
 
         const FOBB* DecalOBB = static_cast<const FOBB*>(DecalBV);
-
+        const FAABB DecalWorldAABB = DecalOBB->ToWorldAABB();
         // --- Update Decal Constant Buffer ---
         FDecalConstants DecalConstants;
 
@@ -66,16 +74,20 @@ void FDecalPass::Execute(FRenderingContext& Context)
 
         // --- Bind Decal Texture ---
         UTexture* BoundTexture = nullptr;
+        bool FromMaterial = false;
         if (UMaterial* Mat = Decal->GetMaterial())
         {
+            ++MatSeen;
             // 알파 먼저(데칼 컷아웃에 유용), 없으면 디퓨즈, 없으면 앰비언트
             BoundTexture = Mat->GetAlphaTexture();
             if (!BoundTexture) BoundTexture = Mat->GetDiffuseTexture();
             if (!BoundTexture) BoundTexture = Mat->GetAmbientTexture();
+            if (BoundTexture) FromMaterial = true;
         }
         if (!BoundTexture)
         {
             BoundTexture = Decal->GetTexture(); // 최후 폴백
+            if (BoundTexture) ++TexFallbacks;
         }
 
         if (BoundTexture)
@@ -84,20 +96,39 @@ void FDecalPass::Execute(FRenderingContext& Context)
             {
                 Pipeline->SetTexture(0, false, Proxy->GetSRV());
                 Pipeline->SetSamplerState(0, false, Proxy->GetSampler());
+                ++TexBinds;
+                if (FromMaterial) ++MatBinds;
             }
         }
         // 1) 기존 기본 프리미티브
         for (UPrimitiveComponent* Prim : Context.DefaultPrimitives)
         {
+            FVector minW, maxW;
+            Prim->GetWorldAABB(minW, maxW);
+            const FAABB PrimAABB(minW, maxW);
+            if (!DecalWorldAABB.IsIntersected(PrimAABB)) { continue; } // 교차 안 하면 Draw 스킵
             DrawDecalReceiver(Prim);
+            ++DrawCalls;
         }
 
         // 2) StaticMesh도 수신자로 포함
         for (UStaticMeshComponent* SM : Context.StaticMeshes)
         {
+            FVector minW, maxW;
+            SM->GetWorldAABB(minW, maxW);
+            const FAABB SMAABB(minW, maxW);
+            if (!DecalWorldAABB.IsIntersected(SMAABB)) { continue; } // 교차 안 하면 Draw 스킵
             DrawDecalReceiver(SM);
+            ++DrawCalls;
         }
     }
+    TIME_PROFILE_END(DecalPass);
+    auto t1 = Clock::now();
+    float ms = std::chrono::duration<float, std::milli>(t1 - t0).count();
+    UStatOverlay::GetInstance().RecordDecalDrawCalls(DrawCalls);
+    UStatOverlay::GetInstance().RecordDecalTextureStats(TexBinds, TexFallbacks);
+    UStatOverlay::GetInstance().RecordDecalMaterialStats(MatSeen, MatBinds);
+    UStatOverlay::GetInstance().RecordDecalPassMs(ms);
 }
 
 void FDecalPass::DrawDecalReceiver(UPrimitiveComponent* Prim)
