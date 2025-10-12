@@ -15,6 +15,8 @@ public:
 
 	virtual void OnSelected() override;
 	virtual void OnDeselected() override;
+	// 렌더와 일치하는 바운딩 변환 훅(기본은 월드 변환)
+	virtual FMatrix GetBoundingTransform() const { return GetWorldTransformMatrix(); }
 
 	const TArray<FNormalVertex>* GetVerticesData() const;
 	const TArray<uint32>* GetIndicesData() const;

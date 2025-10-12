@@ -233,21 +233,12 @@ bool ULevel::DestroyActor(AActor* InActor)
 	for (auto& Component : InActor->GetOwnedComponents())
 	{
 		UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(Component);
-		if (!PrimitiveComponent) { continue; }
-
-		if (StaticOctree)
-		{
-			if (!StaticOctree->Remove(PrimitiveComponent))
-			{
-				if (auto It = std::find(DynamicPrimitives.begin(), DynamicPrimitives.end(), PrimitiveComponent); It != DynamicPrimitives.end())
-				{
-					*It = std::move(DynamicPrimitives.back());
-					DynamicPrimitives.pop_back();
-				}
-			}
-		}
+		UnregisterPrimitiveComponent(PrimitiveComponent);
+		UDecalComponent* DecalComponent = Cast<UDecalComponent>(Component);
+		UnregisterDecalComponent(DecalComponent);
 	}
-
+	
+	
 	// LevelActors 리스트에서 제거
 	if (auto It = std::find(Actors.begin(), Actors.end(), InActor); It != Actors.end())
 	{

@@ -98,7 +98,7 @@ public:
 	void OnMouseHovering() {}
 	void OnMouseDragStart(FVector& CollisionPoint);
 	void OnMouseRelease(EGizmoDirection DirectionReleased) {}
-
+	void ClearTarget();
 private:
 	static inline int AxisIndex(EGizmoDirection InDirection)
 	{

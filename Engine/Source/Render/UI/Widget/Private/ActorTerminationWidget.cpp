@@ -3,7 +3,8 @@
 
 #include "Level/Public/Level.h"
 #include "Manager/Input/Public/InputManager.h"
-
+#include "Manager/UI/Public/UIManager.h"
+#include "Render/UI/Window/Public/UIWindow.h"
 
 UActorTerminationWidget::UActorTerminationWidget()
 	: UWidget("Actor Termination Widget")
@@ -31,26 +32,44 @@ void UActorTerminationWidget::Update()
 
 void UActorTerminationWidget::RenderWidget()
 {
-	auto& InputManager = UInputManager::GetInstance();
-	AActor* SelectedActor = GEditor->GetEditorModule()->GetSelectedActor();
-	if (!SelectedActor)
-	{
-		return;
-	}
+    auto& InputManager = UInputManager::GetInstance();
+    if (!InputManager.IsKeyPressed(EKeyInput::Delete))
+    {
+        return;
+    }
+    // 현재 포커스된 윈도우 확인
+    UUIWindow* Focused = UUIManager::GetInstance().GetFocusedWindow();
+    if (!Focused)
+    {
+        return;
+    }
 
-	if (InputManager.IsKeyPressed(EKeyInput::Delete))
-	{
-		// 컴포넌트 선택시 컴포넌트 삭제를 우선
-		if (ActorDetailWidget)
-		{
-			if (UActorComponent* ActorComp = ActorDetailWidget->GetSelectedComponent())
-			{
-				DeleteSelectedComponent(SelectedActor, ActorComp);
-				return;
-			}
-		}
-		DeleteSelectedActor(SelectedActor);
-	}
+    const FString FocusedTitle = Focused->GetWindowTitle().ToString();
+
+    AActor* SelectedActor = GEditor->GetEditorModule()->GetSelectedActor();
+    if (!SelectedActor)
+    {
+        return;
+    }
+
+    // Details에 포커스 → 컴포넌트 삭제 시도
+    if (FocusedTitle == "Details")
+    {
+        if (ActorDetailWidget)
+        {
+            if (UActorComponent* Comp = ActorDetailWidget->GetSelectedComponent())
+            {
+                DeleteSelectedComponent(SelectedActor, Comp);
+                return;
+            }
+        }
+
+        // 컴포넌트 선택이 없으면 아무 것도 하지 않음(원하시면 액터 삭제로 폴백 가능)
+        // DeleteSelectedActor(SelectedActor);
+        return;
+    }
+
+    // 기타 윈도우 포커스면 아무것도 하지 않음
 }
 
 /**
@@ -82,9 +101,16 @@ void UActorTerminationWidget::DeleteSelectedActor(AActor* InSelectedActor)
 
 void UActorTerminationWidget::DeleteSelectedComponent(AActor* InSelectedActor, UActorComponent* InSelectedComponent)
 {
-	bool bSuccess = InSelectedActor->RemoveComponent(InSelectedComponent);
-	if (bSuccess)
-	{
-		ActorDetailWidget->SetSelectedComponent(nullptr);
-	}
+    // 먼저 에디터 선택 해제 → Gizmo도 SelectComponent(nullptr)에서 ClearTarget 호출됨
+    if (GEditor->GetEditorModule()->GetSelectedComponent() == InSelectedComponent)
+    {
+        GEditor->GetEditorModule()->SelectComponent(nullptr);
+    }
+
+    bool bSuccess = InSelectedActor->RemoveComponent(InSelectedComponent);
+
+    if (bSuccess && ActorDetailWidget)
+    {
+        ActorDetailWidget->SetSelectedComponent(nullptr);
+    }
 }

@@ -14,6 +14,7 @@ cbuffer DecalConstants : register(b2)
 {
     row_major float4x4 DecalWorld;
     row_major float4x4 DecalWorldInverse;
+    float4 DecalFadeParams; // x = FadeAlpha[0..1]
 };
 
 Texture2D DecalTexture : register(t0);
@@ -67,10 +68,10 @@ float4 mainPS(PS_INPUT Input) : SV_TARGET
 	// UV Transition ([-0.5~0.5], [-0.5~0.5]) -> ([0~1.0], [1.0~0])
     float2 DecalUV = DecalLocalPos.yz * float2(1, -1) + 0.5f;
     float4 DecalColor = DecalTexture.Sample(DecalSampler, DecalUV);
+    DecalColor.a *= DecalFadeParams.x; // fade 적용
     if (DecalColor.a < 0.001f)
     {
         discard;
     }
-	
     return DecalColor;
 }

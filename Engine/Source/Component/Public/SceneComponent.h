@@ -60,7 +60,7 @@ private:
 	TArray<USceneComponent*> Children;
 	FVector RelativeLocation = FVector{ 0,0,0.f };
 	FVector RelativeRotation = FVector{ 0,0,0.f };
-	FVector RelativeScale3D = FVector{ 0.3f,0.3f,0.3f };
+	FVector RelativeScale3D = FVector{ 1.0f,1.0f,1.0f };
 	bool bIsUniformScale = false;
 
 public:

@@ -417,7 +417,23 @@ void UEditor::ProcessMouseInput()
 		// 드래그가 끝나면 선택된 뷰포트를 비활성화 합니다.
 		InteractionViewport = nullptr;
 	}
-
+	// Gizmo 타깃 유효성 2차 체크 (삭제/분리로 인한 댕글링 방지)
+	if (Gizmo.HasComponent())
+	{
+		USceneComponent* TC = Gizmo.GetSelectedComponent();
+		if (!TC || !TC->GetOwner())
+		{
+			Gizmo.ClearTarget();
+		}
+		else
+		{
+			auto& Owned = TC->GetOwner()->GetOwnedComponents();
+			if (std::find(Owned.begin(), Owned.end(), TC) == Owned.end())
+			{
+				Gizmo.ClearTarget();
+			}
+		}
+	}
 	if (Gizmo.IsDragging() && Gizmo.GetSelectedComponent())
 	{
 		switch (Gizmo.GetGizmoMode())
@@ -641,10 +657,13 @@ void UEditor::SelectComponent(UActorComponent* InComponent)
 	}
 
 	SelectedComponent = InComponent;
-	if (SelectedComponent)
+	// 여기서 Gizmo도 즉시 정리
+	if (!SelectedComponent)
 	{
-		SelectedComponent->OnSelected();
+		Gizmo.ClearTarget();
+		return;
 	}
+	SelectedComponent->OnSelected();
 }
 
 UUUIDTextComponent* UEditor::GetPickedBillboard() const

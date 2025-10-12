@@ -157,9 +157,13 @@ void UPrimitiveSpawnWidget::SpawnActors() const
 
 			NewActor->SetActorLocation(FVector(RandomX, RandomY, RandomZ));
 
+			/*
 			// 임의의 스케일 (0.5 ~ 2.0 범위)
 			float RandomScale = 0.5f + (static_cast<float>(rand()) / RAND_MAX) * 1.5f;
 			NewActor->SetActorScale3D(FVector(RandomScale, RandomScale, RandomScale));
+			*/
+			// 항상 스케일 1,1,1
+			NewActor->SetActorScale3D(FVector(1.f, 1.f, 1.f));
 
 			UE_LOG("ControlPanel: (%.2f, %.2f, %.2f) 지점에 Actor를 배치했습니다", RandomX, RandomY, RandomZ);
 		}

@@ -7,6 +7,7 @@ class UEditor;
 class ULevel;
 class AActor;
 class UClass;
+class UActorComponent;
 
 namespace json { class JSON; }
 using JSON = json::JSON;
@@ -57,6 +58,7 @@ public:
 	AActor* SpawnActor(UClass* InActorClass, const FName& InName = FName::GetNone(), JSON* ActorJsonData = nullptr);
 	bool DestroyActor(AActor* InActor); // Level의 void MarkActorForDeletion(AActor * InActor) 기능을 DestroyActor가 가짐
 
+	bool DestroyComponent(UActorComponent* InComponent);  // 컴포넌트 삭제 예약
 	// TODO: World Scope Query Entrypoint
 	// Editor에서 쿼리 요청시 Level에 바로 요청하지 않고 World를 통해 요청하도록 변경 
 
@@ -68,8 +70,9 @@ private:
 	ULevel* Level = nullptr; // Persistance Level. Sublevels are not considered in GTL.
 	bool bBegunPlay = false;
 	TArray<AActor*> PendingDestroyActors;
+	TArray<UActorComponent*> PendingDestroyComponents;    // 삭제 예약된 컴포넌트
 
-	void FlushPendingDestroy(); // Destroy marking 된 액터들을 실제 삭제
+	void FlushPendingDestroy(); // Destroy marking 된 액터, 컴포넌트들을 실제 삭제
 
 	void SwitchToLevel(ULevel* InNewLevel);
 	

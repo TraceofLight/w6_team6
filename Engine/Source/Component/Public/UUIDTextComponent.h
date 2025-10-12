@@ -15,6 +15,7 @@ public:
 
 	virtual void OnSelected() override;
 	virtual void OnDeselected() override;
+	virtual FMatrix GetBoundingTransform() const override { return GetRTMatrix(); }
 
 	void UpdateRotationMatrix(const FVector& InCameraLocation) override;
 	void SetOffset(float Offset) { ZOffset = Offset; }

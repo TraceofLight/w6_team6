@@ -40,8 +40,6 @@ void FDecalPass::Execute(FRenderingContext& Context)
         if (!DecalBV || DecalBV->GetType() != EBoundingVolumeType::OBB) { continue; }
 
         const FOBB* DecalOBB = static_cast<const FOBB*>(DecalBV);
-
-        UE_LOG("Decal Size %f, %f, %f", DecalOBB->Extents.X, DecalOBB->Extents.Y, DecalOBB->Extents.Z);
         
         // --- Update Decal Constant Buffer ---
         FDecalConstants DecalConstants;
@@ -58,6 +56,7 @@ void FDecalPass::Execute(FRenderingContext& Context)
 
         DecalConstants.DecalWorld = Scale * Decal->GetWorldTransformMatrix();
         DecalConstants.DecalWorldInverse = Decal->GetWorldTransformMatrixInverse() * ScaleInv;
+        DecalConstants.DecalFadeParams = FVector4(Decal->GetFadeAlpha(), 0, 0, 0);
 
         FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferDecal, DecalConstants);
         Pipeline->SetConstantBuffer(2, false, ConstantBufferDecal);

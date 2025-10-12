@@ -7,6 +7,7 @@
 #include "Component/Public/SceneComponent.h"
 #include "Component/Public/TextComponent.h"
 #include "Component/Public/BillBoardComponent.h"
+#include "Component/Public/DecalComponent.h"
 #include "Component/Mesh/Public/SphereComponent.h"
 #include "Component/Mesh/Public/SquareComponent.h"
 #include "Component/Mesh/Public/StaticMeshComponent.h"
@@ -366,10 +367,10 @@ void UActorDetailWidget::RenderAddComponentButton(AActor* InSelectedActor)
 	{
 		ImGui::Text("Add Component");
 		ImGui::Separator();
-
+		// TODO - mesh 컴포넌트는 추후에 메쉬가 없어도 추가될 수 있도록
 		const char* componentNames[] = {
 			"Triangle", "Sphere", "Square", "Cube",
-			"Mesh", "Static Mesh", "BillBoard", "Text"
+			"Static Mesh", "BillBoard", "Text", "Decal"
 		};
 
 		// 반복문 안에서 헬퍼 함수를 호출하여 원하는 UI를 그립니다.
@@ -437,10 +438,6 @@ void UActorDetailWidget::AddComponentByName(AActor* InSelectedActor, const FStri
 	{
 		NewComponent = InSelectedActor->AddComponent<UCubeComponent>(NewComponentName);
 	}
-	else if (InComponentName == "Mesh")
-	{
-		NewComponent = InSelectedActor->AddComponent<UMeshComponent>(NewComponentName);
-	}
 	else if (InComponentName == "Static Mesh")
 	{
 		NewComponent = InSelectedActor->AddComponent<UStaticMeshComponent>(NewComponentName);
@@ -452,6 +449,10 @@ void UActorDetailWidget::AddComponentByName(AActor* InSelectedActor, const FStri
 	else if (InComponentName == "Text")
 	{
 		NewComponent = InSelectedActor->AddComponent<UTextComponent>(NewComponentName);
+	}
+	else if (InComponentName == "Decal")
+	{
+		NewComponent = InSelectedActor->AddComponent<UDecalComponent>(NewComponentName);
 	}
 	else
 	{
@@ -541,7 +542,7 @@ void UActorDetailWidget::RenderTransformEdit()
 	if (!SceneComponent)
 		return;
 
-	ImGui::Text("Transform");
+	ImGui::Text("Component Transform");
 
 	// 컴포넌트 포인터를 PushID로 사용해서 내부 ID 고유화
 	ImGui::PushID(SceneComponent);
@@ -570,10 +571,34 @@ void UActorDetailWidget::RenderTransformEdit()
 		bNeedsBVHUpdate = true;
 	}
 
-	FVector ComponentScale = SceneComponent->GetRelativeScale3D();
-	if (ImGui::DragFloat3("Scale", &ComponentScale.X, 0.1f))
+	// Scale 편집 UI
+	if (SceneComponent->IsUniformScale())
 	{
-		SceneComponent->SetRelativeScale3D(ComponentScale);
+		float s = SceneComponent->GetRelativeScale3D().X;
+		if (ImGui::DragFloat("Scale", &s, 0.05f, 0.001f, 100.0f, "%.3f"))
+		{
+			SceneComponent->SetRelativeScale3D(FVector(s, s, s));
+		}
+	}
+	else
+	{
+		FVector ComponentScale = SceneComponent->GetRelativeScale3D();
+		if (ImGui::DragFloat3("Scale", &ComponentScale.X, 0.1f))
+		{
+			SceneComponent->SetRelativeScale3D(ComponentScale);
+		}
+	}
+	bool bUniform = SceneComponent->IsUniformScale();
+	if (ImGui::Checkbox("Uniform Scale", &bUniform))
+	{
+		// 토글 ON: 현재 스케일이 불균일하면 평균값(또는 X축)으로 맞춰줌
+		if (bUniform)
+		{
+			const FVector cur = SceneComponent->GetRelativeScale3D();
+			float s = cur.X; // 또는(cur.X + cur.Y + cur.Z) / 3.0f;
+			SceneComponent->SetRelativeScale3D(FVector(s, s, s));
+		}
+		SceneComponent->SetUniformScale(bUniform);
 	}
 	// 드래그가 끝났는지 확인
 	if (ImGui::IsItemDeactivatedAfterEdit())

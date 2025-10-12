@@ -120,4 +120,31 @@ void UDecalComponentWidget::RenderWidget()
         SizeArr[2] = std::max(0.001f, SizeArr[2]);
         Decal->SetDecalSize(FVector(SizeArr[0], SizeArr[1], SizeArr[2]));
     }
+
+    ImGui::Separator();
+    // 페이드 On/Off
+    bool bFade = Decal->IsFadeEnabled();
+    if (ImGui::Checkbox("Fade", &bFade))
+    {
+        Decal->SetFadeEnabled(bFade);
+    }
+
+    // 루프
+    bool bLoop = Decal->IsFadeLoop();
+    if (ImGui::Checkbox("Loop", &bLoop))
+    {
+        Decal->SetFadeLoop(bLoop);
+    }
+    // 페이드 시간(초)
+    float inDur = Decal->GetFadeInDuration();
+    float outDur = Decal->GetFadeOutDuration();
+
+    if (ImGui::DragFloat("Fade In (s)", &inDur, 0.01f, 0.0f, 60.0f))
+        Decal->SetFadeDurations(inDur, outDur);
+
+    if (ImGui::DragFloat("Fade Out (s)", &outDur, 0.01f, 0.0f, 60.0f))
+        Decal->SetFadeDurations(inDur, outDur);
+
+    // 디버그 표시(선택)
+    ImGui::Text("Alpha: %.2f", Decal->GetFadeAlpha());
 }

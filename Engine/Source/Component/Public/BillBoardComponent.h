@@ -27,7 +27,13 @@ public:
 
 	static const FRenderState& GetClassDefaultRenderState(); 
 
+	void UpdateBillboardMatrix(const FVector& CameraLocation);
+	FMatrix GetRTMatrix() const { return RTMatrix; }
+
+	void SetOffset(float Offset) { ZOffset = Offset; }
 private:
 	TPair<FName, ID3D11ShaderResourceView*> Sprite = {"None", nullptr};
 	ID3D11SamplerState* Sampler = nullptr;
+	FMatrix RTMatrix = FMatrix::Identity();
+	float ZOffset = 0.0f; // 화면상 위로 띄우는 값
 };

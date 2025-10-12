@@ -57,6 +57,19 @@ public:
 
     // TODO - 테스트 못해봄
     void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
+
+
+    // ============ Fade API ============
+    void TickComponent() override;
+
+    void SetFadeEnabled(bool bEnabled);
+    bool IsFadeEnabled() const { return bFadeEnabled; }
+    void SetFadeLoop(bool bLoop);
+    bool IsFadeLoop() const { return bFadeLoop; }
+    void SetFadeDurations(float InSeconds, float OutSeconds);
+    float GetFadeInDuration() const { return FadeInDuration; }
+    float GetFadeOutDuration() const { return FadeOutDuration; }
+    float GetFadeAlpha() const { return FadeAlpha; }
 protected:
     UMaterial* DecalMaterial = nullptr;
     class UTexture* DecalTexture = nullptr;
@@ -67,4 +80,30 @@ protected:
 
     // 내부 half-size (OBB Extents)
     FVector DecalExtent = FVector(GDecalUnitHalfExtent, GDecalUnitHalfExtent, GDecalUnitHalfExtent);
+private:
+    // ============ Fade ============
+    enum class EFadePhase : uint8 
+    {
+        Idle, 
+        FadingIn, 
+        FadingOut 
+    };
+
+    void StartFadeIn();
+    void StartFadeOut();
+    void StopFade(bool bToMaxOpacity);
+    void UpdateFade(float DeltaTime);
+
+    // Fade settings
+    bool  bFadeEnabled = false;
+    bool  bFadeLoop = false;
+    float FadeInDuration = 0.5f;
+    float FadeOutDuration = 0.5f;
+    float MinOpacity = 0.0f;
+    float MaxOpacity = 1.0f;
+
+    // Runtime
+    float     FadeAlpha = 1.0f;     // [0..1], shader로 전달될 값
+    EFadePhase FadePhase = EFadePhase::Idle;
+    float     PhaseTime = 0.0f;
 };

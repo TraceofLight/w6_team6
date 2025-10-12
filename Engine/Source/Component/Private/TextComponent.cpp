@@ -5,11 +5,12 @@
 #include "Actor/Public/Actor.h"
 #include "Manager/Asset/Public/AssetManager.h"
 #include "Render/UI/Widget/Public/SetTextComponentWidget.h"
+#include "Level/Public/Level.h"
 
 IMPLEMENT_CLASS(UTextComponent, UPrimitiveComponent)
 
 /**
- * @brief Level���� �� Actor���� ������ �ִ� UUID�� ������ֱ� ���� ������ Ŭ����
+ * @brief 레벨 내 액터들의 UUID를 화면에 표시하는 텍스트(빌보드) 컴포넌트 클래스
  * Actor has a UBillBoardComponent
  */
 UTextComponent::UTextComponent()
@@ -31,14 +32,28 @@ UTextComponent::~UTextComponent()
 {
 }
 
+FMatrix UTextComponent::GetBoundingTransform() const
+{
+	// 기본 Text는 월드 변환 사용 (빌보드 특성이 없는 경우)
+	return GetWorldTransformMatrix();
+}
+
 void UTextComponent::UpdateRotationMatrix(const FVector& InCameraLocation) {}
 FMatrix UTextComponent::GetRTMatrix() const { return FMatrix(); }
 
 const FString& UTextComponent::GetText() { return Text; }
 void UTextComponent::SetText(const FString& InText)
 {
+	if (Text == InText) return;           // 불필요한 갱신 방지(선택)
+
 	Text = InText;
-	RegulatePickingAreaByTextLength();
+	RegulatePickingAreaByTextLength();    // 길이에 맞춘 로컬 박스 재계산
+
+	// 1) AABB 캐시 무효화 + 자식 변환 더티 전파
+	MarkAsDirty();
+
+	// 2) 옥트리/가시성 시스템에 바운딩 업데이트 알림
+	GWorld->GetLevel()->UpdatePrimitiveInOctree(this);
 }
 
 UClass* UTextComponent::GetSpecificWidgetClass() const
