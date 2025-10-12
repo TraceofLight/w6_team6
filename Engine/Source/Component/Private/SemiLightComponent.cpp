@@ -178,7 +178,9 @@ void USemiLightComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 
 		// 2) 세미라이트 고유 파라미터 복원(없으면 현재값 유지)
 		FJsonSerializer::ReadFloat(InOutHandle, "SpotAngle", SpotAngle, SpotAngle, false);
-		FJsonSerializer::ReadFloat(InOutHandle, "ProjectionDistance", ProjectionDistance, ProjectionDistance, false);
+		FJsonSerializer::ReadFloat(InOutHandle, "ProjectionDistanceX", ProjectionDistance3D.X, ProjectionDistance3D.X, false);
+		FJsonSerializer::ReadFloat(InOutHandle, "ProjectionDistanceY", ProjectionDistance3D.Y, ProjectionDistance3D.Y, false);
+		FJsonSerializer::ReadFloat(InOutHandle, "ProjectionDistanceZ", ProjectionDistance3D.Z, ProjectionDistance3D.Z, false);
 		FJsonSerializer::ReadFloat(InOutHandle, "BlendFactor", BlendFactor, BlendFactor, false);
 		FVector SavedBox = DecalBoxSize;
 		FJsonSerializer::ReadVector(InOutHandle, "DecalBoxSize", SavedBox, DecalBoxSize, false);
@@ -205,7 +207,9 @@ void USemiLightComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 	else
 	{
 		InOutHandle["SpotAngle"] = SpotAngle;
-		InOutHandle["ProjectionDistance"] = ProjectionDistance;
+		InOutHandle["ProjectionDistanceX"] = ProjectionDistance3D.X;
+		InOutHandle["ProjectionDistanceY"] = ProjectionDistance3D.Y;
+		InOutHandle["ProjectionDistanceZ"] = ProjectionDistance3D.Z;
 		InOutHandle["BlendFactor"] = BlendFactor;
 		InOutHandle["DecalBoxSize"] = FJsonSerializer::VectorToJson(DecalBoxSize);
 	}
