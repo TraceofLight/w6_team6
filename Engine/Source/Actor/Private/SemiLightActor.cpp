@@ -9,13 +9,7 @@ IMPLEMENT_CLASS(ASemiLightActor, AActor)
 
 ASemiLightActor::ASemiLightActor()
 {
-	bCanEverTick = false;  // USemiLightComponent가 Tick을 처리
-	
-	// SemiLightComponent 생성 및 루트로 설정
-	//SemiLightComponent = CreateDefaultSubobject<USemiLightComponent>(FName("SemiLightComponent"));
-	//SetRootComponent(SemiLightComponent);
-
-
+	bCanEverTick = false;
 }
 
 ASemiLightActor::~ASemiLightActor() = default;
@@ -81,7 +75,6 @@ void ASemiLightActor::InitializeComponents()
 	if (DecalComponent)
 	{
 		DecalComponent->SetParentAttachment(GetRootComponent());
-		// 데칼 초기 방향
 		DecalComponent->SetRelativeRotation(FVector(0.0f, 90.0f, 0.0f));
 	}
 }
