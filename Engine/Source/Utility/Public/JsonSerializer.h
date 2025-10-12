@@ -253,7 +253,55 @@ public:
 		OutValue = InDefaultValue;
 		return false;
 	}
+	// TODO - 테스트 못해봄
+	static bool ReadBool(const JSON& InJson, const FString& InKey, bool& OutValue, bool InDefaultValue = false, bool bInUseLog
+		= true)
+	{
+		if (InJson.hasKey(InKey))
+		{
+			const JSON& Value = InJson.at(InKey);
 
+			// 정수형 0/1 허용
+			if (Value.JSONType() == JSON::Class::Integral)
+			{
+				OutValue = (Value.ToInt() != 0);
+				return true;
+			}
+
+			// 문자열 true/false/yes/no/on/off/1/0 허용
+			if (Value.JSONType() == JSON::Class::String)
+			{
+				FString S = Value.ToString();
+				FString L = S;
+				std::transform(L.begin(), L.end(), L.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+
+				if (L == "true" || L == "1" || L == "yes" || L == "on")
+				{
+					OutValue = true;
+					return true;
+				}
+				if (L == "false" || L == "0" || L == "no" || L == "off")
+				{
+					OutValue = false;
+					return true;
+				}
+			}
+
+			// 실수형 0/비0 허용
+			if (Value.JSONType() == JSON::Class::Floating)
+			{
+				OutValue = (std::abs(static_cast<float>(Value.ToFloat())) > 0.5f);
+				return true;
+			}
+		}
+
+		if (bInUseLog)
+			UE_LOG_ERROR("[JsonSerializer] %s bool 파싱에 실패했습니다 (기본값 사용)", InKey.c_str());
+
+		OutValue = InDefaultValue;
+		return false;
+
+	}
 	//====================================================================================
 	// Converting To JSON
 	//====================================================================================

@@ -12,6 +12,7 @@ struct FDecalConstants
 {
     FMatrix DecalWorld;
     FMatrix DecalWorldInverse;
+    FVector4 DecalFadeParams; // x = FadeAlpha, YZW = padding
 };
 
 class FDecalPass : public FRenderPass

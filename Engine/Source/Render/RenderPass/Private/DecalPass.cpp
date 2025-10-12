@@ -55,6 +55,7 @@ void FDecalPass::Execute(FRenderingContext& Context)
 
         DecalConstants.DecalWorld = Scale * Decal->GetWorldTransformMatrix();
         DecalConstants.DecalWorldInverse = Decal->GetWorldTransformMatrixInverse() * ScaleInv;
+        DecalConstants.DecalFadeParams = FVector4(Decal->GetFadeAlpha(), 0, 0, 0);
 
         FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferDecal, DecalConstants);
         Pipeline->SetConstantBuffer(2, false, ConstantBufferDecal);
