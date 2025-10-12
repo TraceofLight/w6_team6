@@ -613,34 +613,70 @@ FVector UEditor::GetGizmoDragScale(UCamera* InActiveCamera, FRay& WorldRay)
 	return Gizmo.GetComponentScale();
 }
 
+void UEditor::ValidateSelectionForCurrentWorld()
+{
+	if (SelectionWorld && SelectionWorld != GWorld)
+	{
+		// 현재 월드가 변경되었으므로 기존 선택을 모두 해제
+		if (SelectedComponent) { SelectedComponent->OnDeselected(); }
+		SelectedComponent = nullptr;
+		SelectedActor = nullptr;
+		PickedBillboard = nullptr;
+		Gizmo.ClearTarget();
+		SelectionWorld = nullptr;
+	}
+}
+
+
 void UEditor::SelectActor(AActor* InActor)
 {
 	if (InActor == SelectedActor) return;
-	
+
 	SelectedActor = InActor;
-	if (SelectedActor) { SelectComponent(InActor->GetRootComponent()); }
-	else { SelectComponent(nullptr); }
+	SelectionWorld = InActor ? GWorld : nullptr;  // 현재 월드를 기록
+
+	if (SelectedActor) 
+	{ 
+		SelectComponent(InActor->GetRootComponent());
+	}
+	else 
+	{ 
+		SelectComponent(nullptr); 
+		PickedBillboard = nullptr;
+	}
+
+}
+AActor* UEditor::GetSelectedActor()
+{
+	ValidateSelectionForCurrentWorld();
+	return SelectedActor;
 }
 
 void UEditor::SelectComponent(UActorComponent* InComponent)
 {
 	if (InComponent == SelectedComponent) return;
-	
-	if (SelectedComponent)
-	{
-		SelectedComponent->OnDeselected();
-	}
+
+	if (SelectedComponent) { SelectedComponent->OnDeselected(); }
 
 	SelectedComponent = InComponent;
-	// 여기서 Gizmo도 즉시 정리
+
 	if (!SelectedComponent)
 	{
 		Gizmo.ClearTarget();
 		return;
 	}
+
+	// 컴포넌트 선택도 선택 월드 갱신
+	SelectionWorld = GWorld;
 	SelectedComponent->OnSelected();
+
 }
 
+UActorComponent* UEditor::GetSelectedComponent()
+{
+	ValidateSelectionForCurrentWorld();
+	return SelectedComponent;
+}
 UUUIDTextComponent* UEditor::GetPickedBillboard() const
 {
 	return PickedBillboard;

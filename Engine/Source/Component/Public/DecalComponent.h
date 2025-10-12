@@ -11,6 +11,7 @@ class UDecalComponent : public USceneComponent
 public:
     UDecalComponent();
     ~UDecalComponent();
+
     // 머티리얼 기반으로 전환
     void SetMaterial(UMaterial* InMaterial) { DecalMaterial = InMaterial; }
     UMaterial* GetMaterial() const { return DecalMaterial; }
@@ -89,4 +90,9 @@ private:
     float     FadeAlpha = 1.0f;     // [0..1], shader로 전달될 값
     EFadePhase FadePhase = EFadePhase::Idle;
     float     PhaseTime = 0.0f;
+
+public:
+    virtual UObject* Duplicate() override;
+protected:
+    virtual void DuplicateSubObjects(UObject* DuplicatedObject) override {};
 };

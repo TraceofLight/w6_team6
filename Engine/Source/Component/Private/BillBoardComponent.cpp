@@ -137,3 +137,22 @@ void UBillBoardComponent::UpdateBillboardMatrix(const FVector& InCameraLocation)
     const FMatrix T = FMatrix::TranslationMatrix(P);
     RTMatrix = R * T;
 }
+
+UObject* UBillBoardComponent::Duplicate()
+{
+    UBillBoardComponent* BillBoardComponent = Cast<UBillBoardComponent>(Super::Duplicate());
+
+    // 고유 필드 복사
+    BillBoardComponent->Sprite = Sprite;
+    BillBoardComponent->ZOffset = ZOffset;
+    BillBoardComponent->RTMatrix = RTMatrix;
+
+    // COM 리소스 공유 시 AddRef 필요(둘 다 Release 호출하므로)
+    BillBoardComponent->Sampler = Sampler;
+    if (BillBoardComponent->Sampler) 
+    { 
+        BillBoardComponent->Sampler->AddRef(); 
+    }
+
+    return BillBoardComponent;
+}

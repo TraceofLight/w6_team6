@@ -1,5 +1,4 @@
 #pragma once
-
 #include "Component/Public/PrimitiveComponent.h"
 
 UCLASS()
@@ -36,4 +35,9 @@ private:
 	ID3D11SamplerState* Sampler = nullptr;
 	FMatrix RTMatrix = FMatrix::Identity();
 	float ZOffset = 0.0f; // 화면상 위로 띄우는 값
+
+public:
+	virtual UObject* Duplicate() override;
+protected:
+	virtual void DuplicateSubObjects(UObject* DuplicatedObject) override {}
 };

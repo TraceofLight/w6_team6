@@ -38,9 +38,9 @@ public:
 	void RestoreMultiViewportLayout();
 
 	void SelectActor(AActor* InActor);
-	AActor* GetSelectedActor() const { return SelectedActor; }
+	AActor* GetSelectedActor();
 	void SelectComponent(UActorComponent* InComponent);
-	UActorComponent* GetSelectedComponent() const { return SelectedComponent; }
+	UActorComponent* GetSelectedComponent();
 	UUUIDTextComponent* GetPickedBillboard() const;
 
 private:
@@ -60,8 +60,11 @@ private:
 		return A * (1 - Alpha) + B * Alpha;
 	}
 
+	void ValidateSelectionForCurrentWorld();
+
 	UObjectPicker ObjectPicker;
 	AActor* SelectedActor = nullptr; // 선택된 액터
+	UWorld* SelectionWorld = nullptr;
 	UActorComponent* SelectedComponent = nullptr; // 선택된 컴포넌트
 	
 	UUUIDTextComponent* PickedBillboard; // 선택된 액터의 빌보드

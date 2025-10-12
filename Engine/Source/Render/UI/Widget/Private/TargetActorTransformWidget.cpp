@@ -54,7 +54,7 @@ void UTargetActorTransformWidget::RenderWidget()
 	// ImGui::Text("Level Object Count: %u", LevelObjectCount);
 	// ImGui::Text("Level Memory: %.3f KB", static_cast<float>(LevelMemoryByte) / KILO);
 	// ImGui::Separator();
-
+	AActor* SelectedActor = GEditor->GetEditorModule()->GetSelectedActor();
 	if (SelectedActor)
 	{
 		ImGui::Separator();

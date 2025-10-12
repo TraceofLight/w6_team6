@@ -89,6 +89,8 @@ UObject* USceneComponent::Duplicate()
 	SceneComponent->RelativeLocation = RelativeLocation;
 	SceneComponent->RelativeRotation = RelativeRotation;
 	SceneComponent->RelativeScale3D = RelativeScale3D;
+	SceneComponent->bIsUniformScale = bIsUniformScale;
+
 	SceneComponent->MarkAsDirty();
 	return SceneComponent;
 }

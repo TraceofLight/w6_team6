@@ -64,7 +64,22 @@ UClass* UTextComponent::GetSpecificWidgetClass() const
 UObject* UTextComponent::Duplicate()
 {
 	UTextComponent* TextComponent = Cast<UTextComponent>(Super::Duplicate());
+	// 1) 고유 데이터 복사
 	TextComponent->Text = Text;
+
+	// 2) 로컬 저장소 복사
+	TextComponent->PickingAreaBoundingBox = PickingAreaBoundingBox; // 값 복사
+	TextComponent->PickingAreaVertex = PickingAreaVertex;      // 값 복사
+
+	// 3) 상위 포인터 재연결(원본 메모리를 가리키지 않게)
+	TextComponent->BoundingBox = &TextComponent->PickingAreaBoundingBox;
+	TextComponent->Vertices = &TextComponent->PickingAreaVertex;
+	TextComponent->NumVertices = static_cast<uint32>(TextComponent->PickingAreaVertex.size());
+	TextComponent->Indices = &PickingAreaIndex;
+	TextComponent->NumIndices = static_cast<uint32>(PickingAreaIndex.size());
+
+	// 4) 캐시/옥트리 동기화
+	TextComponent->MarkAsDirty();
 	return TextComponent;
 }
 
