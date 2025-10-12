@@ -84,6 +84,9 @@ void UActorDetailWidget::RenderWidget()
 			ImGui::Separator();
 			ImGui::Text("Semi Light Properties");
 
+			// 이 블록 안에서만 컨트롤 폭 좁게
+			const float kNarrowWidth = 140.0f; // 필요시 120~160 사이로 조절
+			ImGui::PushItemWidth(kNarrowWidth);
 			// 박스 크기에 따른 최대 각도 계산
 			float MaxAngle = SemiLight->GetMaxAngleForDecalBox();
 			float Angle = SemiLight->GetSpotAngle();
@@ -101,6 +104,8 @@ void UActorDetailWidget::RenderWidget()
 			{
 				SemiLight->SetBlendFactor(Blend);
 			}
+
+			ImGui::PopItemWidth(); // 폭 원복
 		}
 	}
 	
