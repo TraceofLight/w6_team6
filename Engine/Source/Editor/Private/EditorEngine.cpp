@@ -5,7 +5,7 @@
 #include "Level/Public/Level.h"
 #include "Manager/Config/Public/ConfigManager.h"
 #include "Manager/Path/Public/PathManager.h"
-
+#include "Render/UI/Overlay/Public/StatOverlay.h"
 
 IMPLEMENT_CLASS(UEditorEngine, UObject)
 UEditorEngine* GEditor = nullptr;
@@ -30,6 +30,8 @@ UEditorEngine::UEditorEngine()
     bool bSuccessLoad = LoadLevel(LastSavedLevelPath);
     if (!bSuccessLoad) { CreateNewLevel(); }
     EditorWorld->BeginPlay();
+    // 에디터 시작 시 모든 통계 표시
+    UStatOverlay::GetInstance().ShowAll(true);
 }
 
 UEditorEngine::~UEditorEngine()
