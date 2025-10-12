@@ -26,7 +26,8 @@ public:
 	void SetDecalTexture(UTexture* InTexture);
 	void SetSpotAngle(float InAngle);
 	void SetProjectionDistance(float InDistance);
-
+	virtual UClass* GetDefaultRootComponent() override;
+	void InitializeComponents() override;
 private:
 	USemiLightComponent* SemiLightComponent = nullptr;
 };
