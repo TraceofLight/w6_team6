@@ -5,6 +5,7 @@
 #include "Manager/Asset/Public/AssetManager.h"
 #include "Texture/Public/Texture.h"
 #include "Actor/Public/Actor.h"
+#include "Utility/Public/JsonSerializer.h"
 
 IMPLEMENT_CLASS(USemiLightComponent, USceneComponent)
 
@@ -153,5 +154,76 @@ void USemiLightComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 {
 	Super::Serialize(bInIsLoading, InOutHandle);
 
-	// TODO: SpotAngle, ProjectionDistance 직렬화 추가 (필요 시)
+	if (bInIsLoading)
+	{
+		// 1) 자식 포인터 복구 (부착정보가 아직 없어도 Owner의 컴포넌트 목록에서 찾아 연결)
+		IconComponent = nullptr;
+		DecalComponent = nullptr;
+		if (AActor* Owner = GetOwner())
+		{
+			for (UActorComponent* Comp : Owner->GetOwnedComponents())
+			{
+				if (auto* BB = Cast<UBillBoardComponent>(Comp)) { IconComponent = BB; }
+				else if (auto* DC = Cast<UDecalComponent>(Comp)) { DecalComponent = DC; }
+			}
+		}
+
+		// 2) 세미라이트 고유 파라미터 복원(없으면 현재값 유지)
+		FJsonSerializer::ReadFloat(InOutHandle, "SpotAngle", SpotAngle, SpotAngle, false);
+		FJsonSerializer::ReadFloat(InOutHandle, "ProjectionDistance", ProjectionDistance, ProjectionDistance, false);
+		FJsonSerializer::ReadFloat(InOutHandle, "BlendFactor", BlendFactor, BlendFactor, false);
+		FVector SavedBox = DecalBoxSize;
+		FJsonSerializer::ReadVector(InOutHandle, "DecalBoxSize", SavedBox, DecalBoxSize, false);
+		DecalBoxSize = SavedBox;
+
+		// 3) 데칼에 상태 반영 + 투사용 회전/오프셋 재계산
+		if (DecalComponent)
+		{
+			DecalComponent->SetSpotAngle(SpotAngle);
+			DecalComponent->SetBlendFactor(BlendFactor);
+
+			// 투사 방향 정합(과거 저장본 보호용)
+			if (DecalComponent->GetRelativeRotation() == FVector::ZeroVector())
+				DecalComponent->SetRelativeRotation(FVector(0.f, 90.f, 0.f));
+
+			// 박스 크기/오프셋 동기화
+			DecalComponent->SetDecalSize(DecalBoxSize);
+			UpdateDecalProperties();
+
+			// 가시화(안전)
+			DecalComponent->SetVisibility(true);
+		}
+	}
+	else
+	{
+		InOutHandle["SpotAngle"] = SpotAngle;
+		InOutHandle["ProjectionDistance"] = ProjectionDistance;
+		InOutHandle["BlendFactor"] = BlendFactor;
+		InOutHandle["DecalBoxSize"] = FJsonSerializer::VectorToJson(DecalBoxSize);
+	}
+}
+
+
+UObject* USemiLightComponent::Duplicate()
+{
+	auto* Copy = Cast<USemiLightComponent>(Super::Duplicate());
+	if (AActor* Owner = Copy->GetOwner())
+	{
+		Copy->IconComponent = nullptr;
+		Copy->DecalComponent = nullptr;
+		for (UActorComponent* Comp : Owner->GetOwnedComponents())
+		{
+			if (auto* BB = Cast<UBillBoardComponent>(Comp)) { Copy->IconComponent = BB; }
+			else if (auto* DC = Cast<UDecalComponent>(Comp)) { Copy->DecalComponent = DC; }
+		}
+		if (Copy->DecalComponent)
+		{
+			Copy->DecalComponent->SetSpotAngle(Copy->SpotAngle);
+			Copy->DecalComponent->SetBlendFactor(Copy->BlendFactor);
+			Copy->DecalComponent->SetDecalSize(Copy->DecalBoxSize);
+			Copy->UpdateDecalProperties();
+			Copy->DecalComponent->SetVisibility(true);
+		}
+	}
+	return Copy;
 }

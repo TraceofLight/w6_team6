@@ -5,6 +5,7 @@
 #include "Texture/Public/Texture.h"
 #include "Texture/Public/SpriteMaterial.h"
 #include "Render/UI/Widget/Public/DecalComponentWidget.h"
+#include "Component/Public/BillBoardComponent.h"
 #include "Utility/Public/JsonSerializer.h"
 #include "Level/Public/Level.h"
 #include "Core/Public/ObjectIterator.h"
@@ -80,6 +81,8 @@ void UDecalComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
         FJsonSerializer::ReadFloat(InOutHandle, "MinOpacity", MinOpacity, 0.0f);
         FJsonSerializer::ReadFloat(InOutHandle, "MaxOpacity", MaxOpacity, 1.0f);
         SetFadeEnabled(bFadeEnabled);
+        FJsonSerializer::ReadFloat(InOutHandle, "SpotAngle", SpotAngle, SpotAngle, false);
+        FJsonSerializer::ReadFloat(InOutHandle, "BlendFactor", BlendFactor, BlendFactor, false);
 
         // 2) 머티리얼/텍스처 복원
         FString MatPath, TexPath;
@@ -142,6 +145,8 @@ void UDecalComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
         InOutHandle["FadeOutDuration"] = FadeOutDuration;
         InOutHandle["MinOpacity"] = MinOpacity;
         InOutHandle["MaxOpacity"] = MaxOpacity;
+        InOutHandle["SpotAngle"] = SpotAngle;
+        InOutHandle["BlendFactor"] = BlendFactor;
 
         // 2) 머티리얼/텍스처 경로 저장(우선순위: 머티리얼 → 텍스처)
         if (DecalMaterial && DecalMaterial->GetDiffuseTexture())
@@ -179,11 +184,39 @@ void UDecalComponent::SetFadeEnabled(bool bEnabled)
     bFadeEnabled = bEnabled;
     if (bFadeEnabled)
     {
+        SetCanTick(true);
         StartFadeIn();
+
+        if (GWorld)
+        {
+            auto WT = GWorld->GetWorldType();
+            if (WT == EWorldType::Editor || WT == EWorldType::PIE)
+            {
+                if (AActor* Owner = GetOwner())
+                {
+                    Owner->SetTickInEditor(WT == EWorldType::Editor);
+                    Owner->SetCanTick(true);
+                }
+            }
+        }
     }
     else
     {
         StopFade(true);
+        SetCanTick(false);
+
+        if (GWorld)
+        {
+            auto WT = GWorld->GetWorldType();
+            if (WT == EWorldType::Editor || WT == EWorldType::PIE)
+            {
+                if (AActor* Owner = GetOwner())
+                {
+                    Owner->SetTickInEditor(WT == EWorldType::Editor);
+                    Owner->SetCanTick(false);
+                }
+            }
+        }
     }
 
     RefreshTickState();

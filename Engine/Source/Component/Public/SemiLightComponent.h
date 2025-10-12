@@ -62,4 +62,8 @@ private:
 	float ProjectionDistance = 500.0f;
 	float BlendFactor = 1.0f;
 	FVector DecalBoxSize = FVector(10.0f, 10.0f, 10.0f);  // 기본 박스 크기
+public:
+	virtual UObject* Duplicate() override;
+protected:
+	virtual void DuplicateSubObjects(UObject* DuplicatedObject) override {}
 };

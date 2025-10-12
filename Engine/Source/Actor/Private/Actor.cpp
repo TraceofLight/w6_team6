@@ -7,6 +7,7 @@
 #include "Utility/Public/ActorTypeMapper.h"
 #include "Utility/Public/JsonSerializer.h"
 #include "Editor/Public/Editor.h"
+#include "Component/Public/DecalComponent.h"
 
 IMPLEMENT_CLASS(AActor, UObject)
 
@@ -125,6 +126,17 @@ void AActor::Serialize(const bool bInIsLoading, JSON& InOutHandle)
     			SetActorRotation(Rotation);
 	    		SetActorScale3D(Scale); 
         	}
+            // 모든 컴포넌트 중 데칼을 레벨에 등록해서 VisibleDecals에 반영
+            if (GWorld && GWorld->GetLevel())
+            {
+                for (UActorComponent* Comp : OwnedComponents)
+                {
+                    if (auto* Decal = Cast<UDecalComponent>(Comp))
+                    {
+                        GWorld->GetLevel()->RegisterDecalComponent(Decal);
+                    }
+                }
+            }
         }
     }
     // 저장 (Save)
