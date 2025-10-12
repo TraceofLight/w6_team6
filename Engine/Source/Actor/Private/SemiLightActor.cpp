@@ -76,5 +76,6 @@ void ASemiLightActor::InitializeComponents()
 	{
 		DecalComponent->SetParentAttachment(GetRootComponent());
 		DecalComponent->SetRelativeRotation(FVector(0.0f, 90.0f, 0.0f));
+		GWorld->GetLevel()->RegisterDecalComponent(DecalComponent);
 	}
 }

@@ -4,6 +4,7 @@
 #include "Utility/Public/JsonSerializer.h"
 
 #include "Component/Public/PrimitiveComponent.h"
+#include "Component/Public/DecalComponent.h"
 #include "Level/Public/Level.h"
 
 #include <json.hpp>
@@ -122,9 +123,14 @@ void USceneComponent::SetRelativeLocation(const FVector& Location)
 	RelativeLocation = Location;
 	MarkAsDirty();
 
+	// Primitive 업데이트 (Octree 동적 이동)
 	if (auto PrimitiveComponent = Cast<UPrimitiveComponent>(this))
 	{
-		GWorld->GetLevel()->UpdatePrimitiveInOctree(PrimitiveComponent);
+		ULevel* Level = GWorld->GetLevel();
+		Level->UpdatePrimitiveInOctree(PrimitiveComponent);
+
+		// SceneBVH 업데이트는 Editor에서 기즈모 드래그 종료 시에만 수행
+		// (매 프레임 업데이트하면 성능 저하 발생)
 	}
 }
 
@@ -133,9 +139,14 @@ void USceneComponent::SetRelativeRotation(const FVector& Rotation)
 	RelativeRotation = Rotation;
 	MarkAsDirty();
 
+	// Primitive 업데이트 (Octree 동적 이동)
 	if (auto PrimitiveComponent = Cast<UPrimitiveComponent>(this))
 	{
-		GWorld->GetLevel()->UpdatePrimitiveInOctree(PrimitiveComponent);
+		ULevel* Level = GWorld->GetLevel();
+		Level->UpdatePrimitiveInOctree(PrimitiveComponent);
+
+		// SceneBVH 업데이트는 Editor에서 기즈모 드래그 종료 시에만 수행
+		// (매 프레임 업데이트하면 성능 저하 발생)
 	}
 }
 
@@ -144,9 +155,14 @@ void USceneComponent::SetRelativeScale3D(const FVector& Scale)
 	RelativeScale3D = Scale;
 	MarkAsDirty();
 
+	// Primitive 업데이트 (Octree 동적 이동)
 	if (auto PrimitiveComponent = Cast<UPrimitiveComponent>(this))
 	{
-		GWorld->GetLevel()->UpdatePrimitiveInOctree(PrimitiveComponent);
+		ULevel* Level = GWorld->GetLevel();
+		Level->UpdatePrimitiveInOctree(PrimitiveComponent);
+
+		// SceneBVH 업데이트는 Editor에서 기즈모 드래그 종료 시에만 수행
+		// (매 프레임 업데이트하면 성능 저하 발생)
 	}
 }
 

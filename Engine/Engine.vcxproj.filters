@@ -323,6 +323,9 @@
     <ClCompile Include="Source\Texture\Private\Material.cpp">
       <Filter>Source\Texture\Private</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Texture\Private\SpriteMaterial.cpp">
+      <Filter>Source\Texture\Private</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Texture\Private\Texture.cpp">
       <Filter>Source\Texture\Private</Filter>
     </ClCompile>
@@ -712,6 +715,9 @@
       <Filter>Source\Render\UI\Window\Public</Filter>
     </ClInclude>
     <ClInclude Include="Source\Texture\Public\Material.h">
+      <Filter>Source\Texture\Public</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Texture\Public\SpriteMaterial.h">
       <Filter>Source\Texture\Public</Filter>
     </ClInclude>
     <ClInclude Include="Source\Texture\Public\Texture.h">

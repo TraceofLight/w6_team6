@@ -272,17 +272,19 @@ void URenderer::RenderLevel(UCamera* InCurrentCamera)
 {
 	const ULevel* CurrentLevel = GWorld->GetLevel();
 	if (!CurrentLevel) { return; }
-
-	// 오클루전 컬링 수행
-	TIME_PROFILE(Occlusion)
-	static COcclusionCuller Culler;
+	
 	const FViewProjConstants& ViewProj = InCurrentCamera->GetFViewProjConstants();
-	Culler.InitializeCuller(ViewProj.View, ViewProj.Projection);
-	TArray<UPrimitiveComponent*> FinalVisiblePrims = Culler.PerformCulling(
-		InCurrentCamera->GetViewVolumeCuller().GetRenderableObjects(),
-		InCurrentCamera->GetLocation()
-	);
-	TIME_PROFILE_END(Occlusion)
+	TArray<UPrimitiveComponent*> FinalVisiblePrims = InCurrentCamera->GetViewVolumeCuller().GetRenderableObjects();
+
+	// // 오클루전 컬링 수행
+	// TIME_PROFILE(Occlusion)
+	// static COcclusionCuller Culler;
+	// Culler.InitializeCuller(ViewProj.View, ViewProj.Projection);
+	// FinalVisiblePrims = Culler.PerformCulling(
+	// 	InCurrentCamera->GetViewVolumeCuller().GetRenderableObjects(),
+	// 	InCurrentCamera->GetLocation()
+	// );
+	// TIME_PROFILE_END(Occlusion)
 
 	FRenderingContext RenderingContext(&ViewProj, InCurrentCamera, GEditor->GetEditorModule()->GetViewMode(), CurrentLevel->GetShowFlags());
 	RenderingContext.AllPrimitives = FinalVisiblePrims;
@@ -309,35 +311,22 @@ void URenderer::RenderLevel(UCamera* InCurrentCamera)
 	const bool bWantsDecal = (CurrentLevel->GetShowFlags() & EEngineShowFlags::SF_Decal) != 0;
 	if (bWantsDecal)
 	{
-		UStatOverlay::GetInstance().ResetDecalFrame();
-		uint32 Collected = 0;
-		uint32 Visible = 0;
-		// TODO - 모든 액터 순회하는 거 없애야 됨.
-		for (AActor* Actor : CurrentLevel->GetLevelActors())
+		for (auto Decal : CurrentLevel->GetVisibleDecals())
 		{
-			for (UActorComponent* Comp : Actor->GetOwnedComponents())
+			if (Cast<USemiLightComponent>(Decal->GetParentAttachment()))
 			{
-				if (auto* Decal = Cast<UDecalComponent>(Comp))
-				{
-					++Collected;
-					// SceneComponent 기반 데칼도 수집
-					if (Decal->IsVisible())
-					{
-						++Visible;
-						// SemiLightComponent 자식이면 Additive, 아니면 Alpha 목록으로 분류
-						if (Cast<USemiLightComponent>(Decal->GetParentAttachment()))
-						{
-							RenderingContext.AdditiveDecals.push_back(Decal);
-						}
-						else
-						{
-							RenderingContext.AlphaDecals.push_back(Decal);
-						}
-					}
-				}
+				RenderingContext.AdditiveDecals.push_back(Decal);
+			}
+			else
+			{
+				RenderingContext.AlphaDecals.push_back(Decal);
 			}
 		}
-		UStatOverlay::GetInstance().RecordDecalCollection(Collected, Visible);
+		
+		UStatOverlay::GetInstance().RecordDecalCollection(
+			static_cast<uint32>(CurrentLevel->GetAllDecals().size()),
+			static_cast<uint32>(CurrentLevel->GetVisibleDecals().size())
+			);
 	}
 
 	for (auto RenderPass: RenderPasses)

@@ -73,9 +73,12 @@ void UWorld::Tick(float DeltaTimes)
 	// 스폰 / 삭제 처리
 	FlushPendingDestroy();
 
+	// Level Tick (BVH 리빌드 등)
+	Level->TickLevel();
+
 	if (WorldType == EWorldType::Editor )
 	{
-		for (AActor* Actor : Level->GetLevelActors())
+		for (AActor* Actor : Level->GetActors())
 		{
 			if(Actor->CanTickInEditor() && Actor->CanTick())
 			{
@@ -86,7 +89,7 @@ void UWorld::Tick(float DeltaTimes)
 
 	if (WorldType == EWorldType::Game || WorldType == EWorldType::PIE)
 	{
-		for (AActor* Actor : Level->GetLevelActors())
+		for (AActor* Actor : Level->GetActors())
 		{
 			if(Actor->CanTick())
 			{

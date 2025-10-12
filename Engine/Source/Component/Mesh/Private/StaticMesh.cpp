@@ -16,11 +16,8 @@ UStaticMesh::~UStaticMesh()
 	// 이 클래스는 FStaticMesh 데이터의 소유자가 아닙니다.
 	// 실제 데이터는 AssetManager가 관리하므로, 여기서는 아무것도 하지 않습니다.
 
-	// 임시로 할당된 Material 해제 -> 이후 GUObject에서 관리 예정
-	for (UMaterial* Material : Materials)
-	{
-		SafeDelete(Material);
-	}
+	// Material도 AssetManager의 MaterialCache가 소유하므로 여기서 삭제하지 않음
+	// UStaticMesh는 Material의 포인터만 참조할 뿐, 소유하지 않음
 	Materials.clear();
 }
 

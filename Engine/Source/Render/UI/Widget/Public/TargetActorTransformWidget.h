@@ -23,9 +23,10 @@ private:
 	FVector EditLocation;
 	FVector EditRotation;
 	FVector EditScale;
-	bool bScaleChanged;
-	bool bRotationChanged;
-	bool bPositionChanged;
+	bool bScaleChanged = false;
+	bool bRotationChanged = false;
+	bool bPositionChanged = false;
+	bool bNeedsBVHUpdate = false;  // 드래그 종료 시 BVH 업데이트 플래그
 	uint64 LevelMemoryByte;
 	uint32 LevelObjectCount;
 };

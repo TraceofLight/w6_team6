@@ -578,16 +578,28 @@ void UActorDetailWidget::RenderTransformEdit()
 	// 컴포넌트 포인터를 PushID로 사용해서 내부 ID 고유화
 	ImGui::PushID(SceneComponent);
 
+	bool bNeedsBVHUpdate = false;
+
 	FVector ComponentPosition = SceneComponent->GetRelativeLocation();
 	if (ImGui::DragFloat3("Position", &ComponentPosition.X, 0.1f))
 	{
 		SceneComponent->SetRelativeLocation(ComponentPosition);
+	}
+	// 드래그가 끝났는지 확인
+	if (ImGui::IsItemDeactivatedAfterEdit())
+	{
+		bNeedsBVHUpdate = true;
 	}
 
 	FVector ComponentRotation = SceneComponent->GetRelativeRotation();
 	if (ImGui::DragFloat3("Rotation", &ComponentRotation.X, 1.0f))
 	{
 		SceneComponent->SetRelativeRotation(ComponentRotation);
+	}
+	// 드래그가 끝났는지 확인
+	if (ImGui::IsItemDeactivatedAfterEdit())
+	{
+		bNeedsBVHUpdate = true;
 	}
 
 	// Scale 편집 UI
@@ -607,6 +619,13 @@ void UActorDetailWidget::RenderTransformEdit()
 			SceneComponent->SetRelativeScale3D(ComponentScale);
 		}
 	}
+
+	// 드래그가 끝났는지 확인
+	if (ImGui::IsItemDeactivatedAfterEdit())
+	{
+		bNeedsBVHUpdate = true;
+	}
+	
 	bool bUniform = SceneComponent->IsUniformScale();
 	if (ImGui::Checkbox("Uniform Scale", &bUniform))
 	{
@@ -620,7 +639,18 @@ void UActorDetailWidget::RenderTransformEdit()
 		SceneComponent->SetUniformScale(bUniform);
 	}
 
+
 	ImGui::PopID();
+
+	// 드래그가 끝났을 때만 BVH 업데이트 (자식 컴포넌트 포함)
+	if (bNeedsBVHUpdate)
+	{
+		ULevel* Level = GWorld->GetLevel();
+		if (Level)
+		{
+			Level->UpdateSceneBVHComponent(SceneComponent);
+		}
+	}
 }
 
 void UActorDetailWidget::SwapComponents(UActorComponent* A, UActorComponent* B)
