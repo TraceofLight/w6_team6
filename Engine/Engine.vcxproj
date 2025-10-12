@@ -347,6 +347,7 @@
     <ClInclude Include="Source\Core\Public\ObjectIterator.h" />
     <ClInclude Include="Source\Core\Public\WindowsBinReader.h" />
     <ClInclude Include="Source\Core\Public\WindowsBinWriter.h" />
+    <ClInclude Include="Source\Editor\Public\ConeLines.h" />
     <ClInclude Include="Source\Editor\Public\EditorEngine.h" />
     <ClInclude Include="Source\Editor\Public\SplitterWindow.h" />
     <ClInclude Include="Source\Editor\Public\ViewportClient.h" />
@@ -506,6 +507,7 @@
     <ClCompile Include="Source\Core\Private\ObjectIterator.cpp" />
     <ClCompile Include="Source\Core\Private\WindowsBinWriter.cpp" />
     <ClCompile Include="Source\Core\Public\WindowsBinReader.cpp" />
+    <ClCompile Include="Source\Editor\Private\ConeLines.cpp" />
     <ClCompile Include="Source\Editor\Private\EditorEngine.cpp">
     </ClCompile>
     <ClCompile Include="Source\Editor\Private\SplitterWindow.cpp" />
