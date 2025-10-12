@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Render/UI/Widget/Public/DecalComponentWidget.h"
 #include "Component/Public/DecalComponent.h"
+#include "Component/Public/SemiLightComponent.h"
 #include "Texture/Public/Material.h"
 #include "Texture/Public/Texture.h"
 #include "Core/Public/ObjectIterator.h"
@@ -119,5 +120,11 @@ void UDecalComponentWidget::RenderWidget()
         SizeArr[1] = std::max(0.001f, SizeArr[1]);
         SizeArr[2] = std::max(0.001f, SizeArr[2]);
         Decal->SetDecalSize(FVector(SizeArr[0], SizeArr[1], SizeArr[2]));
+
+        // 부모가 SemiLightComponent이면 역동기화
+        if(USemiLightComponent* SemiLight = Cast<USemiLightComponent>(Decal->GetParentAttachment()))
+        {
+            SemiLight->SynchronizePropertiesFromDecal();
+        }
     }
 }

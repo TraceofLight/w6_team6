@@ -36,6 +36,9 @@ public:
 	void SetSpotAngle(float InAngle);
 	void SetProjectionDistance(float InDistance);
 
+	// 에디터에서 Decal 위젯을 조작했을 때 호출할 동기화 함수
+	void SynchronizePropertiesFromDecal();
+
 	float GetSpotAngle() const { return SpotAngle; }
 	float GetProjectionDistance() const { return ProjectionDistance; }
 

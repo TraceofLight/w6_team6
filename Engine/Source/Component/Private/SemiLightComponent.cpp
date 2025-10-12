@@ -59,6 +59,25 @@ void USemiLightComponent::BeginPlay()
 void USemiLightComponent::TickComponent()
 {
 	Super::TickComponent();
+}
+
+void USemiLightComponent::SynchronizePropertiesFromDecal()
+{
+	if (!DecalComponent)
+	{
+		return;
+	}
+
+	// Decal 크기로부터 프로퍼티 역산
+	const FVector DecalSize = DecalComponent->GetDecalSize();
+	const float Radius = DecalSize.X * 0.5f; // X, Y는 같다고 가정
+	const float BoxDepth = DecalSize.Z;
+
+	// 값 설정
+	ProjectionDistance = BoxDepth;
+	SpotAngle = FVector::GetRadianToDegree(atanf(Radius / ProjectionDistance)) * 2.0f;
+
+	// 프로퍼티가 변경되었으므로, 위치 등을 다시 동기화
 	UpdateDecalProperties();
 }
 
