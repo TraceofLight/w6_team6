@@ -15,7 +15,7 @@
 #include "json.hpp" // 사용하는 JSON 라이브러리
 
 namespace json { class JSON; }
-using JSON = JSON;
+using JSON = json::JSON;
 
 /**
  * @brief Level 직렬화에 관여하는 클래스
@@ -261,33 +261,30 @@ public:
 		{
 			const JSON& Value = InJson.at(InKey);
 
-			// 정수형 0/1 허용
+			// 1) Boolean 타입 지원
+			if (Value.JSONType() == JSON::Class::Boolean)
+			{
+				OutValue = Value.ToBool();   // 라이브러리에 ToBool()가 있다면
+				return true;
+			}
+
+			// 2) 정수 0/1
 			if (Value.JSONType() == JSON::Class::Integral)
 			{
 				OutValue = (Value.ToInt() != 0);
 				return true;
 			}
 
-			// 문자열 true/false/yes/no/on/off/1/0 허용
+			// 3) 문자열 true/false/yes/no/on/off/1/0
 			if (Value.JSONType() == JSON::Class::String)
 			{
-				FString S = Value.ToString();
-				FString L = S;
+				FString S = Value.ToString(), L = S;
 				std::transform(L.begin(), L.end(), L.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-
-				if (L == "true" || L == "1" || L == "yes" || L == "on")
-				{
-					OutValue = true;
-					return true;
-				}
-				if (L == "false" || L == "0" || L == "no" || L == "off")
-				{
-					OutValue = false;
-					return true;
-				}
+				if (L == "true" || L == "1" || L == "yes" || L == "on") { OutValue = true;  return true; }
+				if (L == "false" || L == "0" || L == "no" || L == "off") { OutValue = false; return true; }
 			}
 
-			// 실수형 0/비0 허용
+			// 4) 실수 0/비0
 			if (Value.JSONType() == JSON::Class::Floating)
 			{
 				OutValue = (std::abs(static_cast<float>(Value.ToFloat())) > 0.5f);
@@ -300,7 +297,6 @@ public:
 
 		OutValue = InDefaultValue;
 		return false;
-
 	}
 	//====================================================================================
 	// Converting To JSON

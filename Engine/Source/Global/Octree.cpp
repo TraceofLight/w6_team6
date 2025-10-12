@@ -85,44 +85,37 @@ bool FOctree::Insert(UPrimitiveComponent* InPrimitive)
 
 bool FOctree::Remove(UPrimitiveComponent* InPrimitive)
 {
-	if (InPrimitive == nullptr) { return false; }
+	if (!InPrimitive) return false;
 
-	// 0. 현재 노드와 프리미티브가 겹치지 않으면, 탐색 종료
-	if (!BoundingBox.IsIntersected(GetPrimitiveBoundingBox(InPrimitive))) { return false; }
-
-	// 1-A. 리프 노드인 경우, 직접 프리미티브 목록에서 제거 시도
-	if (IsLeaf())
+	// 빠른 경로: 경계 교차 기반 제거
+	if (BoundingBox.IsIntersected(GetPrimitiveBoundingBox(InPrimitive)))
 	{
-		// 리프 노드 내에 대상을 발견한다면, 마지막 요소 위치로 옮긴 뒤 삭제
-		if (auto It = std::find(Primitives.begin(), Primitives.end(), InPrimitive); It != Primitives.end())
+		if (IsLeaf())
 		{
-			*It = std::move(Primitives.back());
-			Primitives.pop_back();
-
-			return true;
-		}
-
-		return false; // 없으므로 탐색 종료
-	}
-	// 1-B. 자식 노드가 있는 경우, 순차적으로 자식 노드 내부를 탐색
-	else
-	{
-		bool bIsRemoved = false;
-
-		for (int Index = 0; Index < 8; ++Index)
-		{
-			if (Children[Index]->Remove(InPrimitive))
+			if (auto It = std::find(Primitives.begin(), Primitives.end(), InPrimitive);
+				It != Primitives.end())
 			{
-				bIsRemoved = true;
-				break;
+				*It = std::move(Primitives.back());
+				Primitives.pop_back();
+				return true;
+			}
+			return false;
+		}
+		else
+		{
+			for (int i = 0; i < 8; ++i)
+			{
+				if (Children[i] && Children[i]->Remove(InPrimitive))
+				{
+					TryMerge();
+					return true;
+				}
 			}
 		}
-
-		// 4. 자식 노드에서 무언가 제거되었다면, 현재 노드를 합칠 수 있는지 검사
-		if (bIsRemoved) { TryMerge(); }
-
-		return bIsRemoved;
 	}
+
+	// 폴백: 경계 무시, 포인터 일치로 전체 트리 탐색
+	return RemoveByIdentityInternal(this, InPrimitive);
 }
 
 void FOctree::Clear()
@@ -276,4 +269,32 @@ void FOctree::DeepCopy(FOctree* OutOctree) const
 			}
 		}
 	}
+}
+
+bool FOctree::RemoveByIdentityInternal(FOctree* Node, UPrimitiveComponent* Prim)
+{
+	if (!Node || !Prim) return false;
+
+	// 현재 노드에서 직접 찾아 제거
+	if (auto it = std::find(Node->Primitives.begin(), Node->Primitives.end(), Prim);
+		it != Node->Primitives.end())
+	{
+		*it = std::move(Node->Primitives.back());
+		Node->Primitives.pop_back();
+		return true;
+	}
+
+	// 리프가 아니면 자식 재귀 탐색
+	if (!Node->IsLeaf())
+	{
+		for (FOctree* Child : Node->Children)
+		{
+			if (Child && RemoveByIdentityInternal(Child, Prim))
+			{
+				Node->TryMerge(); // 필요 시 병합
+				return true;
+			}
+		}
+	}
+	return false;
 }

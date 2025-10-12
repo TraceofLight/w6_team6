@@ -219,16 +219,19 @@ bool ULevel::DestroyActor(AActor* InActor)
 		LevelActors.pop_back();
 	}
 
-	// Remove Actor Selection
-	UEditor* Editor = GEditor->GetEditorModule();
-	if (Editor->GetSelectedActor() == InActor)
-	{
-		Editor->SelectActor(nullptr);
+	// 에디터 선택 해제(액터/컴포넌트 모두)
+	if (UEditor* Editor = GEditor->GetEditorModule()) {
+		if (Editor->GetSelectedActor() == InActor) {
+			Editor->SelectActor(nullptr);
+		}
+		if (UActorComponent* SelComp = Editor->GetSelectedComponent()) {
+			if (SelComp->GetOwner() == InActor) {
+				Editor->SelectComponent(nullptr);
+			}
+		}
 	}
 
-	// Remove
 	SafeDelete(InActor);
-
 	UE_LOG("Level: Actor Destroyed Successfully");
 	return true;
 }

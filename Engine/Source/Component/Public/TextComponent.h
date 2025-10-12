@@ -24,6 +24,8 @@ public:
 	void SetText(const FString& InText);
 
 	UClass* GetSpecificWidgetClass() const override;
+
+	void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
 private:
 	void RegulatePickingAreaByTextLength();
 

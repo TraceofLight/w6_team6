@@ -31,6 +31,8 @@ public:
 	FMatrix GetRTMatrix() const { return RTMatrix; }
 
 	void SetOffset(float Offset) { ZOffset = Offset; }
+
+	void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
 private:
 	TPair<FName, ID3D11ShaderResourceView*> Sprite = {"None", nullptr};
 	ID3D11SamplerState* Sampler = nullptr;

@@ -5,7 +5,8 @@
 #include "Manager/Config/Public/ConfigManager.h"
 #include "Manager/Path/Public/PathManager.h"
 #include "Component/Public/ActorComponent.h"
-
+#include "Editor/Public/EditorEngine.h"
+#include "Editor/Public/Editor.h"
 IMPLEMENT_CLASS(UWorld, UObject)
 
 UWorld::UWorld()
@@ -127,6 +128,8 @@ bool UWorld::LoadLevel(path InLevelFilePath)
 		SwitchToLevel(NewLevel);
 		NewLevel->Serialize(true, LevelJson);
 
+		// 에디터에서도 틱/삭제/페이드가 다시 돌도록 보장
+		BeginPlay();
 		UConfigManager::GetInstance().SetLastUsedLevelPath(InLevelFilePath.string());
 	}
 	catch (const exception& Exception)
@@ -217,6 +220,21 @@ bool UWorld::DestroyActor(AActor* InActor)
 		UE_LOG_ERROR("World: 이미 삭제 대기 중인 액터에 대한 중복 삭제 요청입니다.");
 		return false; // 이미 삭제 대기 중인 액터
 	}
+	// 대기열에 넣기 전에 옥트리/동적 목록에서 즉시 제거해 같은 프레임 컬러 안전
+	if (Level && InActor) {
+		for (UActorComponent* Comp : InActor->GetOwnedComponents()) {
+			if (auto* Prim = Cast<UPrimitiveComponent>(Comp)) {
+				Level->UnregisterPrimitiveComponent(Prim);
+			}
+		}
+	}
+	// 선택도 해제
+	if (GEditor) {
+		if (GEditor->GetEditorModule()->GetSelectedActor() == InActor)
+			GEditor->GetEditorModule()->SelectActor(nullptr);
+		if (auto* SelComp = GEditor->GetEditorModule()->GetSelectedComponent())
+			if (SelComp->GetOwner() == InActor) GEditor->GetEditorModule()->SelectComponent(nullptr);
+	}
 
 	PendingDestroyActors.push_back(InActor);
 	return true;
@@ -241,6 +259,10 @@ bool UWorld::DestroyComponent(UActorComponent* InComponent)
 		return false; // 중복 예약 방지
 	}
 
+	// 바로 옥트리/동적에서 제거
+	if (auto* Prim = Cast<UPrimitiveComponent>(InComponent)) {
+		if (GetLevel()) GetLevel()->UnregisterPrimitiveComponent(Prim);
+	}
 	PendingDestroyComponents.push_back(InComponent);
 	return true;
 }
@@ -311,16 +333,27 @@ void UWorld::FlushPendingDestroy()
  */
 void UWorld::SwitchToLevel(ULevel* InNewLevel)
 {
-	EndPlay();
-	if (Level)
-	{
+	// 1) 이전 월드 실행 중이면 대기 삭제 먼저 처리
+	if (bBegunPlay) { FlushPendingDestroy(); }
+
+	EndPlay(); // 내부에서 한 번 더 Flush 호출(중복 무해)
+
+	if (Level) {
 		ULevel* OldLevel = Level;
 		SafeDelete(OldLevel);
 		Level = nullptr;
 	}
 
+	// 2) 에디터 선택 상태 초기화(구 레벨 포인터 잔존 방지)
+	if (GEditor) {
+		GEditor->GetEditorModule()->SelectComponent(nullptr);
+		GEditor->GetEditorModule()->SelectActor(nullptr);
+	}
+
+	// 3) 새 레벨 설정 + 삭제 대기 큐 초기화
 	Level = InNewLevel;
 	PendingDestroyActors.clear();
+	PendingDestroyComponents.clear();
 	bBegunPlay = false;
 }
 

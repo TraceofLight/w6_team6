@@ -6,6 +6,8 @@
 #include "Manager/Asset/Public/AssetManager.h"
 #include "Render/UI/Widget/Public/SetTextComponentWidget.h"
 #include "Level/Public/Level.h"
+#include "Utility/Public/JsonSerializer.h"
+
 
 IMPLEMENT_CLASS(UTextComponent, UPrimitiveComponent)
 
@@ -59,6 +61,27 @@ void UTextComponent::SetText(const FString& InText)
 UClass* UTextComponent::GetSpecificWidgetClass() const
 {
 	return USetTextComponentWidget::StaticClass();
+}
+
+void UTextComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
+{
+	// 트랜스폼 등 상위 공통 필드 먼저
+	Super::Serialize(bInIsLoading, InOutHandle);
+
+	if (bInIsLoading)
+	{
+		// 텍스트 읽기(없으면 현재값 유지)
+		FString Loaded;
+		if (FJsonSerializer::ReadString(InOutHandle, "Text", Loaded, "", false))
+		{
+			SetText(Loaded);  // 내부에서 PickingArea/Bounding 갱신
+		}
+	}
+	else
+	{
+		// 텍스트 저장
+		InOutHandle["Text"] = GetText();
+	}
 }
 
 UObject* UTextComponent::Duplicate()

@@ -7,6 +7,7 @@
 #include "Render/UI/Widget/Public/SpriteSelectionWidget.h"
 #include "Texture/Public/Texture.h"
 #include "Texture/Public/TextureRenderProxy.h"
+#include "Utility/Public/JsonSerializer.h"
 
 IMPLEMENT_CLASS(UBillBoardComponent, UPrimitiveComponent)
 
@@ -95,7 +96,7 @@ void UBillBoardComponent::SetSprite(const TPair<FName, ID3D11ShaderResourceView*
 
 void UBillBoardComponent::SetSprite(const UTexture* InSprite)
 {
-    FName SpriteName = InSprite->GetName();
+    FName SpriteName = InSprite->GetFilePath();        // 파일 경로 FName 사용
     Sprite = { SpriteName, InSprite->GetRenderProxy()->GetSRV() };
 }
 
@@ -144,6 +145,43 @@ void UBillBoardComponent::UpdateBillboardMatrix(const FVector& InCameraLocation)
     const FMatrix R = FMatrix(forward, right, up);
     const FMatrix T = FMatrix::TranslationMatrix(P);
     RTMatrix = R * T;
+}
+
+void UBillBoardComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
+{
+    Super::Serialize(bInIsLoading, InOutHandle);
+
+    if (bInIsLoading)
+    {
+        // SpritePath 로드
+        FString SpritePath;
+        if (FJsonSerializer::ReadString(InOutHandle, "Sprite", SpritePath))
+        {
+            FName PathName(SpritePath);
+            auto& AM = UAssetManager::GetInstance();
+
+            // 캐시에 없으면 로드/생성
+            if (!AM.HasTexture(PathName)) {
+                AM.LoadTexture(PathName);
+            }
+
+            const auto& Cache = AM.GetTextureCache();
+            if (auto it = Cache.find(PathName); it != Cache.end()) {
+                SetSprite(*it); // (FName, SRV*) 적용
+            }
+        }
+
+        // 오프셋(선택)
+        float Offset = 0.f;
+        FJsonSerializer::ReadFloat(InOutHandle, "ZOffset", Offset, 0.f, false);
+        ZOffset = Offset;
+    }
+    else
+    {
+        // 파일 경로 FName을 문자열로 저장
+        InOutHandle["Sprite"] = Sprite.first.ToString();
+        InOutHandle["ZOffset"] = ZOffset;
+    }
 }
 
 UObject* UBillBoardComponent::Duplicate()

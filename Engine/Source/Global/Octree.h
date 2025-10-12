@@ -49,6 +49,7 @@ private:
 	bool IsLeaf() const { return Children[0] == nullptr; }
 	void Subdivide(UPrimitiveComponent* InPrimitive);
 	void TryMerge();
+	bool RemoveByIdentityInternal(FOctree* Node, UPrimitiveComponent* Prim);
 
 	FAABB BoundingBox;
 	int Depth;                       

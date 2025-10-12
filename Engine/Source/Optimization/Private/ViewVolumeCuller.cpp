@@ -48,10 +48,9 @@ void ViewVolumeCuller::Cull(FOctree* StaticOctree, TArray<UPrimitiveComponent*>&
 
 	for (UPrimitiveComponent* Primitive : DynamicPrimitives)
 	{
-		if (Primitive && CurrentFrustum.CheckIntersection(GetPrimitiveBoundingBox(Primitive)) != EBoundCheckResult::Outside)
-		{
+		if (!Primitive || !Primitive->GetOwner()) continue;
+		if (CurrentFrustum.CheckIntersection(GetPrimitiveBoundingBox(Primitive)) != EBoundCheckResult::Outside)
 			RenderableObjects.push_back(Primitive);
-		}
 	}
 }
 
@@ -95,8 +94,8 @@ void ViewVolumeCuller::CullOctree(FOctree* Octree)
 			// 노드가 겹치면, 현재 노드에 있는 프리미티브들만 개별적으로 검사합니다.
 			for (UPrimitiveComponent* Primitive : CurrentNode->GetPrimitives())
 			{
-				if (Primitive && 
-					CurrentFrustum.CheckIntersection(GetPrimitiveBoundingBox(Primitive)) != EBoundCheckResult::Outside)
+				if (!Primitive || !Primitive->GetOwner()) continue;
+				if (CurrentFrustum.CheckIntersection(GetPrimitiveBoundingBox(Primitive)) != EBoundCheckResult::Outside)
 				{
 					RenderableObjects.push_back(Primitive);
 				}

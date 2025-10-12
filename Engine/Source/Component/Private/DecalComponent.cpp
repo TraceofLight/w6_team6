@@ -5,6 +5,7 @@
 #include "Texture/Public/Texture.h"
 #include "Render/UI/Widget/Public/DecalComponentWidget.h"
 #include "Utility/Public/JsonSerializer.h"
+#include "Core/Public/ObjectIterator.h"
 
 IMPLEMENT_CLASS(UDecalComponent, USceneComponent)
 
@@ -52,37 +53,98 @@ UClass* UDecalComponent::GetSpecificWidgetClass() const
 
 void UDecalComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 {
+    Super::Serialize(bInIsLoading, InOutHandle);
+
+    if (bInIsLoading)
     {
-        Super::Serialize(bInIsLoading, InOutHandle);
-        if (bInIsLoading)
+        // 1) 사이즈/페이드 기존 로직
+        FVector SavedSize = FVector(1.f, 1.f, 1.f);
+        FJsonSerializer::ReadVector(InOutHandle, "DecalSize", SavedSize, FVector(1.f, 1.f, 1.f));
+        SetDecalSize(SavedSize);
+
+        FJsonSerializer::ReadBool(InOutHandle, "FadeEnabled", bFadeEnabled, false);
+        FJsonSerializer::ReadBool(InOutHandle, "FadeLoop", bFadeLoop, false);
+        FJsonSerializer::ReadFloat(InOutHandle, "FadeInDuration", FadeInDuration, 0.5f);
+        FJsonSerializer::ReadFloat(InOutHandle, "FadeOutDuration", FadeOutDuration, 0.5f);
+        FJsonSerializer::ReadFloat(InOutHandle, "MinOpacity", MinOpacity, 0.0f);
+        FJsonSerializer::ReadFloat(InOutHandle, "MaxOpacity", MaxOpacity, 1.0f);
+        SetFadeEnabled(bFadeEnabled);
+
+        // 2) 머티리얼/텍스처 복원
+        FString MatPath, TexPath;
+        bool bHasMat = FJsonSerializer::ReadString(InOutHandle, "MaterialPath", MatPath, "", false);
+        bool bHasTex = FJsonSerializer::ReadString(InOutHandle, "TexturePath", TexPath, "", false);
+
+        if (bHasMat && !MatPath.empty())
         {
-            // 기존 사이즈 로드
-            FVector SavedSize = FVector(1.f, 1.f, 1.f);
-            FJsonSerializer::ReadVector(InOutHandle, "DecalSize", SavedSize, FVector(1.f, 1.f, 1.f));
-            SetDecalSize(SavedSize);
-
-            // Fade 설정 로드(기본값 안전)
-            FJsonSerializer::ReadBool(InOutHandle, "FadeEnabled", bFadeEnabled, false);
-            FJsonSerializer::ReadBool(InOutHandle, "FadeLoop", bFadeLoop, false);
-            FJsonSerializer::ReadFloat(InOutHandle, "FadeInDuration", FadeInDuration, 0.5f);
-            FJsonSerializer::ReadFloat(InOutHandle, "FadeOutDuration", FadeOutDuration, 0.5f);
-            FJsonSerializer::ReadFloat(InOutHandle, "MinOpacity", MinOpacity, 0.0f);
-            FJsonSerializer::ReadFloat(InOutHandle, "MaxOpacity", MaxOpacity, 1.0f);
-
-            // 상태 정렬
-            SetFadeEnabled(bFadeEnabled);
+            // a) 기존 머티리얼 풀에서 찾기(StaticMeshComponent 방식과 동일)
+            UMaterial* Found = nullptr;
+            for (TObjectIterator<UMaterial> It; It; ++It)
+            {
+                UMaterial* Mat = *It; if (!Mat) continue;
+                if (UTexture* Diff = Mat->GetDiffuseTexture())
+                {
+                    if (Diff->GetFilePath() == FName(MatPath))
+                    {
+                        Found = Mat;
+                        break;
+                    }
+                }
+            }
+            if (Found)
+            {
+                SetMaterial(Found);
+            }
+            else
+            {
+                // b) 못 찾으면 최소 머티리얼 생성(디퓨즈만 세팅)
+                UTexture* Diff = UAssetManager::GetInstance().CreateTexture(FName(MatPath));
+                if (Diff)
+                {
+                    UMaterial* Mat = NewObject<UMaterial>();
+                    Mat->SetDiffuseTexture(Diff);
+                    SetMaterial(Mat);
+                }
+            }
         }
-        else
+        else if (bHasTex && !TexPath.empty())
         {
-            InOutHandle["DecalSize"] = FJsonSerializer::VectorToJson(GetDecalSize());
-            InOutHandle["FadeEnabled"] = bFadeEnabled;
-            InOutHandle["FadeLoop"] = bFadeLoop;
-            InOutHandle["FadeInDuration"] = FadeInDuration;
-            InOutHandle["FadeOutDuration"] = FadeOutDuration;
-            InOutHandle["MinOpacity"] = MinOpacity;
-            InOutHandle["MaxOpacity"] = MaxOpacity;
+            // 텍스처만 저장된 경우 폴백
+            UTexture* Tex = UAssetManager::GetInstance().CreateTexture(FName(TexPath));
+            if (Tex) { SetTexture(Tex); }
         }
 
+        // 3) 추가 속성(선택)
+        float Spot = SpotAngle, Blend = BlendFactor;
+        FJsonSerializer::ReadFloat(InOutHandle, "SpotAngle", Spot, SpotAngle, false);
+        FJsonSerializer::ReadFloat(InOutHandle, "BlendFactor", Blend, BlendFactor, false);
+        SpotAngle = Spot;
+        BlendFactor = std::clamp(Blend, 0.f, 1.f);
+    }
+    else
+    {
+        // 1) 기존 저장 로직 유지
+        InOutHandle["DecalSize"] = FJsonSerializer::VectorToJson(GetDecalSize());
+        InOutHandle["FadeEnabled"] = bFadeEnabled;
+        InOutHandle["FadeLoop"] = bFadeLoop;
+        InOutHandle["FadeInDuration"] = FadeInDuration;
+        InOutHandle["FadeOutDuration"] = FadeOutDuration;
+        InOutHandle["MinOpacity"] = MinOpacity;
+        InOutHandle["MaxOpacity"] = MaxOpacity;
+
+        // 2) 머티리얼/텍스처 경로 저장(우선순위: 머티리얼 → 텍스처)
+        if (DecalMaterial && DecalMaterial->GetDiffuseTexture())
+        {
+            InOutHandle["MaterialPath"] = DecalMaterial->GetDiffuseTexture()->GetFilePath().ToString();
+        }
+        else if (DecalTexture)
+        {
+            InOutHandle["TexturePath"] = DecalTexture->GetFilePath().ToString();
+        }
+
+        // 3) 추가 속성(선택)
+        InOutHandle["SpotAngle"] = SpotAngle;
+        InOutHandle["BlendFactor"] = BlendFactor;
     }
 }
 
