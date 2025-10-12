@@ -163,10 +163,19 @@ void USemiLightComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 		{
 			for (UActorComponent* Comp : Owner->GetOwnedComponents())
 			{
-				if (auto* BB = Cast<UBillBoardComponent>(Comp)) { IconComponent = BB; }
-				else if (auto* DC = Cast<UDecalComponent>(Comp)) { DecalComponent = DC; }
+				if (auto* BB = Cast<UBillBoardComponent>(Comp)) 
+				{ 
+					IconComponent = BB; 
+
+				}
+				else if (auto* DC = Cast<UDecalComponent>(Comp)) 
+				{ 
+					DecalComponent = DC; 
+				}
 			}
 		}
+
+		
 
 		// 2) 세미라이트 고유 파라미터 복원(없으면 현재값 유지)
 		FJsonSerializer::ReadFloat(InOutHandle, "SpotAngle", SpotAngle, SpotAngle, false);

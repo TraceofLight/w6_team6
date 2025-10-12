@@ -79,3 +79,27 @@ void ASemiLightActor::InitializeComponents()
 		GWorld->GetLevel()->RegisterDecalComponent(DecalComponent);
 	}
 }
+
+void ASemiLightActor::Serialize(const bool bInIsLoading, JSON& InOutHandle)
+{
+	Super::Serialize(bInIsLoading, InOutHandle);
+
+	if (USemiLightComponent* SemiLight = Cast<USemiLightComponent>(GetRootComponent())) 
+	{
+		SemiLightComponent = SemiLight;
+	}
+
+	for (UActorComponent* Comp : GetOwnedComponents())
+	{
+		if (auto* BB = Cast<UBillBoardComponent>(Comp))
+		{
+			SemiLightComponent->SetIconComponent(BB);
+
+		}
+		else if (auto* DC = Cast<UDecalComponent>(Comp))
+		{
+			SemiLightComponent->SetDecalComponent(DC);
+		}
+	}
+
+}

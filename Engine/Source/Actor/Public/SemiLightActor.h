@@ -28,6 +28,9 @@ public:
 	void SetProjectionDistance(float InDistance);
 	virtual UClass* GetDefaultRootComponent() override;
 	void InitializeComponents() override;
+
+	void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
+
 private:
 	USemiLightComponent* SemiLightComponent = nullptr;
 };
