@@ -225,19 +225,11 @@ void UEditor::UpdateBatchLines()
 			else if (USemiLightComponent* SemiLightComponent = Cast<USemiLightComponent>(Component))
 			{
 				// SemiLight의 Cone 와이어프레임 표시
-				// 광원점은 항상 SemiLightComponent의 원점 (DecalBox 투사 시작면 중심)
 				const FVector Apex = SemiLightComponent->GetWorldLocation();
 				const float Angle = SemiLightComponent->GetSpotAngle();
 				const FVector DecalBoxSize = SemiLightComponent->GetDecalBoxSize();
 
-				const float Depth = DecalBoxSize.X;
-				const float RadiusX = DecalBoxSize.Y * 0.5f;
-				const float RadiusY = DecalBoxSize.Z * 0.5f;
-
 				// DecalComponent의 WorldTransform 행렬에서 직접 축 벡터 추출
-				// DecalBox는 DecalComponent의 로컬 좌표계로 정의됨
-				// - DecalBox 로컬 X축 = 투사 방향 = WorldTransform의 X축(Row 0)
-				// - DecalBox 로컬 Y축 = Up 방향 = WorldTransform의 Y축(Row 1)
 				UDecalComponent* DecalComponent = SemiLightComponent->GetDecalComponent();
 				if (DecalComponent)
 				{
@@ -255,7 +247,7 @@ void UEditor::UpdateBatchLines()
 					Direction.Normalize();
 					UpVector.Normalize();
 
-					BatchLines.UpdateConeVertices(Apex, Direction, UpVector, Angle, Depth, RadiusX, RadiusY);
+					BatchLines.UpdateConeVertices(Apex, Direction, UpVector, Angle, DecalBoxSize);
 				}
 
 				BatchLines.DisableRenderBoundingBox();

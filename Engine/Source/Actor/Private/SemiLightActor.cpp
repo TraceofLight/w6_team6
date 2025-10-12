@@ -31,11 +31,11 @@ void ASemiLightActor::SetSpotAngle(float InAngle)
 	}
 }
 
-void ASemiLightActor::SetProjectionDistance(float InDistance)
+void ASemiLightActor::SetProjectionDistance3D(const FVector& InDistance) const
 {
 	if (SemiLightComponent)
 	{
-		SemiLightComponent->SetProjectionDistance(InDistance);
+		SemiLightComponent->SetProjectionDistance3D(InDistance);
 	}
 }
 
@@ -85,7 +85,7 @@ void ASemiLightActor::InitializeComponents()
 	{
 		// Scale에 따른 DecalBoxSize 초기 설정
 		FVector InitialScale = SemiLightComponent->GetWorldScale3D();
-		const float BaseDepth = SemiLightComponent->GetProjectionDistance();
+		const float BaseDepth = SemiLightComponent->GetProjectionDistance3D().X;
 		FVector InitialBoxSize;
 		InitialBoxSize.X = BaseDepth * InitialScale.X;
 		InitialBoxSize.Y = BaseDepth * InitialScale.Y;

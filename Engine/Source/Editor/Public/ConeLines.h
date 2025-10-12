@@ -19,12 +19,10 @@ public:
 	 * @param Direction Cone의 투사 방향 (정규화된 벡터)
 	 * @param UpVector Cone의 Up 벡터 (회전 기준)
 	 * @param Angle Cone의 각도 (degree)
-	 * @param Depth Cone의 깊이 (투사 거리)
-	 * @param RadiusX 바닥면 X 방향 반지름
-	 * @param RadiusY 바닥면 Y 방향 반지름
+	 * @param DecalBoxSize 데칼 박스 크기 (X: 깊이, Y/Z: 반지름)
 	 */
 	void UpdateVertices(const FVector& Apex, const FVector& Direction, const FVector& UpVector,
-	                    float Angle, float Depth, float RadiusX, float RadiusY);
+	                    float Angle, const FVector& DecalBoxSize);
 
 	/**
 	 * @brief 정점들을 대상 배열의 특정 위치에 병합

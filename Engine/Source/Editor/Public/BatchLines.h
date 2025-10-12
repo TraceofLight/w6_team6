@@ -18,7 +18,7 @@ public:
 	void UpdateUGridVertices(const float newCellSize);
 	void UpdateBoundingBoxVertices(const IBoundingVolume* NewBoundingVolume);
 	void UpdateConeVertices(const FVector& Apex, const FVector& Direction, const FVector& UpVector,
-							float Angle, float Depth, float RadiusX, float RadiusY);
+							float Angle, const FVector& DecalBoxSize);
 
 	// GPU VertexBuffer에 복사
 	void UpdateVertexBuffer();

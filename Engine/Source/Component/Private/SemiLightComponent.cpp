@@ -35,42 +35,8 @@ void USemiLightComponent::TickComponent()
 {
 	Super::TickComponent();
 
-	FVector CurrentScale = GetWorldScale3D();
-	if (PreviousScale != CurrentScale)
-	{
-		UpdateDecalBoxFromScale();
-		PreviousScale = CurrentScale;
-	}
-}
-
-void USemiLightComponent::SynchronizePropertiesFromDecal()
-{
-	if (!DecalComponent)
-	{
-		return;
-	}
-
-	// Decal 크기를 DecalBoxSize에 반영
-	const FVector NewDecalSize = DecalComponent->GetDecalSize();
-	DecalBoxSize = NewDecalSize;
-
-	// 새로운 박스 크기에 맞는 최대 각도 계산
-	const float MaxAngle = GetMaxAngleForDecalBox();
-
-	// 현재 각도가 최대치를 초과하면 자동으로 조정
-	if (SpotAngle > MaxAngle)
-	{
-		SpotAngle = MaxAngle;
-
-		// DecalComponent의 SpotAngle도 업데이트
-		if (DecalComponent)
-		{
-			DecalComponent->SetSpotAngle(SpotAngle);
-		}
-	}
-
-	// 프로퍼티가 변경되었으므로, 위치 등을 다시 동기화
-	UpdateDecalProperties();
+	SetWorldScale3D({1.0f, 1.0f, 1.0f});
+	UpdateDecalBoxFromScale();
 }
 
 void USemiLightComponent::SetDecalTexture(UTexture* InTexture)
@@ -105,9 +71,26 @@ void USemiLightComponent::SetBlendFactor(float InFactor)
 	}
 }
 
-void USemiLightComponent::SetProjectionDistance(float InDistance)
+void USemiLightComponent::SetProjectionDistance3D(const FVector& InDistance)
 {
-	ProjectionDistance = InDistance;
+	ProjectionDistance3D = InDistance;
+	UpdateDecalProperties();
+
+	// 새로운 박스 크기에 맞는 최대 각도 계산
+	const float MaxAngle = GetMaxAngleForDecalBox();
+
+	// 현재 각도가 최대치를 초과하면 자동으로 조정
+	if (SpotAngle > MaxAngle)
+	{
+		SpotAngle = MaxAngle;
+
+		// DecalComponent의 SpotAngle도 업데이트
+		if (DecalComponent)
+		{
+			DecalComponent->SetSpotAngle(SpotAngle);
+		}
+	}
+
 	UpdateDecalProperties();
 }
 
@@ -163,10 +146,9 @@ void USemiLightComponent::UpdateDecalBoxFromScale()
 
 	// DecalComponent는 Y축 90도 회전 → 로컬 X축=부모 -Z, 로컬 Y=부모 Y, 로컬 Z=부모 X
 	// DecalBoxSize는 DecalComponent 로컬 좌표계 기준
-	const float BaseDepth = ProjectionDistance;
-	DecalBoxSize.X = BaseDepth * CurrentScale.Z;  // DecalBox 깊이 (투사 방향) = 부모 Z Scale
-	DecalBoxSize.Y = BaseDepth * CurrentScale.Y;  // DecalBox Y 반경 = 부모 Y Scale
-	DecalBoxSize.Z = BaseDepth * CurrentScale.X;  // DecalBox Z 반경 = 부모 X Scale
+	DecalBoxSize.X = ProjectionDistance3D.X * CurrentScale.Z;  // DecalBox 깊이 (투사 방향) = 부모 Z Scale
+	DecalBoxSize.Y = ProjectionDistance3D.Y * CurrentScale.Y;  // DecalBox Y 반경 = 부모 Y Scale
+	DecalBoxSize.Z = ProjectionDistance3D.Z * CurrentScale.X;  // DecalBox Z 반경 = 부모 X Scale
 
 	// Decal 프로퍼티 업데이트
 	UpdateDecalProperties();
