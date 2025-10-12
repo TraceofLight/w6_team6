@@ -10,9 +10,9 @@
 #include "Texture/Public/TextureRenderProxy.h"
 #include "Component/Mesh/Public/StaticMeshComponent.h"
 
-FDecalPass::FDecalPass(UPipeline* InPipeline, ID3D11Buffer* InConstantBufferViewProj, ID3D11VertexShader* InVS, ID3D11PixelShader* InPS, ID3D11InputLayout* InLayout, ID3D11DepthStencilState* InDS_Read, ID3D11BlendState* InBlendState)
+FDecalPass::FDecalPass(UPipeline* InPipeline, ID3D11Buffer* InConstantBufferViewProj, ID3D11VertexShader* InVS, ID3D11PixelShader* InPS, ID3D11InputLayout* InLayout, ID3D11DepthStencilState* InDS_Read, ID3D11BlendState* InBlendState, bool bInIsAdditive)
     : FRenderPass(InPipeline, InConstantBufferViewProj, nullptr),
-    VS(InVS), PS(InPS), InputLayout(InLayout), DS_Read(InDS_Read), BlendState(InBlendState)
+    VS(InVS), PS(InPS), InputLayout(InLayout), DS_Read(InDS_Read), BlendState(InBlendState), bIsAdditivePass(bInIsAdditive)
 {
     ConstantBufferPrim = FRenderResourceFactory::CreateConstantBuffer<FModelConstants>();
     ConstantBufferDecal = FRenderResourceFactory::CreateConstantBuffer<FDecalConstants>();
@@ -22,7 +22,9 @@ void FDecalPass::Execute(FRenderingContext& Context)
 {
     // 플래그가 꺼져 있으면 전체 스킵
     if (!(Context.ShowFlags & EEngineShowFlags::SF_Decal)) { return; }
-    if (Context.Decals.empty()) { return; }
+
+    const auto& DecalsToRender = bIsAdditivePass ? Context.AdditiveDecals : Context.AlphaDecals;
+    if (DecalsToRender.empty()) { return; }
 
     // --- Set Pipeline State ---
     FPipelineInfo PipelineInfo = { InputLayout, VS, FRenderResourceFactory::GetRasterizerState({ ECullMode::Back, EFillMode::Solid }),
@@ -31,7 +33,7 @@ void FDecalPass::Execute(FRenderingContext& Context)
     Pipeline->SetConstantBuffer(1, true, ConstantBufferViewProj);
 
     // --- Render Decals ---
-    for (UDecalComponent* Decal : Context.Decals)
+    for (UDecalComponent* Decal : DecalsToRender)
     {
         if (!Decal || !Decal->IsVisible()) { continue; }
 

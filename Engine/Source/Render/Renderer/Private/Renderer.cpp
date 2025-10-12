@@ -5,6 +5,7 @@
 #include "Component/Public/PrimitiveComponent.h"
 #include "Component/Mesh/Public/StaticMeshComponent.h"
 #include "Component/Public/DecalComponent.h"
+#include "Component/Public/SemiLightComponent.h"
 #include "Editor/Public/Editor.h"
 #include "Editor/Public/Viewport.h"
 #include "Editor/Public/ViewportClient.h"
@@ -60,9 +61,15 @@ void URenderer::Init(HWND InWindowHandle)
 		DefaultVertexShader, DefaultPixelShader, DefaultInputLayout, DefaultDepthStencilState);
 	RenderPasses.push_back(PrimitivePass);
 
-	FDecalPass* DecalPass = new FDecalPass(Pipeline, ConstantBufferViewProj,
-		DecalVertexShader, DecalPixelShader, DecalInputLayout, DecalDepthStencilState, AdditiveBlendState);
-	RenderPasses.push_back(DecalPass);
+	// 알파 블렌딩을 사용하는 일반 데칼 패스
+	FDecalPass* AlphaDecalPass = new FDecalPass(Pipeline, ConstantBufferViewProj,
+		DecalVertexShader, DecalPixelShader, DecalInputLayout, DecalDepthStencilState, AlphaBlendState, false);
+	RenderPasses.push_back(AlphaDecalPass);
+
+	// 가산 혼합을 사용하는 SemiLight 데칼 패스
+	FDecalPass* AdditiveDecalPass = new FDecalPass(Pipeline, ConstantBufferViewProj,
+		DecalVertexShader, DecalPixelShader, DecalInputLayout, DecalDepthStencilState, AdditiveBlendState, true);
+	RenderPasses.push_back(AdditiveDecalPass);
 
 	FBillboardPass* BillboardPass = new FBillboardPass(Pipeline, ConstantBufferViewProj, ConstantBufferModels,
 		TextureVertexShader, TexturePixelShader, TextureInputLayout, DefaultDepthStencilState);
@@ -309,10 +316,17 @@ void URenderer::RenderLevel(UCamera* InCurrentCamera)
 			{
 				if (auto* Decal = Cast<UDecalComponent>(Comp))
 				{
-					// SceneComponent 기반 데칼도 수집
 					if (Decal->IsVisible())
 					{
-						RenderingContext.Decals.push_back(Decal);
+						// SemiLightComponent 자식이면 Additive, 아니면 Alpha 목록으로 분류
+						if (Cast<USemiLightComponent>(Decal->GetParentAttachment()))
+						{
+							RenderingContext.AdditiveDecals.push_back(Decal);
+						}
+						else
+						{
+							RenderingContext.AlphaDecals.push_back(Decal);
+						}
 					}
 				}
 			}

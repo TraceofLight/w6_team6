@@ -25,13 +25,15 @@ public:
     FDecalPass(
         UPipeline* InPipeline,
         ID3D11Buffer* InConstantBufferViewProj,
-        ID3D11VertexShader* InVS, ID3D11PixelShader* InPS, ID3D11InputLayout* InLayout, ID3D11DepthStencilState* InDS_Read, ID3D11BlendState* InBlendState
+        ID3D11VertexShader* InVS, ID3D11PixelShader* InPS, ID3D11InputLayout* InLayout, 
+        ID3D11DepthStencilState* InDS_Read, ID3D11BlendState* InBlendState, bool bInIsAdditive
     );
     void Execute(FRenderingContext& Context) override;
     void DrawDecalReceiver(UPrimitiveComponent* Prim);
     void Release() override;
 
 private:
+    bool bIsAdditivePass = false;
     ID3D11VertexShader* VS = nullptr;
     ID3D11PixelShader* PS = nullptr;
     ID3D11InputLayout* InputLayout = nullptr;
