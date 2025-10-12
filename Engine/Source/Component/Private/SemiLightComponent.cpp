@@ -127,9 +127,8 @@ void USemiLightComponent::UpdateDecalProperties()
 	// 데칼의 로컬 X 방향이 투사 방향(월드 -Z)이므로 DecalBoxSize.X를 사용
 	const float BoxDepth = DecalBoxSize.X;
 
-	// 광원 위치(원점)부터 박스가 시작되도록 중심을 -Z 방향으로 BoxDepth/2만큼 이동
-	// 박스의 로컬 X=-BoxDepth/2가 월드 Z=0(광원)에 위치
-	const FVector DecalRelativeLocation = FVector(0.0f, 0.0f, -BoxDepth * 0.5f);
+	// 광원 위치(원점)부터 박스가 시작되도록 중심을 X 방향으로 BoxDepth/2만큼 이동
+	const FVector DecalRelativeLocation = FVector(BoxDepth * 0.5f, 0.0f, 0.0f);
 
 	// 데칼 박스 크기는 DecalBoxSize 그대로 사용
 	DecalComponent->SetRelativeLocation(DecalRelativeLocation);

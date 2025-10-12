@@ -65,6 +65,7 @@ void ASemiLightActor::InitializeComponents()
 		SemiLightComponent->SetIconComponent(IconComponent);
 		SemiLightComponent->SetDecalComponent(DecalComponent);
 		SemiLightComponent->SetWorldLocation(GetActorLocation());
+		SemiLightComponent->SetRelativeRotation(FVector(0.f, 90.f, 0.f));
 	}
 
 	// 부모-자식 관계 설정
@@ -76,7 +77,6 @@ void ASemiLightActor::InitializeComponents()
 	if (DecalComponent)
 	{
 		DecalComponent->SetParentAttachment(GetRootComponent());
-		DecalComponent->SetRelativeRotation(FVector(0.0f, 90.0f, 0.0f));
 		GWorld->GetLevel()->RegisterDecalComponent(DecalComponent);
 	}
 
@@ -84,13 +84,12 @@ void ASemiLightActor::InitializeComponents()
 	if (SemiLightComponent && DecalComponent)
 	{
 		// Scale에 따른 DecalBoxSize 초기 설정
-		// DecalComponent Y축 90도 회전 → DecalBox.X=부모Z, DecalBox.Y=부모Y, DecalBox.Z=부모X
 		FVector InitialScale = SemiLightComponent->GetWorldScale3D();
 		const float BaseDepth = SemiLightComponent->GetProjectionDistance();
 		FVector InitialBoxSize;
-		InitialBoxSize.X = BaseDepth * InitialScale.Z;  // DecalBox 깊이 = 부모 Z Scale
-		InitialBoxSize.Y = BaseDepth * InitialScale.Y;  // DecalBox Y 반경 = 부모 Y Scale
-		InitialBoxSize.Z = BaseDepth * InitialScale.X;  // DecalBox Z 반경 = 부모 X Scale
+		InitialBoxSize.X = BaseDepth * InitialScale.X;
+		InitialBoxSize.Y = BaseDepth * InitialScale.Y;
+		InitialBoxSize.Z = BaseDepth * InitialScale.Z;
 		SemiLightComponent->SetDecalBoxSize(InitialBoxSize);
 
 		// DecalComponent 초기 설정
