@@ -12,6 +12,10 @@ struct FDecalConstants
 {
     FMatrix DecalWorld;
     FMatrix DecalWorldInverse;
+    float SpotAngle;           // 원뿔 각도 (degree). < 0이면 박스 클리핑, >= 0이면 원뿔 프러스텀
+    float Padding1;            // 16바이트 정렬
+    float Padding2;
+    float Padding3;
 };
 
 class FDecalPass : public FRenderPass

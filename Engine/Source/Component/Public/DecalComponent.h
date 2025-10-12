@@ -32,6 +32,11 @@ public:
         MarkAsDirty();
     }
     FVector GetDecalSize() const { return { DecalExtent.X * 2.f, DecalExtent.Y * 2.f, DecalExtent.Z * 2.f }; }
+
+    // 원뿔 프러스텀을 위한 SpotAngle (< 0이면 박스, >= 0이면 원뿔)
+    void SetSpotAngle(float InAngle) { SpotAngle = InAngle; }
+    float GetSpotAngle() const { return SpotAngle; }
+
     // DecalPass가 쓰는 바운딩 볼륨
     const IBoundingVolume* GetBoundingBox();
 
@@ -50,4 +55,7 @@ protected:
 
     // 내부 half-size (OBB Extents)
     FVector DecalExtent = FVector(GDecalUnitHalfExtent, GDecalUnitHalfExtent, GDecalUnitHalfExtent);
+
+    // 원뿔 프러스텀 각도 (degree). < 0이면 일반 박스 데칼, >= 0이면 SemiLight 원뿔
+    float SpotAngle = -1.0f;
 };

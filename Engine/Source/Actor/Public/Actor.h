@@ -43,6 +43,7 @@ public:
 
 	UUUIDTextComponent* GetUUIDTextComponent() const { return UUIDTextComponent; }
 	void SetUUIDTextComponent(UUUIDTextComponent* InUUIDTextComponent) { UUIDTextComponent = InUUIDTextComponent; }
+	void SemiLightComponent(UUUIDTextComponent* InUUIDTextComponent) { UUIDTextComponent = InUUIDTextComponent; }
 
 	const FVector& GetActorLocation() const;
 	const FVector& GetActorRotation() const;

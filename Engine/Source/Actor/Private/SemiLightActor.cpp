@@ -42,7 +42,7 @@ ASemiLightActor::ASemiLightActor()
 	{
 		DecalComponent->SetParentAttachment(SemiLightComponent);
 		// 데칼 초기 방향
-		DecalComponent->SetRelativeRotation(FVector(0.0f, 180.0f, 0.0f));
+		DecalComponent->SetRelativeRotation(FVector(0.0f, 90.0f, 0.0f));
 	}
 }
 

@@ -42,7 +42,7 @@ void USemiLightComponent::BeginPlay()
 		}
 	}
 
-	// 데칼 텍스처 설정
+	// 데칼 텍스처 및 SpotAngle 설정
 	if (DecalComponent)
 	{
 		UTexture* DecalTexture = AssetManager.CreateTexture("Texture/texture.png", FName("DefaultDecal"));
@@ -50,6 +50,8 @@ void USemiLightComponent::BeginPlay()
 		{
 			DecalComponent->SetTexture(DecalTexture);
 		}
+		// SemiLight는 원뿔 프러스텀 사용
+		DecalComponent->SetSpotAngle(SpotAngle);
 	}
 
 	// 초기 프로퍼티 적용
@@ -92,6 +94,10 @@ void USemiLightComponent::SetDecalTexture(UTexture* InTexture)
 void USemiLightComponent::SetSpotAngle(float InAngle)
 {
 	SpotAngle = InAngle;
+	if (DecalComponent)
+	{
+		DecalComponent->SetSpotAngle(SpotAngle);
+	}
 	UpdateDecalProperties();
 }
 
@@ -108,17 +114,15 @@ void USemiLightComponent::UpdateDecalProperties()
 		return;
 	}
 
-	// 크기 계산: SpotAngle과 ProjectionDistance 기반
-	const float Radius = tanf(FVector::GetDegreeToRadian(SpotAngle * 0.5f)) * ProjectionDistance;
-	const float BoxDepth = ProjectionDistance;
+	// 고정 데칼 크기 설정: 10x10x10
+	const float FixedSize = 10.0f;
 
-	// 위치 계산: 박스 시작면이 컴포넌트 원점에 오도록
-	// 투사 방향은 -Z이므로, -Z 방향으로 BoxDepth의 절반만큼 이동
-	const FVector DecalRelativeLocation = FVector(0.0f, 0.0f, -BoxDepth * 0.5f);
+	// 투사 방향은 -Z이므로, 박스 중심을 -Z 방향으로 FixedSize/2만큼 이동
+	const FVector DecalRelativeLocation = FVector(0.0f, 0.0f, -FixedSize * 0.5f);
 
-	// 프로퍼티 적용
+	// 데칼 박스 크기: 10x10x10으로 고정
 	DecalComponent->SetRelativeLocation(DecalRelativeLocation);
-	DecalComponent->SetDecalSize(FVector(Radius * 2.0f, Radius * 2.0f, BoxDepth));
+	DecalComponent->SetDecalSize(FVector(FixedSize, FixedSize, FixedSize));
 }
 
 void USemiLightComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
