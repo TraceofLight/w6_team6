@@ -112,6 +112,14 @@ void UDecalComponent::SetFadeEnabled(bool bEnabled)
     {
         StopFade(true);
         SetCanTick(false);
+        if (GWorld && GWorld->GetWorldType() == EWorldType::Editor)
+        {
+            if (AActor* Owner = GetOwner())
+            {
+                Owner->SetTickInEditor(false);
+                Owner->SetCanTick(false);
+            }
+        }
     }
 }
 void UDecalComponent::SetFadeLoop(bool bLoop) 
