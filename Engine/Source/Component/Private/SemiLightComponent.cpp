@@ -10,7 +10,8 @@ IMPLEMENT_CLASS(USemiLightComponent, USceneComponent)
 
 USemiLightComponent::USemiLightComponent()
 {
-	// 컴포넌트는 Actor의 생성자에서 생성됨
+	// Scale 변경 감지를 위해 Tick 활성화
+	bCanEverTick = true;
 }
 
 USemiLightComponent::~USemiLightComponent() = default;
@@ -33,6 +34,13 @@ void USemiLightComponent::BeginPlay()
 void USemiLightComponent::TickComponent()
 {
 	Super::TickComponent();
+
+	FVector CurrentScale = GetWorldScale3D();
+	if (PreviousScale != CurrentScale)
+	{
+		UpdateDecalBoxFromScale();
+		PreviousScale = CurrentScale;
+	}
 }
 
 void USemiLightComponent::SynchronizePropertiesFromDecal()
@@ -147,6 +155,24 @@ float USemiLightComponent::GetMaxAngleForDecalBox() const
 	const float MaxAngle = FVector::GetRadianToDegree(2.0f * atanf(BoxRadius / BoxDepth));
 
 	return MaxAngle;
+}
+
+void USemiLightComponent::UpdateDecalBoxFromScale()
+{
+	// Scale에 따라 DecalBoxSize 업데이트
+	FVector CurrentScale = GetWorldScale3D();
+
+	// 기본 크기 * Scale
+	const float BaseDepth = ProjectionDistance;
+	DecalBoxSize.X = BaseDepth * CurrentScale.Z;  // Depth는 Z 방향
+	DecalBoxSize.Y = BaseDepth * CurrentScale.X;  // Radius는 X 방향
+	DecalBoxSize.Z = BaseDepth * CurrentScale.Y;  // Radius는 Y 방향
+
+	// Decal 프로퍼티 업데이트
+	UpdateDecalProperties();
+
+	// SpotAngle도 최대치를 넘지 않도록 재조정
+	SetSpotAngle(SpotAngle);
 }
 
 void USemiLightComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)

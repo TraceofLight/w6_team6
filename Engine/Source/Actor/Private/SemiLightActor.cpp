@@ -78,4 +78,24 @@ void ASemiLightActor::InitializeComponents()
 		DecalComponent->SetRelativeRotation(FVector(0.0f, 90.0f, 0.0f));
 		GWorld->GetLevel()->RegisterDecalComponent(DecalComponent);
 	}
+
+	// Decal 프로퍼티 초기화
+	if (SemiLightComponent && DecalComponent)
+	{
+		// Scale에 따른 DecalBoxSize 초기 설정
+		FVector InitialScale = SemiLightComponent->GetWorldScale3D();
+		const float BaseDepth = SemiLightComponent->GetProjectionDistance();
+		FVector InitialBoxSize;
+		InitialBoxSize.X = BaseDepth * InitialScale.Z;
+		InitialBoxSize.Y = BaseDepth * InitialScale.X;
+		InitialBoxSize.Z = BaseDepth * InitialScale.Y;
+		SemiLightComponent->SetDecalBoxSize(InitialBoxSize);
+
+		// DecalComponent 초기 설정
+		DecalComponent->SetSpotAngle(SemiLightComponent->GetSpotAngle());
+		DecalComponent->SetBlendFactor(SemiLightComponent->GetBlendFactor());
+
+		// UpdateDecalProperties 트리거
+		SemiLightComponent->SetSpotAngle(SemiLightComponent->GetSpotAngle());
+	}
 }

@@ -52,6 +52,7 @@ public:
 
 private:
 	void UpdateDecalProperties();
+	void UpdateDecalBoxFromScale();
 
 	// Child Components
 	UBillBoardComponent* IconComponent = nullptr;
@@ -59,7 +60,10 @@ private:
 
 	// Properties
 	float SpotAngle = 45.0f;
-	float ProjectionDistance = 500.0f;
+	float ProjectionDistance = 10.0f;
 	float BlendFactor = 1.0f;
-	FVector DecalBoxSize = FVector(10.0f, 10.0f, 10.0f);  // 기본 박스 크기
+	FVector DecalBoxSize = FVector(10.0f, 10.0f, 10.0f);
+
+	// Scale 변경 감지용
+	FVector PreviousScale = FVector(1.0f, 1.0f, 1.0f);
 };
