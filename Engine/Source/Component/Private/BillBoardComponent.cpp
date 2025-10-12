@@ -202,3 +202,8 @@ UObject* UBillBoardComponent::Duplicate()
 
     return BillBoardComponent;
 }
+
+void UBillBoardComponent::DuplicateSubObjects(UObject* DuplicatedObject)
+{
+    Super::DuplicateSubObjects(DuplicatedObject);
+}

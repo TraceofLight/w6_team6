@@ -65,5 +65,5 @@ private:
 public:
 	virtual UObject* Duplicate() override;
 protected:
-	virtual void DuplicateSubObjects(UObject* DuplicatedObject) override {}
+	virtual void DuplicateSubObjects(UObject* DuplicatedObject) override;
 };

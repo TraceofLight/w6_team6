@@ -388,3 +388,8 @@ UObject* UDecalComponent::Duplicate()
     }
     return DecalComponent;
 }
+
+void UDecalComponent::DuplicateSubObjects(UObject* DuplicatedObject)
+{
+    Super::DuplicateSubObjects(DuplicatedObject);
+}

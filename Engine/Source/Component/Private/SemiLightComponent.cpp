@@ -227,3 +227,8 @@ UObject* USemiLightComponent::Duplicate()
 	}
 	return Copy;
 }
+
+void USemiLightComponent::DuplicateSubObjects(UObject* DuplicatedObject)
+{
+	Super::DuplicateSubObjects(DuplicatedObject);
+}
