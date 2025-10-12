@@ -178,6 +178,7 @@ void AActor::SetActorLocation(const FVector& InLocation) const
 	{
 		RootComponent->SetRelativeLocation(InLocation);
 	}
+	GWorld->GetLevel()->UpdateSceneBVHComponent(RootComponent);
 }
 
 void AActor::SetActorRotation(const FVector& InRotation) const
@@ -186,6 +187,7 @@ void AActor::SetActorRotation(const FVector& InRotation) const
 	{
 		RootComponent->SetRelativeRotation(InRotation);
 	}
+	GWorld->GetLevel()->UpdateSceneBVHComponent(RootComponent);
 }
 
 void AActor::SetActorScale3D(const FVector& InScale) const
@@ -194,6 +196,7 @@ void AActor::SetActorScale3D(const FVector& InScale) const
 	{
 		RootComponent->SetRelativeScale3D(InScale);
 	}
+	GWorld->GetLevel()->UpdateSceneBVHComponent(RootComponent);
 }
 
 void AActor::SetUniformScale(bool IsUniform)
@@ -202,6 +205,7 @@ void AActor::SetUniformScale(bool IsUniform)
 	{
 		RootComponent->SetUniformScale(IsUniform);
 	}
+	GWorld->GetLevel()->UpdateSceneBVHComponent(RootComponent);
 }
 
 UClass* AActor::GetDefaultRootComponent()

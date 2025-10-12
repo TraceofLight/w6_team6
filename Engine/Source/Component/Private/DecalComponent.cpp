@@ -348,9 +348,13 @@ bool UDecalComponent::NeedsTick() const
 UObject* UDecalComponent::Duplicate()
 {
     UDecalComponent* DecalComponent = Cast<UDecalComponent>(Super::Duplicate());
-    
+
     // 데칼 고유 상태 복사
-    DecalComponent->DecalMaterial = DecalMaterial;         // 공유 (자원 매니저 관리)
+    // SetMaterial을 사용하여 SpriteMaterial 캐스팅 로직도 실행되도록 함
+    if (DecalMaterial)
+    {
+        DecalComponent->SetMaterial(DecalMaterial);
+    }
     DecalComponent->DecalTexture = DecalTexture;          // 현재 코드가 소유 삭제(SafeDelete)라면 별도 정책 고려(아래 주의 참조)
     DecalComponent->bVisible = bVisible;
     DecalComponent->DecalExtent = DecalExtent;
@@ -381,11 +385,8 @@ UObject* UDecalComponent::Duplicate()
         NewOBB->Update(DecalComponent->GetWorldTransformMatrix());
     }
 
-    // Enable 상태면 Tick 보장
-    if (DecalComponent->bFadeEnabled)
-    {
-        DecalComponent->SetCanTick(true);
-    }
+    // RefreshTickState는 SetMaterial 내부에서 이미 호출됨
+    // 중복 호출 방지를 위해 제거
     return DecalComponent;
 }
 
