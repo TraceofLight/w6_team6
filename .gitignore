@@ -423,5 +423,11 @@ Engine/editor.ini
 AGENTS.md
 WARP.md
 
+# 문서
+Document/*
+
+# .objbin
+*.objbin
+
 # Rider
 .idea/

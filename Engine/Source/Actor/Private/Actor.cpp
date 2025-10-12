@@ -2,6 +2,7 @@
 #include "Actor/Public/Actor.h"
 #include "Component/Public/SceneComponent.h"
 #include "Component/Public/UUIDTextComponent.h"
+#include "Component/Public/DecalComponent.h"
 #include "Level/Public/Level.h"
 #include "Utility/Public/ActorTypeMapper.h"
 #include "Utility/Public/JsonSerializer.h"
@@ -249,9 +250,15 @@ void AActor::RegisterComponent(UActorComponent* InNewComponent)
 
 	OwnedComponents.push_back(InNewComponent);
 
+	// PrimitiveComponent 등록 (기존)
 	if (UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(InNewComponent))
 	{
 		GWorld->GetLevel()->RegisterPrimitiveComponent(PrimitiveComponent);
+	}
+	// DecalComponent 등록 (새로 추가)
+	else if (UDecalComponent* Decal = Cast<UDecalComponent>(InNewComponent))
+	{
+		GWorld->GetLevel()->RegisterDecalComponent(Decal);
 	}
 }
 
@@ -285,6 +292,11 @@ bool AActor::RemoveComponent(UActorComponent* InComponentToDelete)
     {
         GWorld->GetLevel()->UnregisterPrimitiveComponent(PrimitiveComponent);
     }
+    // DecalComponent 등록 해제
+    if (UDecalComponent* Decal = Cast<UDecalComponent>(InComponentToDelete))
+    {
+        GWorld->GetLevel()->UnregisterDecalComponent(Decal);
+    }
 
     // 씬 컴포넌트라면 자식 승격 처리
     if (USceneComponent* SceneComponent = Cast<USceneComponent>(InComponentToDelete))
@@ -316,6 +328,7 @@ bool AActor::RemoveComponent(UActorComponent* InComponentToDelete)
             Child->SetWorldRotation(WRot);
             Child->SetWorldScale3D(WScale);
         }
+
     }
 
     // 소유 배열에서 제거 (swap-pop)

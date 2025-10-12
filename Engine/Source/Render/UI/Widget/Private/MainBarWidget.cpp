@@ -359,6 +359,36 @@ void UMainBarWidget::RenderShowFlagsMenu()
 			}
 			CurrentLevel->SetShowFlags(ShowFlags);
 		}
+
+		ImGui::Separator();
+
+		// SceneBVH 디버그 옵션
+		ImGui::Text("디버그 옵션");
+
+		static bool bShowBVH = false;
+		static int MaxDepth = -1;
+
+		if (ImGui::Checkbox("SceneBVH 표시", &bShowBVH))
+		{
+			CurrentLevel->ToggleSceneBVHVisualization(bShowBVH, MaxDepth);
+			UE_LOG("MainBarWidget: SceneBVH %s", bShowBVH ? "표시" : "비표시");
+		}
+
+		if (bShowBVH)
+		{
+			if (ImGui::SliderInt("BVH 최대 깊이", &MaxDepth, -1, 10))
+			{
+				CurrentLevel->ToggleSceneBVHVisualization(true, MaxDepth);
+			}
+
+			if (ImGui::Button("BVH 재구축"))
+			{
+				CurrentLevel->BuildSceneBVH();
+				CurrentLevel->ToggleSceneBVHVisualization(bShowBVH, MaxDepth);
+				UE_LOG("MainBarWidget: SceneBVH 재구축");
+			}
+		}
+
 		ImGui::EndMenu();
 	}
 }

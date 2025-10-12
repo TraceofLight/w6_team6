@@ -180,6 +180,7 @@ FStaticMesh* FObjManager::LoadObjStaticMeshAsset(const FName& PathFileName, cons
 
 /**
  * @brief MTL 정보를 바탕으로 UStaticMesh에 재질을 설정하는 함수
+ * @note AssetManager의 Material 캐시를 사용하여 중복 생성 방지
  */
 void FObjManager::CreateMaterialsFromMTL(UStaticMesh* StaticMesh, FStaticMesh* StaticMeshAsset, const FName& ObjFilePath)
 {
@@ -197,83 +198,90 @@ void FObjManager::CreateMaterialsFromMTL(UStaticMesh* StaticMesh, FStaticMesh* S
 	for (size_t i = 0; i < MaterialCount; ++i)
 	{
 		const FMaterial& MaterialInfo = StaticMeshAsset->MaterialInfo[i];
-		auto* Material = new UMaterial();
 
-		// 머티리얼 표시용 이름 우선순위: MTL Name > KdMap 파일명 > Fallback
+		// Material 이름 결정
+		FName MaterialName;
 		if (!MaterialInfo.Name.empty())
 		{
-			Material->SetName(FName(MaterialInfo.Name));
+			MaterialName = FName(MaterialInfo.Name);
 		}
 		else if (!MaterialInfo.KdMap.empty())
 		{
 			std::filesystem::path kd(MaterialInfo.KdMap);
-			Material->SetName(FName(kd.stem().generic_string()));
+			MaterialName = FName(kd.stem().generic_string());
 		}
 		else
 		{
-			Material->SetName(FName(FNameTable::GetInstance().GetUniqueName("Material").ToString()));
+			MaterialName = FName(FNameTable::GetInstance().GetUniqueName("Material").ToString());
 		}
 
+		// AssetManager 캐시에서 Material 검색
+		UMaterial* Material = AssetManager.GetMaterialFromCache(MaterialName);
 
-		// Diffuse 텍스처 로드 (map_Kd)
-		if (!MaterialInfo.KdMap.empty())
+		// 캐시에 없으면 새로 생성
+		if (!Material)
 		{
-			// .generic_string()을 사용하여 경로를 '/'로 통일하고 std::replace 제거
-			FString TexturePathStr = (ObjDirectory / MaterialInfo.KdMap).generic_string();
+			Material = new UMaterial();
+			Material->SetName(MaterialName);
 
-			if (std::filesystem::exists(TexturePathStr))
+			// Diffuse 텍스처 로드 (map_Kd)
+			if (!MaterialInfo.KdMap.empty())
 			{
-				UTexture* DiffuseTexture = AssetManager.CreateTexture(TexturePathStr);
-				if (DiffuseTexture)
+				FString TexturePathStr = (ObjDirectory / MaterialInfo.KdMap).generic_string();
+				if (std::filesystem::exists(TexturePathStr))
 				{
-					Material->SetDiffuseTexture(DiffuseTexture);
+					UTexture* DiffuseTexture = AssetManager.CreateTexture(TexturePathStr);
+					if (DiffuseTexture)
+					{
+						Material->SetDiffuseTexture(DiffuseTexture);
+					}
 				}
 			}
-		}
 
-		// Ambient 텍스처 로드 (map_Ka)
-		if (!MaterialInfo.KaMap.empty())
-		{
-			FString TexturePathStr = (ObjDirectory / MaterialInfo.KaMap).generic_string();
-
-			if (std::filesystem::exists(TexturePathStr))
+			// Ambient 텍스처 로드 (map_Ka)
+			if (!MaterialInfo.KaMap.empty())
 			{
-				UTexture* AmbientTexture = AssetManager.CreateTexture(TexturePathStr);
-				if (AmbientTexture)
+				FString TexturePathStr = (ObjDirectory / MaterialInfo.KaMap).generic_string();
+				if (std::filesystem::exists(TexturePathStr))
 				{
-					Material->SetAmbientTexture(AmbientTexture);
+					UTexture* AmbientTexture = AssetManager.CreateTexture(TexturePathStr);
+					if (AmbientTexture)
+					{
+						Material->SetAmbientTexture(AmbientTexture);
+					}
 				}
 			}
-		}
 
-		// Specular 텍스처 로드 (map_Ks)
-		if (!MaterialInfo.KsMap.empty())
-		{
-			FString TexturePathStr = (ObjDirectory / MaterialInfo.KsMap).generic_string();
-
-			if (std::filesystem::exists(TexturePathStr))
+			// Specular 텍스처 로드 (map_Ks)
+			if (!MaterialInfo.KsMap.empty())
 			{
-				UTexture* SpecularTexture = AssetManager.CreateTexture(TexturePathStr);
-				if (SpecularTexture)
+				FString TexturePathStr = (ObjDirectory / MaterialInfo.KsMap).generic_string();
+				if (std::filesystem::exists(TexturePathStr))
 				{
-					Material->SetSpecularTexture(SpecularTexture);
+					UTexture* SpecularTexture = AssetManager.CreateTexture(TexturePathStr);
+					if (SpecularTexture)
+					{
+						Material->SetSpecularTexture(SpecularTexture);
+					}
 				}
 			}
-		}
 
-		// Alpha 텍스처 로드 (map_d)
-		if (!MaterialInfo.DMap.empty())
-		{
-			FString TexturePathStr = (ObjDirectory / MaterialInfo.DMap).generic_string();
-
-			if (std::filesystem::exists(TexturePathStr))
+			// Alpha 텍스처 로드 (map_d)
+			if (!MaterialInfo.DMap.empty())
 			{
-				UTexture* AlphaTexture = AssetManager.CreateTexture(TexturePathStr);
-				if (AlphaTexture)
+				FString TexturePathStr = (ObjDirectory / MaterialInfo.DMap).generic_string();
+				if (std::filesystem::exists(TexturePathStr))
 				{
-					Material->SetAlphaTexture(AlphaTexture);
+					UTexture* AlphaTexture = AssetManager.CreateTexture(TexturePathStr);
+					if (AlphaTexture)
+					{
+						Material->SetAlphaTexture(AlphaTexture);
+					}
 				}
 			}
+
+			// AssetManager 캐시에 등록
+			AssetManager.AddMaterialToCache(Material);
 		}
 
 		StaticMesh->SetMaterial(static_cast<int32>(i), Material);

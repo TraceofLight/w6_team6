@@ -1,7 +1,10 @@
 #pragma once
 #include "Component/Public/PrimitiveComponent.h"
+#include "Level/Public/Level.h"
 
 class UMaterial;
+class USpriteMaterial;
+class ULevel;
 
 UCLASS()
 class UDecalComponent : public USceneComponent
@@ -13,8 +16,11 @@ public:
     ~UDecalComponent();
 
     // 머티리얼 기반으로 전환
-    void SetMaterial(UMaterial* InMaterial) { DecalMaterial = InMaterial; }
+    void SetMaterial(UMaterial* InMaterial);
     UMaterial* GetMaterial() const { return DecalMaterial; }
+
+    void SetSpriteMaterial(USpriteMaterial* InMaterial);
+    USpriteMaterial* GetSpriteMaterial() const { return SpriteMaterial; }
 
     // 하위 호환: 텍스처 선택
     void SetTexture(class UTexture* InTexture) { DecalTexture = InTexture; }
@@ -22,7 +28,19 @@ public:
 
     // Primitive에서 쓰던 인터페이스 최소 복원
     bool IsVisible() const { return bVisible; }
-    void SetVisibility(bool bVisibility) { bVisible = bVisibility; }
+    void SetVisibility(bool bInVisible)
+    {
+        if (bVisible != bInVisible)
+        {
+            bVisible = bInVisible;
+
+            // Level에 가시성 변경 알림
+            if (ULevel* Level = GWorld->GetLevel())
+            {
+                Level->OnDecalVisibilityChanged(this, bInVisible);
+            }
+        }
+    }
 
     // 데칼 사이즈 API (full size)
     void SetDecalSize(const FVector& InSize)
@@ -48,6 +66,9 @@ public:
     // 전용 속성 위젯 연결
     UClass* GetSpecificWidgetClass() const override;
 
+    // MarkAsDirty override - Level에 변경 알림
+    void MarkAsDirty() override;
+
     // TODO - 테스트 못해봄
     void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
 
@@ -66,6 +87,7 @@ public:
 protected:
     UMaterial* DecalMaterial = nullptr;
     class UTexture* DecalTexture = nullptr;
+    USpriteMaterial* SpriteMaterial = nullptr;
 
     bool bVisible = true;
     // 내부 보유 (Primitive가 아니므로 직접 가짐)
@@ -80,6 +102,9 @@ protected:
     // 블렌딩 강도 (기본값 1.0 = 완전 적용)
     float BlendFactor = 1.0f;
 private:
+    void RefreshTickState();
+    bool NeedsTick() const;
+
     // ============ Fade ============
     enum class EFadePhase : uint8 
     {

@@ -7,8 +7,111 @@
 #include "Physics/Public/AABB.h"
 #include "Texture/Public/TextureRenderProxy.h"
 #include "Texture/Public/Texture.h"
+#include "Texture/Public/SpriteMaterial.h"
 #include "Manager/Asset/Public/ObjManager.h"
 #include "Render/Renderer/Public/RenderResourceFactory.h"
+
+#include <unordered_map>
+#include <algorithm>
+#include <sstream>
+
+namespace
+{
+	struct FSpriteMaterialMetadata
+	{
+		int32 Rows = 1;
+		int32 Cols = 1;
+		float FPS = 10.0f;
+		bool bLoop = true;
+		bool bAutoPlay = true;
+		int32 StartFrame = 0;
+		bool bHasSubUVData = false;
+	};
+
+	std::unordered_map<std::string, FSpriteMaterialMetadata> ParseSpriteMaterialMetadata(const std::filesystem::path& FilePath)
+	{
+		std::unordered_map<std::string, FSpriteMaterialMetadata> Result;
+		std::ifstream File(FilePath);
+		if (!File)
+		{
+			return Result;
+		}
+
+		std::string Line;
+		std::string CurrentMaterialName;
+		FSpriteMaterialMetadata CurrentMetadata;
+
+		auto CommitCurrentMaterial = [&]()
+		{
+			if (!CurrentMaterialName.empty() && CurrentMetadata.bHasSubUVData)
+			{
+				Result.emplace(CurrentMaterialName, CurrentMetadata);
+			}
+
+			CurrentMaterialName.clear();
+			CurrentMetadata = FSpriteMaterialMetadata{};
+		};
+
+		while (std::getline(File, Line))
+		{
+			std::istringstream Stream(Line);
+			std::string Prefix;
+			if (!(Stream >> Prefix))
+			{
+				continue;
+			}
+
+			if (Prefix == "newmtl")
+			{
+				CommitCurrentMaterial();
+				Stream >> CurrentMaterialName;
+				continue;
+			}
+
+			if (Prefix == "subuv_rows")
+			{
+				Stream >> CurrentMetadata.Rows;
+				CurrentMetadata.Rows = std::max(1, CurrentMetadata.Rows);
+				CurrentMetadata.bHasSubUVData = true;
+			}
+			else if (Prefix == "subuv_cols")
+			{
+				Stream >> CurrentMetadata.Cols;
+				CurrentMetadata.Cols = std::max(1, CurrentMetadata.Cols);
+				CurrentMetadata.bHasSubUVData = true;
+			}
+			else if (Prefix == "subuv_fps")
+			{
+				Stream >> CurrentMetadata.FPS;
+				CurrentMetadata.FPS = std::max(0.1f, CurrentMetadata.FPS);
+				CurrentMetadata.bHasSubUVData = true;
+			}
+			else if (Prefix == "subuv_loop")
+			{
+				int32 LoopValue = 1;
+				Stream >> LoopValue;
+				CurrentMetadata.bLoop = LoopValue != 0;
+				CurrentMetadata.bHasSubUVData = true;
+			}
+			else if (Prefix == "subuv_autoplay")
+			{
+				int32 AutoValue = 1;
+				Stream >> AutoValue;
+				CurrentMetadata.bAutoPlay = AutoValue != 0;
+				CurrentMetadata.bHasSubUVData = true;
+			}
+			else if (Prefix == "subuv_startframe")
+			{
+				Stream >> CurrentMetadata.StartFrame;
+				CurrentMetadata.StartFrame = std::max(0, CurrentMetadata.StartFrame);
+				CurrentMetadata.bHasSubUVData = true;
+			}
+		}
+
+		CommitCurrentMaterial();
+		return Result;
+	}
+}
 
 IMPLEMENT_SINGLETON_CLASS_BASE(UAssetManager)
 
@@ -19,7 +122,12 @@ UAssetManager::~UAssetManager() = default;
 void UAssetManager::Initialize()
 {
 	// Data 폴더 속 모든 .obj 파일 로드 및 캐싱
+	// (obj 로드 시 mtllib로 참조된 mtl 파일도 함께 로드됨)
 	LoadAllObjStaticMesh();
+
+	// Data 폴더 속 모든 .mtl 파일 로드 및 캐싱
+	// (obj가 없는 독립적인 mtl 파일만 추가로 로드)
+	LoadAllMaterials();
 
 	VertexDatas.emplace(EPrimitiveType::Cube, &VerticesCube);
 	VertexDatas.emplace(EPrimitiveType::Sphere, &VerticesSphere);
@@ -121,6 +229,14 @@ void UAssetManager::Initialize()
 
 void UAssetManager::Release()
 {
+	// Material Resource 해제
+	for (auto& Pair : MaterialCache)
+	{
+		SafeDelete(Pair.second);
+	}
+	MaterialCache.clear();
+	MTLFileMaterials.clear();
+
 	// Texture Resource 해제
 	ReleaseAllTextures();
 
@@ -606,4 +722,253 @@ FAABB UAssetManager::CalculateAABB(const TArray<FNormalVertex>& Vertices)
 	}
 
 	return FAABB(MinPoint, MaxPoint);
+}
+
+void UAssetManager::LoadAllMaterials()
+{
+	TArray<FName> MtlList;
+	const FString DataDirectory = "Data/"; // 검색할 기본 디렉토리
+
+	// 디렉토리가 실제로 존재하는지 먼저 확인
+	if (std::filesystem::exists(DataDirectory) && std::filesystem::is_directory(DataDirectory))
+	{
+		// recursive_directory_iterator를 사용하여 디렉토리와 모든 하위 디렉토리를 순회
+		for (const auto& Entry : std::filesystem::recursive_directory_iterator(DataDirectory))
+		{
+			// 현재 항목이 일반 파일이고, 확장자가 ".mtl"인지 확인
+			if (Entry.is_regular_file() && Entry.path().extension() == ".mtl")
+			{
+				FString PathString = Entry.path().generic_string();
+				MtlList.push_back(FName(PathString));
+			}
+		}
+	}
+
+	// 범위 기반 for문을 사용하여 배열의 모든 요소를 순회
+	for (const FName& MtlPath : MtlList)
+	{
+		LoadMaterialsFromMTL(MtlPath);
+	}
+
+	UE_LOG("AssetManager: 총 %d개의 MTL 파일에서 %d개의 Material 로드 완료",
+		MtlList.size(), MaterialCache.size());
+}
+
+TArray<UMaterial*> UAssetManager::LoadMaterialsFromMTL(const FName& InMtlPath)
+{
+	TArray<UMaterial*> LoadedMaterials;
+
+	// 이미 로드된 MTL 파일인지 확인
+	auto MtlIter = MTLFileMaterials.find(InMtlPath);
+	if (MtlIter != MTLFileMaterials.end())
+	{
+		// 캐시에서 Material 반환
+		for (const FName& MatName : MtlIter->second)
+		{
+			auto MatIter = MaterialCache.find(MatName);
+			if (MatIter != MaterialCache.end())
+			{
+				LoadedMaterials.push_back(MatIter->second);
+			}
+		}
+		UE_LOG("AssetManager: MTL 파일 캐시에서 반환 - %s (%d개 Material)",
+			InMtlPath.ToString().c_str(), LoadedMaterials.size());
+		return LoadedMaterials;
+	}
+
+	// FObjInfo를 임시로 생성 (mtl 데이터를 받기 위해)
+	FObjInfo TempObjInfo;
+	const std::string MtlPathString = InMtlPath.ToString();
+	const std::filesystem::path MtlPath = std::filesystem::path(MtlPathString);
+	auto SpriteMetadataByMaterial = ParseSpriteMaterialMetadata(MtlPath);
+
+	// ObjImporter의 LoadMaterial 함수 호출
+	if (!FObjImporter::LoadMaterial(MtlPathString, &TempObjInfo))
+	{
+		UE_LOG_ERROR("AssetManager: MTL 파일 로드 실패 - %s", MtlPathString.c_str());
+		return LoadedMaterials;
+	}
+
+	// 이 MTL 파일에 속한 Material 이름 목록 생성
+	TArray<FName> MaterialNames;
+
+	// 로드된 각 Material 정보를 UMaterial 객체로 변환
+	for (const FObjectMaterialInfo& MatInfo : TempObjInfo.ObjectMaterialInfoList)
+	{
+		FName MatName(MatInfo.Name);
+
+		// 이미 캐시에 있는지 확인 (같은 이름의 Material이 여러 MTL에 있을 수 있음)
+		auto MatIter = MaterialCache.find(MatName);
+		if (MatIter != MaterialCache.end())
+		{
+			LoadedMaterials.push_back(MatIter->second);
+			MaterialNames.push_back(MatName);
+			UE_LOG("AssetManager: Material 캐시에서 재사용 - %s", MatInfo.Name.c_str());
+			continue;
+		}
+
+		UMaterial* NewMaterial = nullptr;
+
+		if (auto SpriteMetaIter = SpriteMetadataByMaterial.find(MatInfo.Name); SpriteMetaIter != SpriteMetadataByMaterial.end())
+		{
+			const FSpriteMaterialMetadata& Meta = SpriteMetaIter->second;
+			USpriteMaterial* SpriteMaterial = NewObject<USpriteMaterial>();
+			if (!SpriteMaterial)
+			{
+				UE_LOG_ERROR("AssetManager: SpriteMaterial 생성 실패 - %s", MatInfo.Name.c_str());
+				continue;
+			}
+
+			SpriteMaterial->SetSubUVParams(Meta.Rows, Meta.Cols, Meta.FPS);
+			SpriteMaterial->SetLooping(Meta.bLoop);
+			SpriteMaterial->SetAutoPlay(Meta.bAutoPlay);
+			SpriteMaterial->SetCurrentFrame(std::clamp(Meta.StartFrame, 0, std::max(0, SpriteMaterial->GetTotalFrames() - 1)));
+			if (!Meta.bAutoPlay)
+			{
+				SpriteMaterial->Pause();
+			}
+
+			NewMaterial = SpriteMaterial;
+		}
+		else
+		{
+			NewMaterial = NewObject<UMaterial>();
+			if (!NewMaterial)
+			{
+				UE_LOG_ERROR("AssetManager: UMaterial 생성 실패 - %s", MatInfo.Name.c_str());
+				continue;
+			}
+		}
+
+		NewMaterial->SetName(MatName);
+
+		// 텍스처 로드 및 설정
+		std::filesystem::path MtlDir = MtlPath.parent_path();
+
+		if (!MatInfo.KdMap.empty())
+		{
+			std::filesystem::path TexPath = MtlDir / MatInfo.KdMap;
+			UTexture* DiffuseTex = CreateTexture(FName(TexPath.generic_string()), FName(MatInfo.KdMap));
+			if (DiffuseTex)
+			{
+				NewMaterial->SetDiffuseTexture(DiffuseTex);
+			}
+		}
+
+		if (!MatInfo.KaMap.empty())
+		{
+			std::filesystem::path TexPath = MtlDir / MatInfo.KaMap;
+			UTexture* AmbientTex = CreateTexture(FName(TexPath.generic_string()), FName(MatInfo.KaMap));
+			if (AmbientTex)
+			{
+				NewMaterial->SetAmbientTexture(AmbientTex);
+			}
+		}
+
+		if (!MatInfo.KsMap.empty())
+		{
+			std::filesystem::path TexPath = MtlDir / MatInfo.KsMap;
+			UTexture* SpecularTex = CreateTexture(FName(TexPath.generic_string()), FName(MatInfo.KsMap));
+			if (SpecularTex)
+			{
+				NewMaterial->SetSpecularTexture(SpecularTex);
+			}
+		}
+
+		if (!MatInfo.BumpMap.empty())
+		{
+			std::filesystem::path TexPath = MtlDir / MatInfo.BumpMap;
+			UTexture* BumpTex = CreateTexture(FName(TexPath.generic_string()), FName(MatInfo.BumpMap));
+			if (BumpTex)
+			{
+				NewMaterial->SetBumpTexture(BumpTex);
+			}
+		}
+
+		if (!MatInfo.NsMap.empty())
+		{
+			std::filesystem::path TexPath = MtlDir / MatInfo.NsMap;
+			UTexture* NormalTex = CreateTexture(FName(TexPath.generic_string()), FName(MatInfo.NsMap));
+			if (NormalTex)
+			{
+				NewMaterial->SetNormalTexture(NormalTex);
+			}
+		}
+
+		if (!MatInfo.DMap.empty())
+		{
+			std::filesystem::path TexPath = MtlDir / MatInfo.DMap;
+			UTexture* AlphaTex = CreateTexture(FName(TexPath.generic_string()), FName(MatInfo.DMap));
+			if (AlphaTex)
+			{
+				NewMaterial->SetAlphaTexture(AlphaTex);
+			}
+		}
+
+		// 캐시에 추가
+		MaterialCache[MatName] = NewMaterial;
+		MaterialNames.push_back(MatName);
+		LoadedMaterials.push_back(NewMaterial);
+		UE_LOG("AssetManager: Material 로드 성공 - %s", MatInfo.Name.c_str());
+	}
+
+	// MTL 파일과 Material 매핑 저장
+	MTLFileMaterials[InMtlPath] = MaterialNames;
+
+	UE_LOG("AssetManager: MTL 파일에서 %d개의 Material 로드 완료 - %s",
+		LoadedMaterials.size(), InMtlPath.ToString().c_str());
+
+	return LoadedMaterials;
+}
+
+UMaterial* UAssetManager::GetMaterialFromCache(const FName& InMaterialName)
+{
+	auto Iter = MaterialCache.find(InMaterialName);
+	if (Iter != MaterialCache.end())
+	{
+		return Iter->second;
+	}
+	return nullptr;
+}
+
+TArray<UMaterial*> UAssetManager::GetMaterialsFromMTLFile(const FName& InMtlPath)
+{
+	TArray<UMaterial*> Materials;
+
+	auto MtlIter = MTLFileMaterials.find(InMtlPath);
+	if (MtlIter != MTLFileMaterials.end())
+	{
+		for (const FName& MatName : MtlIter->second)
+		{
+			auto MatIter = MaterialCache.find(MatName);
+			if (MatIter != MaterialCache.end())
+			{
+				Materials.push_back(MatIter->second);
+			}
+		}
+	}
+
+	return Materials;
+}
+
+void UAssetManager::AddMaterialToCache(UMaterial* InMaterial)
+{
+	if (!InMaterial)
+	{
+		return;
+	}
+
+	FName MaterialName = InMaterial->GetName();
+
+	// 이미 캐시에 있는지 확인
+	auto Iter = MaterialCache.find(MaterialName);
+	if (Iter != MaterialCache.end())
+	{
+		// 이미 존재하면 추가하지 않음
+		return;
+	}
+
+	// 캐시에 추가
+	MaterialCache[MaterialName] = InMaterial;
+	UE_LOG("AssetManager: Material 캐시에 추가 - %s", MaterialName.ToString().c_str());
 }

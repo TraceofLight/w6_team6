@@ -8,7 +8,9 @@
 #include "Physics/Public/OBB.h"
 #include "Texture/Public/Texture.h"
 #include "Texture/Public/TextureRenderProxy.h"
+#include "Texture/Public/SpriteMaterial.h"
 #include "Component/Mesh/Public/StaticMeshComponent.h"
+#include "Level/Public/Level.h"
 #include "Render/UI/Overlay/Public/StatOverlay.h"
 
 using Clock = std::chrono::high_resolution_clock;
@@ -27,7 +29,10 @@ void FDecalPass::Execute(FRenderingContext& Context)
     if (!(Context.ShowFlags & EEngineShowFlags::SF_Decal)) { return; }
 
     const auto& DecalsToRender = bIsAdditivePass ? Context.AdditiveDecals : Context.AlphaDecals;
-    if (DecalsToRender.empty()) { return; }
+    if (DecalsToRender.empty())
+    {
+        return;
+    }
 
     auto t0 = Clock::now();
     uint32 DrawCalls = 0;
@@ -43,10 +48,16 @@ void FDecalPass::Execute(FRenderingContext& Context)
     // --- Render Decals ---
     for (UDecalComponent* Decal : DecalsToRender)
     {
-        if (!Decal || !Decal->IsVisible()) { continue; }
+        if (!Decal || !Decal->IsVisible())
+        {
+            continue;
+        }
 
         const IBoundingVolume* DecalBV = Decal->GetBoundingBox();
-        if (!DecalBV || DecalBV->GetType() != EBoundingVolumeType::OBB) { continue; }
+        if (!DecalBV || DecalBV->GetType() != EBoundingVolumeType::OBB)
+        {
+            continue;
+        }
 
         const FOBB* DecalOBB = static_cast<const FOBB*>(DecalBV);
         const FAABB DecalWorldAABB = DecalOBB->ToWorldAABB();
@@ -70,6 +81,12 @@ void FDecalPass::Execute(FRenderingContext& Context)
         DecalConstants.Padding2 = 0.0f;
         DecalConstants.Padding3 = 0.0f;
         DecalConstants.DecalFadeParams = FVector4(Decal->GetFadeAlpha(), 0, 0, 0);
+        DecalConstants.SubUVParams = FVector4(1.0f, 1.0f, 0.0f, 1.0f);
+
+        if (USpriteMaterial* SpriteMaterial = Decal->GetSpriteMaterial())
+        {
+            DecalConstants.SubUVParams = SpriteMaterial->GetSubUVParams();
+        }
 
         FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferDecal, DecalConstants);
         Pipeline->SetConstantBuffer(2, false, ConstantBufferDecal);
@@ -102,26 +119,33 @@ void FDecalPass::Execute(FRenderingContext& Context)
                 if (FromMaterial) ++MatBinds;
             }
         }
-        // 1) 기존 기본 프리미티브
-        for (UPrimitiveComponent* Prim : Context.DefaultPrimitives)
-        {
-            FVector minW, maxW;
-            Prim->GetWorldAABB(minW, maxW);
-            const FAABB PrimAABB(minW, maxW);
-            if (!DecalWorldAABB.IsIntersected(PrimAABB)) { continue; } // 교차 안 하면 Draw 스킵
-            DrawDecalReceiver(Prim);
-            ++DrawCalls;
-        }
 
-        // 2) StaticMesh도 수신자로 포함
-        for (UStaticMeshComponent* SM : Context.StaticMeshes)
+        // BVH를 사용하여 DecalOBB와 겹치는 Component만 필터링
+        ULevel* CurrentLevel = GWorld->GetLevel();
+        if (CurrentLevel)
         {
-            FVector minW, maxW;
-            SM->GetWorldAABB(minW, maxW);
-            const FAABB SMAABB(minW, maxW);
-            if (!DecalWorldAABB.IsIntersected(SMAABB)) { continue; } // 교차 안 하면 Draw 스킵
-            DrawDecalReceiver(SM);
-            ++DrawCalls;
+            TArray<UPrimitiveComponent*> OverlappingComponents;
+            if (CurrentLevel->QueryOverlappingComponentsWithBVH(*DecalOBB, OverlappingComponents))
+            {
+                // BVH로 필터링된 겹치는 Component들만 렌더링
+                for (UPrimitiveComponent* Prim : OverlappingComponents)
+                {
+                    DrawDecalReceiver(Prim);
+                }
+            }
+        }
+        else
+        {
+            // BVH가 없는 경우 폴백: 모든 프리미티브 렌더링
+            for (UPrimitiveComponent* Prim : Context.DefaultPrimitives)
+            {
+                DrawDecalReceiver(Prim);
+            }
+
+            for (UStaticMeshComponent* SM : Context.StaticMeshes)
+            {
+                DrawDecalReceiver(SM);
+            }
         }
     }
     TIME_PROFILE_END(DecalPass);

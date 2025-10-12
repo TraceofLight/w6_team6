@@ -3,8 +3,10 @@
 #include "Physics/Public/OBB.h"
 #include "Manager/Asset/Public/AssetManager.h"
 #include "Texture/Public/Texture.h"
+#include "Texture/Public/SpriteMaterial.h"
 #include "Render/UI/Widget/Public/DecalComponentWidget.h"
 #include "Utility/Public/JsonSerializer.h"
+#include "Level/Public/Level.h"
 
 IMPLEMENT_CLASS(UDecalComponent, USceneComponent)
 
@@ -50,6 +52,15 @@ UClass* UDecalComponent::GetSpecificWidgetClass() const
     return UDecalComponentWidget::StaticClass();
 }
 
+void UDecalComponent::MarkAsDirty()
+{
+    // 부모 클래스의 MarkAsDirty 호출 (트랜스폼 더티 플래그 설정)
+    Super::MarkAsDirty();
+
+    // SceneBVH는 Editor/ActorDetailWidget에서 드래그 종료 시 RefitComponent로 업데이트
+    // 여기서는 Transform Dirty Flag만 설정하고, BVH 업데이트는 드래그 완료 시에만 수행
+}
+
 void UDecalComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 {
     {
@@ -89,8 +100,16 @@ void UDecalComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 void UDecalComponent::TickComponent()
 {
     Super::TickComponent();
-    if (!bFadeEnabled) return;
-    UpdateFade(DT);
+
+    if (bFadeEnabled)
+    {
+        UpdateFade(DT);
+    }
+
+    if (SpriteMaterial)
+    {
+        SpriteMaterial->Update(DT);
+    }
 }
 
 void UDecalComponent::SetFadeEnabled(bool bEnabled)
@@ -98,32 +117,14 @@ void UDecalComponent::SetFadeEnabled(bool bEnabled)
     bFadeEnabled = bEnabled;
     if (bFadeEnabled)
     {
-        SetCanTick(true);
         StartFadeIn();
-        // 데칼 페이드가 켜질 때, 소유 액터의 에디터 틱을 자동으로 보장
-        // 액터의 에디터 틱에 다른 로직이 있고, 에디터에서 작동하지 않는걸 바란다면 삭제해야함.
-        if (GWorld && GWorld->GetWorldType() == EWorldType::Editor)
-        {
-            if (AActor* Owner = GetOwner())
-            {
-                Owner->SetTickInEditor(true);
-                Owner->SetCanTick(true);
-            }
-        }
     }
     else
     {
         StopFade(true);
-        SetCanTick(false);
-        if (GWorld && GWorld->GetWorldType() == EWorldType::Editor)
-        {
-            if (AActor* Owner = GetOwner())
-            {
-                Owner->SetTickInEditor(false);
-                Owner->SetCanTick(false);
-            }
-        }
     }
+
+    RefreshTickState();
 }
 void UDecalComponent::SetFadeLoop(bool bLoop) 
 { 
@@ -135,9 +136,6 @@ void UDecalComponent::SetFadeLoop(bool bLoop)
 
     if (bFadeLoop)
     {
-        // 혹시 꺼져있다면 틱 보장
-        SetCanTick(true);
-
         // FadeOut이 끝나 Idle + MinOpacity 상태였다면 즉시 FadeIn 재시작
         const float Eps = 1e-4f;
         if (FadePhase == EFadePhase::Idle && FadeAlpha <= (MinOpacity + Eps))
@@ -146,6 +144,8 @@ void UDecalComponent::SetFadeLoop(bool bLoop)
         }
         // FadingOut 중이라면 별도 처리 불필요: UpdateFade에서 완료 시 StartFadeIn으로 넘어감
     }
+
+    RefreshTickState();
 }
 
 void UDecalComponent::SetFadeDurations(float InSeconds, float OutSeconds)
@@ -202,16 +202,64 @@ void UDecalComponent::UpdateFade(float DeltaTime)
 
 }
 
+void UDecalComponent::SetMaterial(UMaterial* InMaterial)
+{
+    DecalMaterial = InMaterial;
+    SpriteMaterial = Cast<USpriteMaterial>(InMaterial);
+
+    if (SpriteMaterial && SpriteMaterial->IsAutoPlay() && !SpriteMaterial->IsPlaying())
+    {
+        SpriteMaterial->Play();
+    }
+
+    RefreshTickState();
+}
+
+void UDecalComponent::SetSpriteMaterial(USpriteMaterial* InMaterial)
+{
+    SetMaterial(InMaterial);
+}
+
+void UDecalComponent::RefreshTickState()
+{
+    const bool bShouldTick = NeedsTick();
+    SetCanTick(bShouldTick);
+
+    if (GWorld && GWorld->GetWorldType() == EWorldType::Editor)
+    {
+        if (AActor* Owner = GetOwner())
+        {
+            Owner->SetTickInEditor(bShouldTick);
+            Owner->SetCanTick(bShouldTick);
+        }
+    }
+}
+
+bool UDecalComponent::NeedsTick() const
+{
+    if (bFadeEnabled)
+    {
+        return true;
+    }
+
+    if (SpriteMaterial && SpriteMaterial->RequiresTick())
+    {
+        return true;
+    }
+
+    return false;
+}
+
 UObject* UDecalComponent::Duplicate()
 {
     UDecalComponent* DecalComponent = Cast<UDecalComponent>(Super::Duplicate());
-
+    
     // 데칼 고유 상태 복사
     DecalComponent->DecalMaterial = DecalMaterial;         // 공유 (자원 매니저 관리)
     DecalComponent->DecalTexture = DecalTexture;          // 현재 코드가 소유 삭제(SafeDelete)라면 별도 정책 고려(아래 주의 참조)
     DecalComponent->bVisible = bVisible;
     DecalComponent->DecalExtent = DecalExtent;
-
+    
     // 페이드 설정/상태 복사(PIE에서 동일 미리보기 원하면 권장)
     DecalComponent->bFadeEnabled = bFadeEnabled;
     DecalComponent->bFadeLoop = bFadeLoop;
@@ -245,5 +293,3 @@ UObject* UDecalComponent::Duplicate()
     }
     return DecalComponent;
 }
-
-

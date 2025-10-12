@@ -63,7 +63,18 @@ void UTargetActorTransformWidget::RenderWidget()
 		ImGui::Spacing();
 
 		bPositionChanged |= ImGui::DragFloat3("Location", &EditLocation.X, 0.1f);
+		// 드래그가 끝났는지 확인
+		if (ImGui::IsItemDeactivatedAfterEdit())
+		{
+			bNeedsBVHUpdate = true;
+		}
+
 		bRotationChanged |= ImGui::DragFloat3("Rotation", &EditRotation.X, 0.1f);
+		// 드래그가 끝났는지 확인
+		if (ImGui::IsItemDeactivatedAfterEdit())
+		{
+			bNeedsBVHUpdate = true;
+		}
 
 		// Uniform Scale 옵션
 		bool bUniformScale = SelectedActor->IsUniformScale();
@@ -76,10 +87,20 @@ void UTargetActorTransformWidget::RenderWidget()
 				EditScale = FVector(UniformScale, UniformScale, UniformScale);
 				bScaleChanged = true;
 			}
+			// 드래그가 끝났는지 확인
+			if (ImGui::IsItemDeactivatedAfterEdit())
+			{
+				bNeedsBVHUpdate = true;
+			}
 		}
 		else
 		{
 			bScaleChanged |= ImGui::DragFloat3("Scale", &EditScale.X, 0.1f);
+			// 드래그가 끝났는지 확인
+			if (ImGui::IsItemDeactivatedAfterEdit())
+			{
+				bNeedsBVHUpdate = true;
+			}
 		}
 
 		ImGui::Checkbox("Uniform Scale", &bUniformScale);
@@ -98,6 +119,18 @@ void UTargetActorTransformWidget::PostProcess()
 	if (bPositionChanged || bRotationChanged || bScaleChanged)
 	{
 		ApplyTransformToActor();
+		bPositionChanged = bRotationChanged = bScaleChanged = false;
+	}
+
+	// 드래그가 끝났을 때만 BVH 업데이트 (자식 컴포넌트 포함)
+	if (bNeedsBVHUpdate)
+	{
+		ULevel* Level = GWorld->GetLevel();
+		if (Level)
+		{
+			Level->UpdateSceneBVHComponent(SelectedActor->GetRootComponent());
+		}
+		bNeedsBVHUpdate = false;
 	}
 }
 

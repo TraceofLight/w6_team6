@@ -3,6 +3,7 @@
 
 #include "Render/UI/Widget/Public/InputInformationWidget.h"
 #include "Render/UI/Widget/Public/SceneIOWidget.h"
+#include "Render/UI/Widget/Public/SceneBVHDebugWidget.h"
 
 /**
  * @brief Window Constructor
@@ -25,6 +26,7 @@ UExperimentalFeatureWindow::UExperimentalFeatureWindow()
 
 	AddWidget(new UInputInformationWidget);
 	AddWidget(new USceneIOWidget);
+	AddWidget(new USceneBVHDebugWidget);
 }
 
 /**
