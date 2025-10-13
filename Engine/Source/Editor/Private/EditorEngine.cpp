@@ -31,7 +31,7 @@ UEditorEngine::UEditorEngine()
     if (!bSuccessLoad) { CreateNewLevel(); }
     EditorWorld->BeginPlay();
     // 에디터 시작 시 모든 통계 표시
-    UStatOverlay::GetInstance().ShowAll(true);
+    // UStatOverlay::GetInstance().ShowAll(true);
 }
 
 UEditorEngine::~UEditorEngine()
