@@ -433,6 +433,7 @@
     <ClInclude Include="Source\Render\UI\Widget\Public\FPSWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\InputInformationWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\MainBarWidget.h" />
+    <ClInclude Include="Source\Render\UI\Widget\Public\PostProcessWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\PrimitiveSpawnWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\SceneBVHDebugWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\SceneHierarchyWidget.h" />
@@ -584,6 +585,7 @@
     <ClCompile Include="Source\Render\UI\Widget\Private\FPSWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\InputInformationWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\MainBarWidget.cpp" />
+    <ClCompile Include="Source\Render\UI\Widget\Private\PostProcessWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\PrimitiveSpawnWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\SceneBVHDebugWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\SceneHierarchyWidget.cpp" />
@@ -605,8 +607,8 @@
     <ClCompile Include="Source\Render\UI\Window\Private\UIWindow.cpp" />
     <ClCompile Include="Source\Render\UI\Window\Private\ViewportClientWindow.cpp" />
     <ClCompile Include="Source\Texture\Private\Material.cpp">
-       <DeploymentContent>false</DeploymentContent>
-     </ClCompile>
+      <DeploymentContent>false</DeploymentContent>
+    </ClCompile>
     <ClCompile Include="Source\Texture\Private\SpriteMaterial.cpp" />
     <ClCompile Include="Source\Texture\Private\Texture.cpp" />
     <ClCompile Include="Source\Utility\Private\ActorTypeMapper.cpp">
@@ -625,6 +627,16 @@
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Asset\Shader\DecalShader.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Develop|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ObjViewerDebug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ObjViewerDebug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="Asset\Shader\FXAA.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Develop|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ObjViewerDebug|Win32'">true</ExcludedFromBuild>

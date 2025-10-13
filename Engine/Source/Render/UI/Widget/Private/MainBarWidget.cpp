@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include "Level/Public/Level.h"
+#include "Render/Renderer/Public/Renderer.h"
 
 
 
@@ -366,7 +367,11 @@ void UMainBarWidget::RenderShowFlagsMenu()
 			}
 			CurrentLevel->SetShowFlags(ShowFlags);
 		}
-
+		bool bFxaaEnabled = URenderer::GetInstance().IsFXAAEnabled();
+		if (ImGui::MenuItem("FXAA 활성화", nullptr, bFxaaEnabled))
+		{
+			URenderer::GetInstance().SetFXAAEnabled(!bFxaaEnabled);
+		}
 		ImGui::Separator();
 
 		// SceneBVH 디버그 옵션

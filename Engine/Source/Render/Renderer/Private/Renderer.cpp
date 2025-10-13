@@ -43,6 +43,7 @@ void URenderer::Init(HWND InWindowHandle)
 	CreateDecalShader();
 	CreateDepthShader();
 	CreateConstantBuffers();
+	CreatePostProcessResources();
 
 	// FontRenderer 초기화
 	FontRenderer = new UFontRenderer();
@@ -89,6 +90,7 @@ void URenderer::Release()
 	ReleaseDepthShader();
 	ReleaseDepthStencilState();
 	ReleaseBlendState();
+	ReleasePostProcessResources();
 	FRenderResourceFactory::ReleaseRasterizerState();
 	for (auto& RenderPass : RenderPasses)
 	{
@@ -207,6 +209,20 @@ void URenderer::CreateDepthShader()
 	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/DepthShader.hlsl", &DepthPixelShader);
 }
 
+void URenderer::CreateConstantBuffers()
+{
+	ConstantBufferModels = FRenderResourceFactory::CreateConstantBuffer<FMatrix>();
+	ConstantBufferColor = FRenderResourceFactory::CreateConstantBuffer<FVector4>();
+	ConstantBufferViewProj = FRenderResourceFactory::CreateConstantBuffer<FViewProjConstants>();
+}
+
+void URenderer::ReleaseConstantBuffers()
+{
+	SafeRelease(ConstantBufferModels);
+	SafeRelease(ConstantBufferColor);
+	SafeRelease(ConstantBufferViewProj);
+}
+
 void URenderer::ReleaseDefaultShader()
 {
 	SafeRelease(DefaultInputLayout);
@@ -267,7 +283,10 @@ void URenderer::Update()
 			GEditor->GetEditorModule()->RenderEditor(CurrentCamera);
 		}
 	}
-
+	if (bIsFXAAEnabled)
+	{
+		ExecuteFXAA();
+	}
 	{
 		TIME_PROFILE(UUIManager)
 		UUIManager::GetInstance().Render();
@@ -283,12 +302,25 @@ void URenderer::Update()
 void URenderer::RenderBegin() const
 {
 	auto* RenderTargetView = DeviceResources->GetRenderTargetView();
-	GetDeviceContext()->ClearRenderTargetView(RenderTargetView, ClearColor);
 	auto* DepthStencilView = DeviceResources->GetDepthStencilView();
-	GetDeviceContext()->ClearDepthStencilView(DepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
-	ID3D11RenderTargetView* rtvs[] = { RenderTargetView };
-	GetDeviceContext()->OMSetRenderTargets(1, rtvs, DeviceResources->GetDepthStencilView());
+	if (bIsFXAAEnabled)
+	{
+		auto* SceneRTV = DeviceResources->GetSceneColorRTV();
+		GetDeviceContext()->ClearRenderTargetView(SceneRTV, ClearColor);
+		GetDeviceContext()->ClearDepthStencilView(DepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
+
+		ID3D11RenderTargetView* Rtvs[] = { SceneRTV };
+		GetDeviceContext()->OMSetRenderTargets(1, Rtvs, DepthStencilView);
+	}
+	else
+	{
+		GetDeviceContext()->ClearRenderTargetView(RenderTargetView, ClearColor);
+		GetDeviceContext()->ClearDepthStencilView(DepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
+
+		ID3D11RenderTargetView* Rtvs[] = { RenderTargetView };
+		GetDeviceContext()->OMSetRenderTargets(1, Rtvs, DepthStencilView);
+	}
 	DeviceResources->UpdateViewport();
 }
 
@@ -430,16 +462,104 @@ void URenderer::OnResize(uint32 InWidth, uint32 InHeight) const
 	GetDeviceContext()->OMSetRenderTargets(1, RenderTargetViews, DeviceResources->GetDepthStencilView());
 }
 
-void URenderer::CreateConstantBuffers()
+void URenderer::CreatePostProcessResources()
 {
-	ConstantBufferModels = FRenderResourceFactory::CreateConstantBuffer<FMatrix>();
-	ConstantBufferColor = FRenderResourceFactory::CreateConstantBuffer<FVector4>();
-	ConstantBufferViewProj = FRenderResourceFactory::CreateConstantBuffer<FViewProjConstants>();
+	// FXAA 셰이더 로드 (엔트리: mainVS/mainPS)
+	FRenderResourceFactory::CreateVertexShaderAndInputLayout(
+		L"Asset/Shader/FXAA.hlsl",
+		{}, // SV_VertexID 사용으로 InputLayout 없음
+		&FXAAVertexShader,
+		nullptr
+	);
+	FRenderResourceFactory::CreatePixelShader(
+		L"Asset/Shader/FXAA.hlsl",
+		&FXAAPixelShader
+	);
+
+	// 선형 클램프 샘플러
+	FXAASamplerState = FRenderResourceFactory::CreateSamplerState(
+		D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_CLAMP
+	);
+	ConstantBufferFXAAParameters = FRenderResourceFactory::CreateConstantBuffer<FFXAAParameters>();
+	FXAAUserParameters = {}; // 기본값(위 구조체 디폴트)
+	FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferFXAAParameters, FXAAUserParameters);
 }
 
-void URenderer::ReleaseConstantBuffers()
+void URenderer::ReleasePostProcessResources()
 {
-	SafeRelease(ConstantBufferModels);
-	SafeRelease(ConstantBufferColor);
-	SafeRelease(ConstantBufferViewProj);
+	SafeRelease(FXAAVertexShader);
+	SafeRelease(FXAAPixelShader);
+	SafeRelease(FXAASamplerState);
+	SafeRelease(ConstantBufferFXAAParameters);
+}
+
+void URenderer::ExecuteFXAA()
+{
+	auto* Context = GetDeviceContext();
+
+	// 출력: 백버퍼 RTV로
+	ID3D11RenderTargetView* Rtvs[] = { GetRenderTargetView() };
+	Context->OMSetRenderTargets(1, Rtvs, nullptr);
+
+	// 파이프라인 셋업
+	FPipelineInfo PipelineInfo = {
+		nullptr,                                    // InputLayout
+		FXAAVertexShader,                           // VS
+		FRenderResourceFactory::GetRasterizerState({ ECullMode::None, EFillMode::Solid }),
+		DisabledDepthStencilState,                  // 깊이 비활성
+		FXAAPixelShader,                            // PS
+		nullptr,                                    // Blend
+		D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST
+	};
+	Pipeline->UpdatePipeline(PipelineInfo);
+
+	// 소스 텍스처/샘플러
+	Pipeline->SetTexture(0, false, DeviceResources->GetSceneColorSRV());
+	Pipeline->SetSamplerState(0, false, FXAASamplerState);
+	Pipeline->SetConstantBuffer(0, false, ConstantBufferFXAAParameters);
+	// 풀스크린 삼각형 드로우
+	Pipeline->Draw(3, 0);
+
+	// SRV 언바인드(경고 방지)
+	ID3D11ShaderResourceView* NullSrv[1] = { nullptr };
+	Context->PSSetShaderResources(0, 1, NullSrv);
+}
+void URenderer::UpdateFXAAConstantBuffer()
+{
+	if (ConstantBufferFXAAParameters)
+	{
+		FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferFXAAParameters, FXAAUserParameters);
+	}
+}
+
+void URenderer::SetFXAASubpixelBlend(float InValue)
+{
+	float Clamped = std::clamp(InValue, 0.0f, 1.0f);
+	if (FXAAUserParameters.SubpixelBlend != Clamped)
+	{
+		FXAAUserParameters.SubpixelBlend = Clamped;
+		UpdateFXAAConstantBuffer();
+	}
+}
+
+void URenderer::SetFXAAEdgeThreshold(float InValue)
+{
+	// 일반적으로 0.05 ~ 0.25 권장
+	float Clamped = std::clamp(InValue, 0.01f, 0.5f);
+	if (FXAAUserParameters.EdgeThreshold != Clamped)
+	{
+		FXAAUserParameters.EdgeThreshold = Clamped;
+		UpdateFXAAConstantBuffer();
+	}
+}
+
+void URenderer::SetFXAAEdgeThresholdMin(float InValue)
+{
+	// 일반적으로 0.002 ~ 0.05 권장
+	float Clamped = std::clamp(InValue, 0.001f, 0.1f);
+	if (FXAAUserParameters.EdgeThresholdMin != Clamped)
+	{
+		FXAAUserParameters.EdgeThresholdMin = Clamped;
+		UpdateFXAAConstantBuffer();
+	}
 }

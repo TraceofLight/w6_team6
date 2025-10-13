@@ -19,6 +19,14 @@ class FViewport;
 class UCamera;
 class UPipeline;
 
+struct FFXAAParameters
+{
+	float SubpixelBlend = 0.3f;
+	float EdgeThreshold = 0.20f;
+	float EdgeThresholdMin = 0.05f;
+	float Padding = 0.0f;
+};
+
 /**
  * @brief Rendering Pipeline 전반을 처리하는 클래스
  */
@@ -80,6 +88,16 @@ public:
 
 	void SetIsResizing(bool isResizing) { bIsResizing = isResizing; }
 
+	void SetFXAAEnabled(bool bEnabled) { bIsFXAAEnabled = bEnabled; }
+	bool IsFXAAEnabled() const { return bIsFXAAEnabled; }
+
+	void SetFXAASubpixelBlend(float InValue);
+	void SetFXAAEdgeThreshold(float InValue);
+	void SetFXAAEdgeThresholdMin(float InValue);
+
+	float GetFXAASubpixelBlend() const { return FXAAUserParameters.SubpixelBlend; }
+	float GetFXAAEdgeThreshold() const { return FXAAUserParameters.EdgeThreshold; }
+	float GetFXAAEdgeThresholdMin() const { return FXAAUserParameters.EdgeThresholdMin; }
 private:
 	UPipeline* Pipeline = nullptr;
 	UDeviceResources* DeviceResources = nullptr;
@@ -125,6 +143,20 @@ private:
 	FViewport* ViewportClient = nullptr;
 	
 	bool bIsResizing = false;
+
+	bool bIsFXAAEnabled = false;
+
+	ID3D11VertexShader* FXAAVertexShader = nullptr;
+	ID3D11PixelShader* FXAAPixelShader = nullptr;
+	ID3D11SamplerState* FXAASamplerState = nullptr;
+
+	ID3D11Buffer* ConstantBufferFXAAParameters = nullptr;
+	FFXAAParameters FXAAUserParameters;
+
+	void CreatePostProcessResources();
+	void ReleasePostProcessResources();
+	void ExecuteFXAA();
+	void UpdateFXAAConstantBuffer();
 
 	TArray<class FRenderPass*> RenderPasses;
 };
