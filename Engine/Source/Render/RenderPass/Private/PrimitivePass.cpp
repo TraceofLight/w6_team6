@@ -3,8 +3,10 @@
 #include "Render/Renderer/Public/RenderResourceFactory.h"
 
 FPrimitivePass::FPrimitivePass(UPipeline* InPipeline, ID3D11Buffer* InConstantBufferViewProj, ID3D11Buffer* InConstantBufferModel,
-                               ID3D11VertexShader* InVS, ID3D11PixelShader* InPS, ID3D11InputLayout* InLayout, ID3D11DepthStencilState* InDS)
-        : FRenderPass(InPipeline, InConstantBufferViewProj, InConstantBufferModel), VS(InVS), PS(InPS), InputLayout(InLayout), DS(InDS)
+                               ID3D11VertexShader* InVS, ID3D11PixelShader* InPS, ID3D11InputLayout* InLayout, ID3D11DepthStencilState* InDS,
+                               ID3D11VertexShader* InDepthVS, ID3D11PixelShader* InDepthPS, ID3D11InputLayout* InDepthLayout)
+        : FRenderPass(InPipeline, InConstantBufferViewProj, InConstantBufferModel), VS(InVS), PS(InPS), InputLayout(InLayout), DS(InDS),
+          DepthVS(InDepthVS), DepthPS(InDepthPS), DepthInputLayout(InDepthLayout)
 {
     ConstantBufferColor = FRenderResourceFactory::CreateConstantBuffer<FVector4>();
 }
@@ -18,7 +20,19 @@ void FPrimitivePass::Execute(FRenderingContext& Context)
        DefaultState.FillMode = EFillMode::WireFrame;
     }
 
-    FPipelineInfo PipelineInfo = { InputLayout, VS, nullptr, DS, PS, nullptr };
+    // Select shaders based on ViewMode
+    ID3D11VertexShader* SelectedVS = VS;
+    ID3D11PixelShader* SelectedPS = PS;
+    ID3D11InputLayout* SelectedLayout = InputLayout;
+
+    if (Context.ViewMode == EViewModeIndex::VMI_SceneDepth)
+    {
+        SelectedVS = DepthVS;
+        SelectedPS = DepthPS;
+        SelectedLayout = DepthInputLayout;
+    }
+
+    FPipelineInfo PipelineInfo = { SelectedLayout, SelectedVS, nullptr, DS, SelectedPS, nullptr };
     Pipeline->UpdatePipeline(PipelineInfo);
     Pipeline->SetConstantBuffer(0, true, ConstantBufferModel);
     Pipeline->SetConstantBuffer(1, true, ConstantBufferViewProj);

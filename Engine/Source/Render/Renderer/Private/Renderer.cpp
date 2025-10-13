@@ -41,6 +41,7 @@ void URenderer::Init(HWND InWindowHandle)
 	CreateDefaultShader();
 	CreateTextureShader();
 	CreateDecalShader();
+	CreateDepthShader();
 	CreateConstantBuffers();
 
 	// FontRenderer 초기화
@@ -54,11 +55,13 @@ void URenderer::Init(HWND InWindowHandle)
 	ViewportClient->InitializeLayout(DeviceResources->GetViewportInfo());
 
 	FStaticMeshPass* StaticMeshPass = new FStaticMeshPass(Pipeline, ConstantBufferViewProj, ConstantBufferModels,
-		TextureVertexShader, TexturePixelShader, TextureInputLayout, DefaultDepthStencilState);
+		TextureVertexShader, TexturePixelShader, TextureInputLayout, DefaultDepthStencilState,
+		DepthVertexShader, DepthPixelShader, DepthInputLayout);
 	RenderPasses.push_back(StaticMeshPass);
 
 	FPrimitivePass* PrimitivePass = new FPrimitivePass(Pipeline, ConstantBufferViewProj, ConstantBufferModels,
-		DefaultVertexShader, DefaultPixelShader, DefaultInputLayout, DefaultDepthStencilState);
+		DefaultVertexShader, DefaultPixelShader, DefaultInputLayout, DefaultDepthStencilState,
+		DepthVertexShader, DepthPixelShader, DepthInputLayout);
 	RenderPasses.push_back(PrimitivePass);
 
 	// 알파 블렌딩을 사용하는 일반 데칼 패스
@@ -83,6 +86,7 @@ void URenderer::Release()
 {
 	ReleaseConstantBuffers();
 	ReleaseDefaultShader();
+	ReleaseDepthShader();
 	ReleaseDepthStencilState();
 	ReleaseBlendState();
 	FRenderResourceFactory::ReleaseRasterizerState();
@@ -190,6 +194,19 @@ void URenderer::CreateTextureShader()
 	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/TextureShader.hlsl", &TexturePixelShader);
 }
 
+void URenderer::CreateDepthShader()
+{
+	TArray<D3D11_INPUT_ELEMENT_DESC> DepthLayout =
+	{
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(FNormalVertex, Position), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(FNormalVertex, Normal), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, offsetof(FNormalVertex, Color), D3D11_INPUT_PER_VERTEX_DATA, 0	},
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, offsetof(FNormalVertex, TexCoord), D3D11_INPUT_PER_VERTEX_DATA, 0	}
+	};
+	FRenderResourceFactory::CreateVertexShaderAndInputLayout(L"Asset/Shader/DepthShader.hlsl", DepthLayout, &DepthVertexShader, &DepthInputLayout);
+	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/DepthShader.hlsl", &DepthPixelShader);
+}
+
 void URenderer::ReleaseDefaultShader()
 {
 	SafeRelease(DefaultInputLayout);
@@ -200,6 +217,13 @@ void URenderer::ReleaseDefaultShader()
 	SafeRelease(TextureVertexShader);
 	SafeRelease(DecalVertexShader);
 	SafeRelease(DecalPixelShader);
+}
+
+void URenderer::ReleaseDepthShader()
+{
+	SafeRelease(DepthInputLayout);
+	SafeRelease(DepthPixelShader);
+	SafeRelease(DepthVertexShader);
 }
 
 void URenderer::ReleaseDepthStencilState()

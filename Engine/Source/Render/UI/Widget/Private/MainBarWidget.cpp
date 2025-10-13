@@ -236,6 +236,13 @@ void UMainBarWidget::RenderViewMenu()
 			UE_LOG("MainBarWidget: ViewMode를 Wireframe으로 변경");
 		}
 
+		bool bIsSceneDepth = (CurrentMode == EViewModeIndex::VMI_SceneDepth);
+		if (ImGui::MenuItem("씬 뎁스(Scene Depth)", nullptr, bIsSceneDepth) && !bIsSceneDepth)
+		{
+			EditorInstance->SetViewMode(EViewModeIndex::VMI_SceneDepth);
+			UE_LOG("MainBarWidget: ViewMode를 SceneDepth으로 변경");
+		}
+
 		ImGui::EndMenu();
 	}
 }
