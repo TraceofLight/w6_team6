@@ -592,16 +592,18 @@ FVector UEditor::GetGizmoDragRotation(UCamera* InActiveCamera, FRay& WorldRay)
 {
 	FVector MouseWorld;
 	FVector PlaneOrigin{ Gizmo.GetGizmoLocation() };
-	FVector GizmoAxis = Gizmo.GetGizmoAxis();
+	FVector GizmoAxisLocal = Gizmo.GetGizmoAxis();  // 로컬 축 (쿼터니언용)
+	FVector GizmoAxisWorld = GizmoAxisLocal;         // 월드 축 (평면 계산용)
 
 	if (!Gizmo.IsWorldMode())
 	{
-		FVector4 GizmoAxis4{ GizmoAxis.X, GizmoAxis.Y, GizmoAxis.Z, 0.0f };
-		FVector RadRotation = FVector::GetDegreeToRadian(Gizmo.GetComponentRotation());
-		GizmoAxis = GizmoAxis4 * FMatrix::RotationMatrix(RadRotation);
+		// Local 모드: 평면 계산용으로만 world space로 변환
+		FVector4 GizmoAxis4{ GizmoAxisLocal.X, GizmoAxisLocal.Y, GizmoAxisLocal.Z, 0.0f };
+		FVector RadRotation = FVector::GetDegreeToRadian(Gizmo.GetDragStartActorRotation());
+		GizmoAxisWorld = GizmoAxis4 * FMatrix::RotationMatrix(RadRotation);
 	}
 
-	if (ObjectPicker.IsRayCollideWithPlane(WorldRay, PlaneOrigin, GizmoAxis, MouseWorld))
+	if (ObjectPicker.IsRayCollideWithPlane(WorldRay, PlaneOrigin, GizmoAxisWorld, MouseWorld))
 	{
 		FVector PlaneOriginToMouse = MouseWorld - PlaneOrigin;
 		FVector PlaneOriginToMouseStart = Gizmo.GetDragStartMouseLocation() - PlaneOrigin;
@@ -609,13 +611,14 @@ FVector UEditor::GetGizmoDragRotation(UCamera* InActiveCamera, FRay& WorldRay)
 		PlaneOriginToMouseStart.Normalize();
 		float DotResult = (PlaneOriginToMouseStart).Dot(PlaneOriginToMouse);
 		float Angle = acosf(std::max(-1.0f, std::min(1.0f, DotResult)));
-		if ((PlaneOriginToMouse.Cross(PlaneOriginToMouseStart)).Dot(GizmoAxis) < 0)
+		if ((PlaneOriginToMouse.Cross(PlaneOriginToMouseStart)).Dot(GizmoAxisWorld) < 0)
 		{
 			Angle = -Angle;
 		}
 
 		FQuaternion StartRotQuat = FQuaternion::FromEuler(Gizmo.GetDragStartActorRotation());
-		FQuaternion DeltaRotQuat = FQuaternion::FromAxisAngle(Gizmo.GetGizmoAxis(), Angle);
+		// Local 모드: 로컬 축 사용, World 모드: 월드 축 사용
+		FQuaternion DeltaRotQuat = FQuaternion::FromAxisAngle(GizmoAxisLocal, Angle);
 		if (Gizmo.IsWorldMode())
 		{
 			return (DeltaRotQuat * StartRotQuat).ToEuler();
