@@ -38,6 +38,7 @@ public:
 	void CreateDefaultShader();
 	void CreateDecalShader();
 	void CreateTextureShader();
+	void CreateDepthShader();
 	void CreateConstantBuffers();
 
 	// Release
@@ -45,6 +46,7 @@ public:
 	void ReleaseDefaultShader();
 	void ReleaseDepthStencilState();
 	void ReleaseBlendState();
+	void ReleaseDepthShader();
 
 	// Render
 	void Update();
@@ -71,6 +73,10 @@ public:
 	ID3D11BlendState* GetAdditiveBlendState() const { return AdditiveBlendState; }
 	ID3D11Buffer* GetConstantBufferModels() const { return ConstantBufferModels; }
 	ID3D11Buffer* GetConstantBufferViewProj() const { return ConstantBufferViewProj; }
+
+	ID3D11VertexShader* GetDepthVertexShader() const { return DepthVertexShader; }
+	ID3D11PixelShader* GetDepthPixelShader() const { return DepthPixelShader; }
+	ID3D11InputLayout* GetDepthInputLayout() const { return DepthInputLayout; }
 
 	void SetIsResizing(bool isResizing) { bIsResizing = isResizing; }
 
@@ -108,7 +114,12 @@ private:
 	ID3D11VertexShader* DecalVertexShader = nullptr;
 	ID3D11PixelShader* DecalPixelShader = nullptr;
 	ID3D11InputLayout* DecalInputLayout = nullptr;
-	
+
+	// Depth Shaders (for Scene Depth ViewMode)
+	ID3D11VertexShader* DepthVertexShader = nullptr;
+	ID3D11PixelShader* DepthPixelShader = nullptr;
+	ID3D11InputLayout* DepthInputLayout = nullptr;
+
 	uint32 Stride = 0;
 
 	FViewport* ViewportClient = nullptr;
