@@ -16,29 +16,9 @@ void FViewport::UpdateCameraSettingsToConfig()
 	auto& ConfigManager = UConfigManager::GetInstance();
 
 	// 현재 이 코드는 Week04에 작성된 코드입니다.
-	//for (int32 Index = 0; Index < ViewportClients.size(); ++Index)
-	//{
-	//	FViewportCameraData Data;
-	//	FViewportClient& Viewport = ViewportClients[Index];
-	//	UCamera& Camera = Viewport.Camera;
-
-	//	// 현재 뷰포트와 카메라의 상태를 FViewportCameraData 구조체에 담습니다.
-	//	Data.ViewportCameraType = Viewport.GetCameraType();
-	//	Data.Location = Camera.GetLocation();
-	//	Data.Rotation = Camera.GetRotation();
-	//	Data.FovY = Camera.GetFovY();
-	//	Data.NearClip = Camera.GetNearZ();
-	//	Data.FarClip = Camera.GetFarZ();
-	//	Data.OrthoWidth = Camera.GetOrthoWidth();
-	//	Data.FocusLocation = this->FocusPoint;
-
-	//	// 완성된 데이터를 ConfigManager에 전달합니다.
-	//	ConfigManager.SetViewportCameraData(Index, Data);
-	//}
-
-
 	for (int32 Index = 0; Index < ViewportClients.size(); ++Index)
-	{		FViewportCameraData Data;
+	{
+		FViewportCameraData Data;
 		FViewportClient& Viewport = ViewportClients[Index];
 		UCamera& Camera = Viewport.Camera;
 
@@ -49,10 +29,30 @@ void FViewport::UpdateCameraSettingsToConfig()
 		Data.FovY = Camera.GetFovY();
 		Data.NearClip = Camera.GetNearZ();
 		Data.FarClip = Camera.GetFarZ();
+		Data.OrthoWidth = Camera.GetOrthoWidth();
+		Data.FocusLocation = this->FocusPoint;
 
 		// 완성된 데이터를 ConfigManager에 전달합니다.
 		ConfigManager.SetViewportCameraData(Index, Data);
 	}
+
+
+	//for (int32 Index = 0; Index < ViewportClients.size(); ++Index)
+	//{		FViewportCameraData Data;
+	//	FViewportClient& Viewport = ViewportClients[Index];
+	//	UCamera& Camera = Viewport.Camera;
+
+	//	// 현재 뷰포트와 카메라의 상태를 FViewportCameraData 구조체에 담습니다.
+	//	Data.ViewportCameraType = Viewport.GetCameraType();
+	//	Data.Location = Camera.GetLocation();
+	//	Data.Rotation = Camera.GetRotation();
+	//	Data.FovY = Camera.GetFovY();
+	//	Data.NearClip = Camera.GetNearZ();
+	//	Data.FarClip = Camera.GetFarZ();
+
+	//	// 완성된 데이터를 ConfigManager에 전달합니다.
+	//	ConfigManager.SetViewportCameraData(Index, Data);
+	//}
 }
 
 void FViewport::InitializeLayout(const D3D11_VIEWPORT& InViewport)
@@ -78,44 +78,13 @@ void FViewport::ApplyAllCameraDataToViewportClients()
 	auto& ConfigManager = UConfigManager::GetInstance();
 
 	// 현재 주석처리된 해당 코드는 Week04에 사용되는 코드입니다.
-	//for (int32 Index = 0; Index < ViewportClients.size(); ++Index)
-	//{
-	//	FViewportClient& TargetViewport = ViewportClients[Index];
-	//	UCamera& TargetCamera = TargetViewport.Camera;
-
-	//	// ConfigManager로부터 저장된 뷰포트 데이터를 가져옵니다.
-	//	const FViewportCameraData& CamData = ConfigManager.GetViewportCameraData(Index);
-
-	//	// 뷰포트의 카메라 타입을 먼저 설정합니다.
-	//	TargetViewport.SetCameraType(CamData.ViewportCameraType);
-
-	//	if (CamData.ViewportCameraType == EViewportCameraType::Perspective)
-	//	{
-	//		TargetCamera.SetLocation(CamData.Location);
-	//		TargetCamera.SetRotation(CamData.Rotation);
-	//		TargetCamera.SetFarZ(CamData.FarClip);
-	//		TargetCamera.SetNearZ(CamData.NearClip);
-	//		TargetCamera.SetFovY(CamData.FovY);
-	//	}
-	//	else // Orthographic
-	//	{
-	//		TargetCamera.SetLocation(CamData.Location);
-	//		TargetCamera.SetRotation(CamData.Rotation);
-	//		TargetCamera.SetFarZ(CamData.FarClip);
-	//		TargetCamera.SetNearZ(CamData.NearClip);
-	//		TargetCamera.SetOrthoWidth(CamData.OrthoWidth);
-	//		FocusPoint = CamData.FocusLocation;
-	//	}
-	//}
-
-	// 해당 코드는 Week05 전용 코드입니다.
 	for (int32 Index = 0; Index < ViewportClients.size(); ++Index)
 	{
 		FViewportClient& TargetViewport = ViewportClients[Index];
 		UCamera& TargetCamera = TargetViewport.Camera;
 
 		// ConfigManager로부터 저장된 뷰포트 데이터를 가져옵니다.
-		const FViewportCameraData& CamData = ConfigManager.GetViewportCameraData();
+		const FViewportCameraData& CamData = ConfigManager.GetViewportCameraData(Index);
 
 		// 뷰포트의 카메라 타입을 먼저 설정합니다.
 		TargetViewport.SetCameraType(CamData.ViewportCameraType);
@@ -134,8 +103,39 @@ void FViewport::ApplyAllCameraDataToViewportClients()
 			TargetCamera.SetRotation(CamData.Rotation);
 			TargetCamera.SetFarZ(CamData.FarClip);
 			TargetCamera.SetNearZ(CamData.NearClip);
+			TargetCamera.SetOrthoWidth(CamData.OrthoWidth);
+			FocusPoint = CamData.FocusLocation;
 		}
 	}
+
+	// 해당 코드는 Week05 전용 코드입니다.
+	//for (int32 Index = 0; Index < ViewportClients.size(); ++Index)
+	//{
+	//	FViewportClient& TargetViewport = ViewportClients[Index];
+	//	UCamera& TargetCamera = TargetViewport.Camera;
+
+	//	// ConfigManager로부터 저장된 뷰포트 데이터를 가져옵니다.
+	//	const FViewportCameraData& CamData = ConfigManager.GetViewportCameraData();
+
+	//	// 뷰포트의 카메라 타입을 먼저 설정합니다.
+	//	TargetViewport.SetCameraType(CamData.ViewportCameraType);
+
+	//	if (CamData.ViewportCameraType == EViewportCameraType::Perspective)
+	//	{
+	//		TargetCamera.SetLocation(CamData.Location);
+	//		TargetCamera.SetRotation(CamData.Rotation);
+	//		TargetCamera.SetFarZ(CamData.FarClip);
+	//		TargetCamera.SetNearZ(CamData.NearClip);
+	//		TargetCamera.SetFovY(CamData.FovY);
+	//	}
+	//	else // Orthographic
+	//	{
+	//		TargetCamera.SetLocation(CamData.Location);
+	//		TargetCamera.SetRotation(CamData.Rotation);
+	//		TargetCamera.SetFarZ(CamData.FarClip);
+	//		TargetCamera.SetNearZ(CamData.NearClip);
+	//	}
+	//}
 }
 
 void FViewport::UpdateActiveViewportClient(const FVector& InMousePosition)
