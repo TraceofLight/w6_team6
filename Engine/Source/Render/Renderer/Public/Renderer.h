@@ -21,9 +21,9 @@ class UPipeline;
 
 struct FFXAAParameters
 {
-	float SubpixelBlend = 0.3f;
-	float EdgeThreshold = 0.20f;
-	float EdgeThresholdMin = 0.05f;
+	float SubpixelBlend = 0.5f; // 0~1 권장: 0.5
+	float EdgeThreshold = 0.125f; // 0.0312~0.25
+	float EdgeThresholdMin = 0.0312f; // 0~0.0833
 	float Padding = 0.0f;
 };
 
