@@ -21,6 +21,7 @@ public:
     FFireBallPass(UPipeline* InPipeline,
         ID3D11Buffer* InConstantBufferViewProj,
         ID3D11Buffer* InConstantBufferModel,
+        ID3D11VertexShader* InVS, ID3D11PixelShader* InPS, ID3D11InputLayout* InLayout,
         ID3D11DepthStencilState* InDepthReadState,
         ID3D11BlendState* InAdditiveBlendState);
 
@@ -32,8 +33,11 @@ private:
     ID3D11PixelShader* PS = nullptr;
     ID3D11InputLayout* InputLayout = nullptr;
     ID3D11DepthStencilState* DS_Read = nullptr;
+    ID3D11DepthStencilState* DS_AlwaysRead = nullptr;
+    ID3D11DepthStencilState* DS_GreaterEqual = nullptr;
     ID3D11BlendState* AdditiveBlend = nullptr;
 
     ID3D11Buffer* CBPerObject = nullptr; // b1: gWorld, gViewProj
     ID3D11Buffer* CBFireBall = nullptr; // b2: params
+    ID3D11SamplerState* DepthSampler = nullptr;
 };

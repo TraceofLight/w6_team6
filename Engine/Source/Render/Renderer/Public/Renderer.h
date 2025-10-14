@@ -105,8 +105,12 @@ public:
 	ID3D11DepthStencilState* GetDisabledDepthStencilState() const { return DisabledDepthStencilState; }
 	ID3D11BlendState* GetAlphaBlendState() const { return AlphaBlendState; }
 	ID3D11BlendState* GetAdditiveBlendState() const { return AdditiveBlendState; }
+	ID3D11BlendState* GetFireBallBlendState() const { return FireBallBlendState; }
 	ID3D11Buffer* GetConstantBufferModels() const { return ConstantBufferModels; }
 	ID3D11Buffer* GetConstantBufferViewProj() const { return ConstantBufferViewProj; }
+	ID3D11ShaderResourceView* GetSceneDepthSRV() const { return SceneDepthSRV; }
+	ID3D11DepthStencilView* GetSceneDepthDSV() const { return SceneDepthDSV; }
+	ID3D11Texture2D* GetSceneDepthTexture() const { return SceneDepthTexture; }
 
 	ID3D11VertexShader* GetDepthVertexShader() const { return DepthVertexShader; }
 	ID3D11PixelShader* GetDepthPixelShader() const { return DepthPixelShader; }
@@ -137,6 +141,7 @@ private:
 	ID3D11DepthStencilState* NoTestButWriteDepthState = nullptr;  // Depth test 비활성화, depth write 활성화
 	ID3D11BlendState* AlphaBlendState = nullptr;
 	ID3D11BlendState* AdditiveBlendState = nullptr;
+	ID3D11BlendState* FireBallBlendState = nullptr;
 
 	// Constant Buffers
 	ID3D11Buffer* ConstantBufferModels = nullptr;

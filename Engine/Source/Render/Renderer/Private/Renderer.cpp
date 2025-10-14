@@ -91,7 +91,8 @@ void URenderer::Init(HWND InWindowHandle)
 	FTextPass* TextPass = new FTextPass(Pipeline, ConstantBufferViewProj, ConstantBufferModels);
 	RenderPasses.push_back(TextPass);
 
-	FFireBallPass* FireBallPass = new FFireBallPass(Pipeline, ConstantBufferViewProj, ConstantBufferModels, DecalDepthStencilState, AdditiveBlendState);
+	FFireBallPass* FireBallPass = new FFireBallPass(Pipeline, ConstantBufferViewProj, ConstantBufferModels,
+		FireBallVertexShader, FireBallPixelShader, FireBallInputLayout, DecalDepthStencilState, AdditiveBlendState);
 	RenderPasses.push_back(FireBallPass);
 }
 
@@ -178,6 +179,17 @@ void URenderer::CreateBlendState()
     additiveDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
     additiveDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
     GetDevice()->CreateBlendState(&additiveDesc, &AdditiveBlendState);
+
+	D3D11_BLEND_DESC fireBallDesc = {};
+	additiveDesc.RenderTarget[0].BlendEnable = TRUE;
+	additiveDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+	additiveDesc.RenderTarget[0].DestBlend = D3D11_BLEND_ONE;
+	additiveDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+	additiveDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+	additiveDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
+	additiveDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+	additiveDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+	GetDevice()->CreateBlendState(&additiveDesc, &FireBallBlendState);
 }
 
 void URenderer::CreateDefaultShader()
@@ -626,13 +638,13 @@ void URenderer::CreateFogShader()
 
 void URenderer::CreateFireBallShader()
 {
-	TArray<D3D11_INPUT_ELEMENT_DESC> Layout =
+	TArray<D3D11_INPUT_ELEMENT_DESC> FireBallLayout =
 	{
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(FNormalVertex, Position), D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	};
 
 	// Use default factory entries (mainVS/mainPS)
-	FRenderResourceFactory::CreateVertexShaderAndInputLayout(L"Asset/Shader/FireBallShader.hlsl", Layout, &FireBallVertexShader, &FireBallInputLayout);
+	FRenderResourceFactory::CreateVertexShaderAndInputLayout(L"Asset/Shader/FireBallShader.hlsl", FireBallLayout, &FireBallVertexShader, &FireBallInputLayout);
 	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/FireBallShader.hlsl", &FireBallPixelShader);
 
 	CBPerObject = FRenderResourceFactory::CreateConstantBuffer<FPerObjectCB>();
