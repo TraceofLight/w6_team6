@@ -20,6 +20,7 @@
 #include "Render/UI/Overlay/Public/StatOverlay.h"
 #include "Component/Public/UUIDTextComponent.h"
 #include "Component/Public/DecalComponent.h"
+#include "Component/Public/FireBallComponent.h"
 #include "ImGui/imgui.h"
 #include "Manager/Asset/Public/AssetManager.h"
 #include "Render/Renderer/Public/RenderResourceFactory.h"
@@ -202,11 +203,16 @@ void UEditor::UpdateBatchLines()
 {
 	if (UActorComponent* Component = GetSelectedComponent())
 	{
+
 		uint64 ShowFlags = GWorld->GetLevel()->GetShowFlags();
 		if ((ShowFlags & EEngineShowFlags::SF_Primitives) && (ShowFlags & EEngineShowFlags::SF_Bounds))
 		{
 			if (UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(Component))
 			{
+				if (PrimitiveComponent->IsA(UFireBallComponent::StaticClass()))
+				{
+					return;
+				}
 				if (PrimitiveComponent->GetBoundingBox()->GetType() == EBoundingVolumeType::AABB)
 				{
 					FVector WorldMin, WorldMax; PrimitiveComponent->GetWorldAABB(WorldMin, WorldMax);

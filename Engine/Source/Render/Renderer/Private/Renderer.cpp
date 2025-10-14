@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Render/RenderPass/Public/FireBallPass.h"
 #include "Render/Renderer/Public/Renderer.h"
 #include "Render/FontRenderer/Public/FontRenderer.h"
 #include "Component/Public/UUIDTextComponent.h"
@@ -36,7 +37,7 @@ void URenderer::Init(HWND InWindowHandle)
 	Pipeline = new UPipeline(GetDeviceContext());
 	ViewportClient = new FViewport();
 
-	// 렌더링 상태 및 리소스 생성
+	// ?�더�??�태 �?리소???�성
 	CreateDepthStencilState();
 	CreateBlendState();
 	CreateDefaultShader();
@@ -48,11 +49,11 @@ void URenderer::Init(HWND InWindowHandle)
 	CreateConstantBuffers();
 	CreatePostProcessResources();
 
-	// FontRenderer 초기화
+	// FontRenderer 초기??
 	FontRenderer = new UFontRenderer();
 	if (!FontRenderer->Initialize())
 	{
-		UE_LOG("FontRenderer 초기화 실패");
+		UE_LOG("FontRenderer 초기???�패");
 		SafeDelete(FontRenderer);
 	}
 
@@ -66,17 +67,23 @@ void URenderer::Init(HWND InWindowHandle)
 		DepthVertexShader, DepthPixelShader, DepthInputLayout);
 	RenderPasses.push_back(StaticMeshPass);
 
-	FPrimitivePass* PrimitivePass = new FPrimitivePass(Pipeline, ConstantBufferViewProj, ConstantBufferModels,
-		DefaultVertexShader, DefaultPixelShader, DefaultInputLayout, DefaultDepthStencilState,
-		DepthVertexShader, DepthPixelShader, DepthInputLayout);
-	RenderPasses.push_back(PrimitivePass);
+    FPrimitivePass* PrimitivePass = new FPrimitivePass(Pipeline, ConstantBufferViewProj, ConstantBufferModels,
+        DefaultVertexShader, DefaultPixelShader, DefaultInputLayout, DefaultDepthStencilState,
+        DepthVertexShader, DepthPixelShader, DepthInputLayout);
+    RenderPasses.push_back(PrimitivePass);
 
-	// 알파 블렌딩을 사용하는 일반 데칼 패스
+    // FireBall additive light pass (Z-test, no Z-write)
+    {
+        FFireBallPass* FireBallPass = new FFireBallPass(Pipeline, ConstantBufferViewProj, ConstantBufferModels, DecalDepthStencilState, AdditiveBlendState);
+        RenderPasses.push_back(FireBallPass);
+    }
+
+	// ?�파 블렌?�을 ?�용?�는 ?�반 ?�칼 ?�스
 	FDecalPass* AlphaDecalPass = new FDecalPass(Pipeline, ConstantBufferViewProj,
 		DecalVertexShader, DecalPixelShader, DecalInputLayout, DecalDepthStencilState, AlphaBlendState, false);
 	RenderPasses.push_back(AlphaDecalPass);
 
-	// 가산 혼합을 사용하는 SemiLight 데칼 패스
+	// 가???�합???�용?�는 SemiLight ?�칼 ?�스
 	FDecalPass* AdditiveDecalPass = new FDecalPass(Pipeline, ConstantBufferViewProj,
 		DecalVertexShader, DecalPixelShader, DecalInputLayout, DecalDepthStencilState, AdditiveBlendState, true);
 	RenderPasses.push_back(AdditiveDecalPass);
@@ -352,7 +359,7 @@ void URenderer::RenderLevel(UCamera* InCurrentCamera)
 	const FViewProjConstants& ViewProj = InCurrentCamera->GetFViewProjConstants();
 	TArray<UPrimitiveComponent*> FinalVisiblePrims = InCurrentCamera->GetViewVolumeCuller().GetRenderableObjects();
 
-	// // 오클루전 컬링 수행
+	// // ?�클루전 컬링 ?�행
 	// TIME_PROFILE(Occlusion)
 	// static COcclusionCuller Culler;
 	// Culler.InitializeCuller(ViewProj.View, ViewProj.Projection);
@@ -383,7 +390,7 @@ void URenderer::RenderLevel(UCamera* InCurrentCamera)
 			RenderingContext.DefaultPrimitives.push_back(Prim);
 		}
 	}
-	// 수집 전에 플래그 확인
+	// ?�집 ?�에 ?�래�??�인
 	const bool bWantsDecal = (CurrentLevel->GetShowFlags() & EEngineShowFlags::SF_Decal) != 0;
 	if (bWantsDecal)
 	{
@@ -488,10 +495,10 @@ void URenderer::OnResize(uint32 InWidth, uint32 InHeight)
 
 void URenderer::CreatePostProcessResources()
 {
-	// FXAA 셰이더 로드 (엔트리: mainVS/mainPS)
+	// FXAA ?�이??로드 (?�트�? mainVS/mainPS)
 	FRenderResourceFactory::CreateVertexShaderAndInputLayout(
 		L"Asset/Shader/FXAA.hlsl",
-		{}, // SV_VertexID 사용으로 InputLayout 없음
+		{}, // SV_VertexID ?�용?�로 InputLayout ?�음
 		&FXAAVertexShader,
 		nullptr
 	);
@@ -500,12 +507,12 @@ void URenderer::CreatePostProcessResources()
 		&FXAAPixelShader
 	);
 
-	// 선형 클램프 샘플러
+	// ?�형 ?�램???�플??
 	FXAASamplerState = FRenderResourceFactory::CreateSamplerState(
 		D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_CLAMP
 	);
 	ConstantBufferFXAAParameters = FRenderResourceFactory::CreateConstantBuffer<FFXAAParameters>();
-	FXAAUserParameters = {}; // 기본값(위 구조체 디폴트)
+	FXAAUserParameters = {}; // 기본�???구조�??�폴??
 	FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferFXAAParameters, FXAAUserParameters);
 
 	// Fog용 선형 클램프 샘플러
@@ -527,19 +534,19 @@ void URenderer::ExecuteFXAA()
 {
 	auto* Context = GetDeviceContext();
 
-	// 출력: 백버퍼 RTV로
+	// 출력: 백버??RTV�?
 	ID3D11RenderTargetView* Rtvs[] = { GetRenderTargetView() };
 	Context->OMSetRenderTargets(1, Rtvs, nullptr);
-	// 전체(메뉴바 제외) 화면 뷰포트로 복구
+	// ?�체(메뉴�??�외) ?�면 뷰포?�로 복구
 	const D3D11_VIEWPORT& FullViewport = DeviceResources->GetViewportInfo();
 	Context->RSSetViewports(1, &FullViewport);
 
-	// 파이프라인 셋업
+	// ?�이?�라???�업
 	FPipelineInfo PipelineInfo = {
 		nullptr,                                    // InputLayout
 		FXAAVertexShader,                           // VS
 		FRenderResourceFactory::GetRasterizerState({ ECullMode::None, EFillMode::Solid }),
-		DisabledDepthStencilState,                  // 깊이 비활성
+		DisabledDepthStencilState,                  // 깊이 비활??
 		FXAAPixelShader,                            // PS
 		nullptr,                                    // Blend
 		D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST
@@ -551,10 +558,10 @@ void URenderer::ExecuteFXAA()
 	Pipeline->SetTexture(0, false, SceneColorSRV);
 	Pipeline->SetSamplerState(0, false, FXAASamplerState);
 	Pipeline->SetConstantBuffer(0, false, ConstantBufferFXAAParameters);
-	// 풀스크린 삼각형 드로우
+	// ?�?�크�??�각???�로??
 	Pipeline->Draw(3, 0);
 
-	// SRV 언바인드(경고 방지)
+	// SRV ?�바?�드(경고 방�?)
 	ID3D11ShaderResourceView* NullSrv[1] = { nullptr };
 	Context->PSSetShaderResources(0, 1, NullSrv);
 }
@@ -578,7 +585,7 @@ void URenderer::SetFXAASubpixelBlend(float InValue)
 
 void URenderer::SetFXAAEdgeThreshold(float InValue)
 {
-	// 일반적으로 0.05 ~ 0.25 권장
+	// ?�반?�으�?0.05 ~ 0.25 권장
 	float Clamped = std::clamp(InValue, 0.01f, 0.5f);
 	if (FXAAUserParameters.EdgeThreshold != Clamped)
 	{
@@ -589,7 +596,7 @@ void URenderer::SetFXAAEdgeThreshold(float InValue)
 
 void URenderer::SetFXAAEdgeThresholdMin(float InValue)
 {
-	// 일반적으로 0.002 ~ 0.05 권장
+	// ?�반?�으�?0.002 ~ 0.05 권장
 	float Clamped = std::clamp(InValue, 0.001f, 0.1f);
 	if (FXAAUserParameters.EdgeThresholdMin != Clamped)
 	{
