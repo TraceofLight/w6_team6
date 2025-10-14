@@ -526,7 +526,7 @@ void UEditor::ProcessMouseInput()
 				FScopeCycleCounter PickCounter;
 				UPrimitiveComponent* PrimitiveCollided = ObjectPicker.PickPrimitive(CurrentCamera, WorldRay, Candidate, &ActorDistance);
 				ActorPicked = PrimitiveCollided ? PrimitiveCollided->GetOwner() : nullptr;
-				float ElapsedMs = PickCounter.Finish(); // 피킹 시간 측정 종료
+				float ElapsedMs = static_cast<float>(PickCounter.Finish()); // 피킹 시간 측정 종료
 				UStatOverlay::GetInstance().RecordPickingStats(ElapsedMs);
 			}
 		}
