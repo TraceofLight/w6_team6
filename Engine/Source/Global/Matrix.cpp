@@ -323,6 +323,67 @@ FMatrix FMatrix::Transpose() const
 	return Result;
 }
 
+/**
+* @brief 4x4 행렬의 역행렬을 계산
+* @details Adjugate 방법 사용: Inverse = Adjugate / Determinant
+*/
+FMatrix FMatrix::Inverse() const
+{
+	const float* m = &Data[0][0];
+
+	// 2x2 서브행렬의 determinant들을 미리 계산 (3x3 minor 계산에 사용)
+	float s0 = m[0] * m[5] - m[4] * m[1];
+	float s1 = m[0] * m[6] - m[4] * m[2];
+	float s2 = m[0] * m[7] - m[4] * m[3];
+	float s3 = m[1] * m[6] - m[5] * m[2];
+	float s4 = m[1] * m[7] - m[5] * m[3];
+	float s5 = m[2] * m[7] - m[6] * m[3];
+
+	float c5 = m[10] * m[15] - m[14] * m[11];
+	float c4 = m[9] * m[15] - m[13] * m[11];
+	float c3 = m[9] * m[14] - m[13] * m[10];
+	float c2 = m[8] * m[15] - m[12] * m[11];
+	float c1 = m[8] * m[14] - m[12] * m[10];
+	float c0 = m[8] * m[13] - m[12] * m[9];
+
+	// 4x4 determinant 계산
+	float det = s0 * c5 - s1 * c4 + s2 * c3 + s3 * c2 - s4 * c1 + s5 * c0;
+
+	// 특이 행렬(singular matrix) 체크
+	if (det == 0.0f || std::abs(det) < 1e-8f)
+	{
+		// 역행렬이 존재하지 않으면 항등행렬 반환
+		return FMatrix::Identity();
+	}
+
+	float invDet = 1.0f / det;
+
+	// Adjugate 행렬 계산 (Cofactor의 전치)
+	FMatrix result;
+
+	result.Data[0][0] = (m[5] * c5 - m[6] * c4 + m[7] * c3) * invDet;
+	result.Data[0][1] = (-m[1] * c5 + m[2] * c4 - m[3] * c3) * invDet;
+	result.Data[0][2] = (m[13] * s5 - m[14] * s4 + m[15] * s3) * invDet;
+	result.Data[0][3] = (-m[9] * s5 + m[10] * s4 - m[11] * s3) * invDet;
+
+	result.Data[1][0] = (-m[4] * c5 + m[6] * c2 - m[7] * c1) * invDet;
+	result.Data[1][1] = (m[0] * c5 - m[2] * c2 + m[3] * c1) * invDet;
+	result.Data[1][2] = (-m[12] * s5 + m[14] * s2 - m[15] * s1) * invDet;
+	result.Data[1][3] = (m[8] * s5 - m[10] * s2 + m[11] * s1) * invDet;
+
+	result.Data[2][0] = (m[4] * c4 - m[5] * c2 + m[7] * c0) * invDet;
+	result.Data[2][1] = (-m[0] * c4 + m[1] * c2 - m[3] * c0) * invDet;
+	result.Data[2][2] = (m[12] * s4 - m[13] * s2 + m[15] * s0) * invDet;
+	result.Data[2][3] = (-m[8] * s4 + m[9] * s2 - m[11] * s0) * invDet;
+
+	result.Data[3][0] = (-m[4] * c3 + m[5] * c1 - m[6] * c0) * invDet;
+	result.Data[3][1] = (m[0] * c3 - m[1] * c1 + m[2] * c0) * invDet;
+	result.Data[3][2] = (-m[12] * s3 + m[13] * s1 - m[14] * s0) * invDet;
+	result.Data[3][3] = (m[8] * s3 - m[9] * s1 + m[10] * s0) * invDet;
+
+	return result;
+}
+
 FVector FMatrix::GetLocation() const
 {
     return FVector(Data[3][0], Data[3][1], Data[3][2]);

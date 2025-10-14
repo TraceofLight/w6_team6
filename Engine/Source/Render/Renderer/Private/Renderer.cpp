@@ -5,6 +5,7 @@
 #include "Component/Public/PrimitiveComponent.h"
 #include "Component/Mesh/Public/StaticMeshComponent.h"
 #include "Component/Public/DecalComponent.h"
+#include "Component/Public/HeightFogComponent.h"
 #include "Component/Public/SemiLightComponent.h"
 #include "Editor/Public/Editor.h"
 #include "Editor/Public/Viewport.h"
@@ -42,6 +43,8 @@ void URenderer::Init(HWND InWindowHandle)
 	CreateTextureShader();
 	CreateDecalShader();
 	CreateDepthShader();
+	CreateFogShader();
+	CreateFullscreenQuad();
 	CreateConstantBuffers();
 	CreatePostProcessResources();
 
@@ -54,6 +57,9 @@ void URenderer::Init(HWND InWindowHandle)
 	}
 
 	ViewportClient->InitializeLayout(DeviceResources->GetViewportInfo());
+
+	// Scene RT는 ViewportClient 초기화 후에 생성 (올바른 크기 사용)
+	CreateSceneRenderTargets();
 
 	FStaticMeshPass* StaticMeshPass = new FStaticMeshPass(Pipeline, ConstantBufferViewProj, ConstantBufferModels,
 		TextureVertexShader, TexturePixelShader, TextureInputLayout, DefaultDepthStencilState,
@@ -85,9 +91,12 @@ void URenderer::Init(HWND InWindowHandle)
 
 void URenderer::Release()
 {
+	ReleaseSceneRenderTargets();
 	ReleaseConstantBuffers();
 	ReleaseDefaultShader();
 	ReleaseDepthShader();
+	ReleaseFogShader();
+	ReleaseFullscreenQuad();
 	ReleaseDepthStencilState();
 	ReleaseBlendState();
 	ReleasePostProcessResources();
@@ -127,6 +136,14 @@ void URenderer::CreateDepthStencilState()
 	DisabledDescription.DepthEnable = FALSE;
 	DisabledDescription.StencilEnable = FALSE;
 	GetDevice()->CreateDepthStencilState(&DisabledDescription, &DisabledDepthStencilState);
+
+	// No Test But Write Depth (Depth Test X, Depth Write O) - 포스트 프로세스용
+	D3D11_DEPTH_STENCIL_DESC NoTestWriteDescription = {};
+	NoTestWriteDescription.DepthEnable = TRUE;  // Depth 활성화 (write를 위해)
+	NoTestWriteDescription.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;  // Depth write 활성화
+	NoTestWriteDescription.DepthFunc = D3D11_COMPARISON_ALWAYS;  // 항상 통과 (test 비활성화)
+	NoTestWriteDescription.StencilEnable = FALSE;
+	GetDevice()->CreateDepthStencilState(&NoTestWriteDescription, &NoTestButWriteDepthState);
 }
 
 void URenderer::CreateBlendState()
@@ -247,6 +264,7 @@ void URenderer::ReleaseDepthStencilState()
 	SafeRelease(DefaultDepthStencilState);
 	SafeRelease(DecalDepthStencilState);
 	SafeRelease(DisabledDepthStencilState);
+	SafeRelease(NoTestButWriteDepthState);
 	if (GetDeviceContext())
 	{
 		GetDeviceContext()->OMSetRenderTargets(0, nullptr, nullptr);
@@ -267,16 +285,30 @@ void URenderer::Update()
 	{
 		if (ViewportClient.GetViewportInfo().Width < 1.0f || ViewportClient.GetViewportInfo().Height < 1.0f) { continue; }
 
-		ViewportClient.Apply(GetDeviceContext());
-
 		UCamera* CurrentCamera = &ViewportClient.Camera;
 		CurrentCamera->Update(ViewportClient.GetViewportInfo());
 		FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferViewProj, CurrentCamera->GetFViewProjConstants());
 		Pipeline->SetConstantBuffer(1, true, ConstantBufferViewProj);
 
+		const D3D11_VIEWPORT& clientViewport = ViewportClient.GetViewportInfo();
+
+		// === Scene RT 렌더링: clientViewport와 동일한 viewport 사용 ===
+		// Scene RT는 SwapChain 전체 크기로 생성되었으므로
+		// 각 ViewportClient의 TopLeftX/Y를 그대로 사용하여 해당 영역에 렌더링
+		GetDeviceContext()->RSSetViewports(1, &clientViewport);
+
 		{
 			TIME_PROFILE(RenderLevel)
 			RenderLevel(CurrentCamera);
+		}
+
+		// === 백버퍼 렌더링: 메뉴바 오프셋 포함 viewport ===
+		// 백버퍼는 윈도우 전체를 포함하므로 메뉴바 오프셋 필요
+		GetDeviceContext()->RSSetViewports(1, &clientViewport);
+
+		{
+			TIME_PROFILE(RenderFog)
+			RenderFog(CurrentCamera, clientViewport);
 		}
 		{
 			TIME_PROFILE(RenderEditor)
@@ -301,26 +333,14 @@ void URenderer::Update()
 
 void URenderer::RenderBegin() const
 {
-	auto* RenderTargetView = DeviceResources->GetRenderTargetView();
-	auto* DepthStencilView = DeviceResources->GetDepthStencilView();
+	// Scene RT 클리어 및 바인딩 (Scene Color + Scene Depth)
+	// 이후 각 ViewportClient가 Scene RT의 해당 영역에 렌더링함
+	GetDeviceContext()->ClearRenderTargetView(SceneColorRTV, ClearColor);
+	GetDeviceContext()->ClearDepthStencilView(SceneDepthDSV, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
-	if (bIsFXAAEnabled)
-	{
-		auto* SceneRTV = DeviceResources->GetSceneColorRTV();
-		GetDeviceContext()->ClearRenderTargetView(SceneRTV, ClearColor);
-		GetDeviceContext()->ClearDepthStencilView(DepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
+	ID3D11RenderTargetView* SceneRtvs[] = { SceneColorRTV };
+	GetDeviceContext()->OMSetRenderTargets(1, SceneRtvs, SceneDepthDSV);
 
-		ID3D11RenderTargetView* Rtvs[] = { SceneRTV };
-		GetDeviceContext()->OMSetRenderTargets(1, Rtvs, DepthStencilView);
-	}
-	else
-	{
-		GetDeviceContext()->ClearRenderTargetView(RenderTargetView, ClearColor);
-		GetDeviceContext()->ClearDepthStencilView(DepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
-
-		ID3D11RenderTargetView* Rtvs[] = { RenderTargetView };
-		GetDeviceContext()->OMSetRenderTargets(1, Rtvs, DepthStencilView);
-	}
 	DeviceResources->UpdateViewport();
 }
 
@@ -439,10 +459,11 @@ void URenderer::RenderEnd() const
 	TIME_PROFILE_END(DrawCall)
 }
 
-void URenderer::OnResize(uint32 InWidth, uint32 InHeight) const
+void URenderer::OnResize(uint32 InWidth, uint32 InHeight)
 {
 	if (!DeviceResources || !GetDeviceContext() || !GetSwapChain()) return;
 
+	this->ReleaseSceneRenderTargets();
 	DeviceResources->ReleaseFrameBuffer();
 	DeviceResources->ReleaseDepthBuffer();
 	GetDeviceContext()->OMSetRenderTargets(0, nullptr, nullptr);
@@ -456,6 +477,9 @@ void URenderer::OnResize(uint32 InWidth, uint32 InHeight) const
 	DeviceResources->UpdateViewport();
 	DeviceResources->CreateFrameBuffer();
 	DeviceResources->CreateDepthBuffer();
+
+	// Recreate Scene Render Targets with new size
+	this->CreateSceneRenderTargets();
 
 	auto* RenderTargetView = DeviceResources->GetRenderTargetView();
 	ID3D11RenderTargetView* RenderTargetViews[] = { RenderTargetView };
@@ -483,6 +507,11 @@ void URenderer::CreatePostProcessResources()
 	ConstantBufferFXAAParameters = FRenderResourceFactory::CreateConstantBuffer<FFXAAParameters>();
 	FXAAUserParameters = {}; // 기본값(위 구조체 디폴트)
 	FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferFXAAParameters, FXAAUserParameters);
+
+	// Fog용 선형 클램프 샘플러
+	FogSamplerState = FRenderResourceFactory::CreateSamplerState(
+		D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_CLAMP
+	);
 }
 
 void URenderer::ReleasePostProcessResources()
@@ -491,6 +520,7 @@ void URenderer::ReleasePostProcessResources()
 	SafeRelease(FXAAPixelShader);
 	SafeRelease(FXAASamplerState);
 	SafeRelease(ConstantBufferFXAAParameters);
+	SafeRelease(FogSamplerState);
 }
 
 void URenderer::ExecuteFXAA()
@@ -517,7 +547,8 @@ void URenderer::ExecuteFXAA()
 	Pipeline->UpdatePipeline(PipelineInfo);
 
 	// 소스 텍스처/샘플러
-	Pipeline->SetTexture(0, false, DeviceResources->GetSceneColorSRV());
+	// XXX(KHJ): FXAA와 Fog post-processing이 동시에 활성화되면 충돌할 수도 있나?
+	Pipeline->SetTexture(0, false, SceneColorSRV);
 	Pipeline->SetSamplerState(0, false, FXAASamplerState);
 	Pipeline->SetConstantBuffer(0, false, ConstantBufferFXAAParameters);
 	// 풀스크린 삼각형 드로우
@@ -565,4 +596,296 @@ void URenderer::SetFXAAEdgeThresholdMin(float InValue)
 		FXAAUserParameters.EdgeThresholdMin = Clamped;
 		UpdateFXAAConstantBuffer();
 	}
+}
+
+void URenderer::CreateFogShader()
+{
+	TArray<D3D11_INPUT_ELEMENT_DESC> FogLayout =
+	{
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+	};
+
+	FRenderResourceFactory::CreateVertexShaderAndInputLayout(L"Asset/Shader/HeightFogShader.hlsl", FogLayout, &FogVertexShader, &FogInputLayout);
+	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/HeightFogShader.hlsl", &FogPixelShader);
+
+	ConstantBufferFog = FRenderResourceFactory::CreateConstantBuffer<FFogConstants>();
+}
+
+void URenderer::ReleaseFogShader()
+{
+	SafeRelease(FogInputLayout);
+	SafeRelease(FogPixelShader);
+	SafeRelease(FogVertexShader);
+}
+
+void URenderer::CreateFullscreenQuad()
+{
+	struct
+	{
+		FVector Position;
+		float U, V;
+	} vertices[] =
+	{
+		{ FVector(-1.0f,  1.0f, 0.0f), 0.0f, 0.0f },  // Top-left
+		{ FVector( 1.0f,  1.0f, 0.0f), 1.0f, 0.0f },  // Top-right
+		{ FVector(-1.0f, -1.0f, 0.0f), 0.0f, 1.0f },  // Bottom-left
+		{ FVector( 1.0f, -1.0f, 0.0f), 1.0f, 1.0f }   // Bottom-right
+	};
+
+	uint32 indices[] = { 0, 1, 2, 2, 1, 3 };
+
+	D3D11_BUFFER_DESC vbd = {};
+	vbd.Usage = D3D11_USAGE_IMMUTABLE;
+	vbd.ByteWidth = sizeof(vertices);
+	vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+
+	D3D11_SUBRESOURCE_DATA vInitData = {};
+	vInitData.pSysMem = vertices;
+	GetDevice()->CreateBuffer(&vbd, &vInitData, &FullscreenQuadVB);
+
+	D3D11_BUFFER_DESC ibd = {};
+	ibd.Usage = D3D11_USAGE_IMMUTABLE;
+	ibd.ByteWidth = sizeof(indices);
+	ibd.BindFlags = D3D11_BIND_INDEX_BUFFER;
+
+	D3D11_SUBRESOURCE_DATA iInitData = {};
+	iInitData.pSysMem = indices;
+	GetDevice()->CreateBuffer(&ibd, &iInitData, &FullscreenQuadIB);
+}
+
+void URenderer::ReleaseFullscreenQuad()
+{
+	SafeRelease(FullscreenQuadVB);
+	SafeRelease(FullscreenQuadIB);
+}
+
+void URenderer::CreateSceneRenderTargets()
+{
+	// Scene RT는 SwapChain 전체 크기로 생성 (4분할 viewport 지원)
+	// 각 ViewportClient는 Scene RT의 해당 영역에 렌더링됨
+	DXGI_SWAP_CHAIN_DESC swapChainDesc = {};
+	GetSwapChain()->GetDesc(&swapChainDesc);
+	uint32 Width = swapChainDesc.BufferDesc.Width;
+	uint32 Height = swapChainDesc.BufferDesc.Height;
+
+	if (Width == 0 || Height == 0)
+	{
+		UE_LOG("CreateSceneRenderTargets: Invalid SwapChain size %ux%u", Width, Height);
+		return;
+	}
+
+	UE_LOG("CreateSceneRenderTargets: Creating %ux%u textures (SwapChain full size)", Width, Height);
+
+	// Scene Color Render Target
+	D3D11_TEXTURE2D_DESC ColorDescription = {};
+	ColorDescription.Width = Width;
+	ColorDescription.Height = Height;
+	ColorDescription.MipLevels = 1;
+	ColorDescription.ArraySize = 1;
+	ColorDescription.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	ColorDescription.SampleDesc.Count = 1;
+	ColorDescription.SampleDesc.Quality = 0;
+	ColorDescription.Usage = D3D11_USAGE_DEFAULT;
+	ColorDescription.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+	ColorDescription.CPUAccessFlags = 0;
+	ColorDescription.MiscFlags = 0;
+
+	GetDevice()->CreateTexture2D(&ColorDescription, nullptr, &SceneColorTexture);
+
+	// RTV 생성 (씬 렌더링용)
+	D3D11_RENDER_TARGET_VIEW_DESC RTVDescription = {};
+	RTVDescription.Format = ColorDescription.Format;
+	RTVDescription.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+	RTVDescription.Texture2D.MipSlice = 0;
+	GetDevice()->CreateRenderTargetView(SceneColorTexture, &RTVDescription, &SceneColorRTV);
+
+	// SRV 생성 (포스트 프로세스에서 읽기용)
+	D3D11_SHADER_RESOURCE_VIEW_DESC SRVDescription = {};
+	SRVDescription.Format = ColorDescription.Format;
+	SRVDescription.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	SRVDescription.Texture2D.MostDetailedMip = 0;
+	SRVDescription.Texture2D.MipLevels = 1;
+	GetDevice()->CreateShaderResourceView(SceneColorTexture, &SRVDescription, &SceneColorSRV);
+
+	// Scene Depth Texture (SRV 지원)
+	D3D11_TEXTURE2D_DESC DepthDescription = {};
+	DepthDescription.Width = Width;
+	DepthDescription.Height = Height;
+	DepthDescription.MipLevels = 1;
+	DepthDescription.ArraySize = 1;
+	DepthDescription.Format = DXGI_FORMAT_R24G8_TYPELESS; // Typeless로 생성 (DSV와 SRV 모두 지원)
+	DepthDescription.SampleDesc.Count = 1;
+	DepthDescription.SampleDesc.Quality = 0;
+	DepthDescription.Usage = D3D11_USAGE_DEFAULT;
+	DepthDescription.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
+	DepthDescription.CPUAccessFlags = 0;
+	DepthDescription.MiscFlags = 0;
+
+	GetDevice()->CreateTexture2D(&DepthDescription, nullptr, &SceneDepthTexture);
+
+	// DSV 생성 (Depth 쓰기용)
+	D3D11_DEPTH_STENCIL_VIEW_DESC DSVDescription = {};
+	DSVDescription.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;  // Depth 24비트 + Stencil 8비트
+	DSVDescription.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+	DSVDescription.Texture2D.MipSlice = 0;
+	GetDevice()->CreateDepthStencilView(SceneDepthTexture, &DSVDescription, &SceneDepthDSV);
+
+	// SRV 생성 (Depth 읽기용 - Stencil은 무시)
+	D3D11_SHADER_RESOURCE_VIEW_DESC depthSRVDesc = {};
+	depthSRVDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;  // Depth만 읽기, Stencil 무시
+	depthSRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	depthSRVDesc.Texture2D.MostDetailedMip = 0;
+	depthSRVDesc.Texture2D.MipLevels = 1;
+	GetDevice()->CreateShaderResourceView(SceneDepthTexture, &depthSRVDesc, &SceneDepthSRV);
+
+	UE_LOG("Scene Render Targets Created: %ux%u", Width, Height);
+}
+
+void URenderer::ReleaseSceneRenderTargets()
+{
+	SafeRelease(SceneColorSRV);
+	SafeRelease(SceneColorRTV);
+	SafeRelease(SceneColorTexture);
+
+	SafeRelease(SceneDepthSRV);
+	SafeRelease(SceneDepthDSV);
+	SafeRelease(SceneDepthTexture);
+}
+
+void URenderer::RenderFog(UCamera* InCurrentCamera, const D3D11_VIEWPORT& InViewport)
+{
+	const ULevel* CurrentLevel = GWorld->GetLevel();
+	if (!CurrentLevel)
+	{
+		return;
+	}
+
+	// ShowFlag 확인, Fog가 비활성화되어 있으면 Scene Color만 백버퍼에 복사
+	const bool bShowFog = (CurrentLevel->GetShowFlags() & EEngineShowFlags::SF_Fog) != 0;
+
+	// Scene RT가 null인지 체크
+	if (!SceneColorSRV || !SceneDepthSRV || !FullscreenQuadVB)
+	{
+		UE_LOG_ERROR("Renderer: Scene textures or fullscreen quad is null!");
+		UE_LOG("Renderer: SceneColorSRV: %p", SceneColorSRV);
+		UE_LOG("Renderer: SceneDepthSRV: %p", SceneDepthSRV);
+		UE_LOG("Renderer: FullscreenQuadVB: %p", FullscreenQuadVB);
+		return;
+	}
+
+	// Find first enabled HeightFogComponent in the level
+	UHeightFogComponent* FogComponent = nullptr;
+	for (AActor* Actor : CurrentLevel->GetActors())
+	{
+		if (!Actor)
+		{
+			continue;
+		}
+		for (UActorComponent* Comp : Actor->GetOwnedComponents())
+		{
+			if (auto* Fog = Cast<UHeightFogComponent>(Comp))
+			{
+				if (Fog->IsEnabled())
+				{
+					FogComponent = Fog;
+					break;
+				}
+			}
+		}
+		if (FogComponent)
+		{
+			break;
+		}
+	}
+
+	// 포그가 없어도 Scene Color를 백버퍼로 복사해야 함
+	// ShowFlag와 FogComponent 둘 다 활성화되어야 Fog 렌더링
+	const bool hasFog = bShowFog && (FogComponent != nullptr);
+
+	// Render Target을 백버퍼로 전환
+	auto* BackBufferRTV = DeviceResources->GetRenderTargetView();
+	auto* BackBufferDSV = DeviceResources->GetDepthStencilView();
+	GetDeviceContext()->OMSetRenderTargets(1, &BackBufferRTV, BackBufferDSV);
+
+	// 백버퍼용 viewport 설정, ViewportClient의 오프셋 포함
+	// Scene RT (0, 0)이 백버퍼의 (TopLeftX, TopLeftY)로 정확히 매핑됨
+	// 이렇게 하면 메뉴바 영역을 제외한 영역에 정확히 복사됨
+	GetDeviceContext()->RSSetViewports(1, &InViewport);
+
+	// 백버퍼 클리어 안 함
+	// fullscreen quad가 전체를 덮어쓰고, depth는 shader에서 복사
+
+	FFogConstants fogConstants = {};
+	if (hasFog)
+	{
+		fogConstants.FogDensity = FogComponent->GetFogDensity();
+		fogConstants.FogHeightFalloff = FogComponent->GetFogHeightFalloff();
+		fogConstants.StartDistance = FogComponent->GetStartDistance();
+		fogConstants.FogCutoffDistance = FogComponent->GetFogCutoffDistance();
+		fogConstants.FogMaxOpacity = FogComponent->GetFogMaxOpacity();
+
+		FVector4 ColorRGBA = FogComponent->GetFogInscatteringColor();
+		fogConstants.FogInscatteringColor = FVector(ColorRGBA.X, ColorRGBA.Y, ColorRGBA.Z);
+
+		fogConstants.CameraPosition = InCurrentCamera->GetLocation();
+		fogConstants.FogHeight = FogComponent->GetWorldLocation().Z;  // Z-up LH: Z축 = 높이
+	}
+	else
+	{
+		// 포그 없으면 FogDensity = 0으로 설정 (Scene Color만 복사)
+		fogConstants.FogDensity = 0.0f;
+		fogConstants.FogMaxOpacity = 0.0f;
+	}
+
+	// Viewport 정보 설정 (Scene RT UV 계산용)
+	fogConstants.ViewportTopLeft = FVector2(InViewport.TopLeftX, InViewport.TopLeftY);
+	fogConstants.ViewportSize = FVector2(InViewport.Width, InViewport.Height);
+
+	// Scene RT 크기 가져오기
+	DXGI_SWAP_CHAIN_DESC swapChainDesc = {};
+	GetSwapChain()->GetDesc(&swapChainDesc);
+	fogConstants.SceneRTSize = FVector2(
+		static_cast<float>(swapChainDesc.BufferDesc.Width),
+		static_cast<float>(swapChainDesc.BufferDesc.Height)
+	);
+
+	// Inverse View-Projection Matrix using FMatrix::Inverse()
+	const FViewProjConstants& ViewProj = InCurrentCamera->GetFViewProjConstants();
+	FMatrix ViewProjMatrix = ViewProj.View * ViewProj.Projection;
+	fogConstants.InvViewProj = ViewProjMatrix.Inverse();
+
+	// Update constant buffer
+	FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferFog, fogConstants);
+
+	// Setup Pipeline
+	FPipelineInfo pipelineInfo = {};
+	pipelineInfo.InputLayout = FogInputLayout;
+	pipelineInfo.VertexShader = FogVertexShader;
+	pipelineInfo.RasterizerState = FRenderResourceFactory::GetRasterizerState(FRenderState());
+	pipelineInfo.DepthStencilState = NoTestButWriteDepthState;  // Depth test X, Depth write O (shader에서 depth 복사)
+	pipelineInfo.PixelShader = FogPixelShader;
+	pipelineInfo.BlendState = nullptr;  // 포스트 프로세스는 블렌딩 없이 덮어쓰기
+	pipelineInfo.Topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+	Pipeline->UpdatePipeline(pipelineInfo);
+	Pipeline->SetConstantBuffer(0, false, ConstantBufferFog);
+
+	// Bind Scene Color and Scene Depth textures
+	ID3D11ShaderResourceView* srvs[2] = { SceneColorSRV, SceneDepthSRV };
+	GetDeviceContext()->PSSetShaderResources(0, 2, srvs);
+
+	// Bind Sampler State
+	GetDeviceContext()->PSSetSamplers(0, 1, &FogSamplerState);
+
+	// Draw Fullscreen Quad
+	uint32 stride = sizeof(float) * 5;  // Position(3) + TexCoord(2)
+	uint32 offset = 0;
+	Pipeline->SetVertexBuffer(FullscreenQuadVB, stride);
+	Pipeline->SetIndexBuffer(FullscreenQuadIB, sizeof(uint32));
+	Pipeline->DrawIndexed(6, 0, 0);
+
+	// Unbind SRVs (다음 렌더패스에서 충돌 방지)
+	ID3D11ShaderResourceView* nullSRVs[2] = { nullptr, nullptr };
+	GetDeviceContext()->PSSetShaderResources(0, 2, nullSRVs);
 }
