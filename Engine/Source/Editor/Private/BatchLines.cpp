@@ -31,9 +31,9 @@ UBatchLines::UBatchLines() : Grid(), BoundingBoxLines(), ConeLines()
 	Primitive.Topology = D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
 	Primitive.Vertexbuffer = FRenderResourceFactory::CreateVertexBuffer(
 		Vertices.data(), Primitive.NumVertices * sizeof(FVector), true);
-	/*Primitive.Location = FVector(0, 0, 0);
+	Primitive.Location = FVector(0, 0, 0);
 	Primitive.Rotation = FVector(0, 0, 0);
-	Primitive.Scale = FVector(1, 1, 1);*/
+	Primitive.Scale = FVector(1, 1, 1);
 	Primitive.VertexShader = UAssetManager::GetInstance().GetVertexShader(EShaderType::BatchLine);
 	Primitive.InputLayout = UAssetManager::GetInstance().GetIputLayout(EShaderType::BatchLine);
 	Primitive.PixelShader = UAssetManager::GetInstance().GetPixelShader(EShaderType::BatchLine);

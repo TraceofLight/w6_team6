@@ -21,10 +21,27 @@ class UPipeline;
 
 struct FFXAAParameters
 {
-	float SubpixelBlend = 0.3f;
-	float EdgeThreshold = 0.20f;
-	float EdgeThresholdMin = 0.05f;
+	float SubpixelBlend = 0.5f; // 0~1 권장: 0.5
+	float EdgeThreshold = 0.125f; // 0.0312~0.25
+	float EdgeThresholdMin = 0.0312f; // 0~0.0833
 	float Padding = 0.0f;
+};
+
+struct FFogConstants
+{
+	float FogDensity;
+	float FogHeightFalloff;
+	float StartDistance;
+	float FogCutoffDistance;
+	float FogMaxOpacity;
+	FVector FogInscatteringColor;
+	FVector CameraPosition;
+	float FogHeight;
+	FVector2 ViewportTopLeft;
+	FVector2 ViewportSize;
+	FVector2 SceneRTSize;
+	FVector2 Padding2;
+	FMatrix InvViewProj;
 };
 
 /**
@@ -47,7 +64,10 @@ public:
 	void CreateDecalShader();
 	void CreateTextureShader();
 	void CreateDepthShader();
+	void CreateFogShader();
+	void CreateFullscreenQuad();
 	void CreateConstantBuffers();
+	void CreateSceneRenderTargets();
 
 	// Release
 	void ReleaseConstantBuffers();
@@ -55,15 +75,19 @@ public:
 	void ReleaseDepthStencilState();
 	void ReleaseBlendState();
 	void ReleaseDepthShader();
+	void ReleaseFogShader();
+	void ReleaseFullscreenQuad();
+	void ReleaseSceneRenderTargets();
 
 	// Render
 	void Update();
 	void RenderBegin() const;
 	void RenderLevel(UCamera* InCurrentCamera);
+	void RenderFog(UCamera* InCurrentCamera, const D3D11_VIEWPORT& InViewport);
 	void RenderEnd() const;
 	void RenderEditorPrimitive(const FEditorPrimitive& InPrimitive, const FRenderState& InRenderState, uint32 InStride = 0, uint32 InIndexBufferStride = 0);
 
-	void OnResize(uint32 Inwidth = 0, uint32 InHeight = 0) const;
+	void OnResize(uint32 Inwidth = 0, uint32 InHeight = 0);
 
 	// Getter & Setter
 	ID3D11Device* GetDevice() const { return DeviceResources->GetDevice(); }
@@ -108,6 +132,7 @@ private:
 	ID3D11DepthStencilState* DefaultDepthStencilState = nullptr;
 	ID3D11DepthStencilState* DecalDepthStencilState = nullptr;
 	ID3D11DepthStencilState* DisabledDepthStencilState = nullptr;
+	ID3D11DepthStencilState* NoTestButWriteDepthState = nullptr;  // Depth test 비활성화, depth write 활성화
 	ID3D11BlendState* AlphaBlendState = nullptr;
 	ID3D11BlendState* AdditiveBlendState = nullptr;
 
@@ -138,10 +163,30 @@ private:
 	ID3D11PixelShader* DepthPixelShader = nullptr;
 	ID3D11InputLayout* DepthInputLayout = nullptr;
 
+	// Fog Shaders
+	ID3D11VertexShader* FogVertexShader = nullptr;
+	ID3D11PixelShader* FogPixelShader = nullptr;
+	ID3D11InputLayout* FogInputLayout = nullptr;
+	ID3D11Buffer* ConstantBufferFog = nullptr;
+	ID3D11SamplerState* FogSamplerState = nullptr;
+
+	// Fullscreen Quad for Post-Processing
+	ID3D11Buffer* FullscreenQuadVB = nullptr;
+	ID3D11Buffer* FullscreenQuadIB = nullptr;
+
+	// Scene Render Targets for Post-Processing
+	ID3D11Texture2D* SceneColorTexture = nullptr;
+	ID3D11RenderTargetView* SceneColorRTV = nullptr;
+	ID3D11ShaderResourceView* SceneColorSRV = nullptr;
+
+	ID3D11Texture2D* SceneDepthTexture = nullptr;
+	ID3D11DepthStencilView* SceneDepthDSV = nullptr;
+	ID3D11ShaderResourceView* SceneDepthSRV = nullptr;
+
 	uint32 Stride = 0;
 
 	FViewport* ViewportClient = nullptr;
-	
+
 	bool bIsResizing = false;
 
 	bool bIsFXAAEnabled = false;

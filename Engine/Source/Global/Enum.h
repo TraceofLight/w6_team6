@@ -137,6 +137,7 @@ enum class EPrimitiveType : uint8
 	Text,
 	Decal,
 	SemiLight, // TODO(KHJ): 임시
+	HeightFog,
 	Torus,
 	Arrow,
 	CubeArrow,
@@ -187,6 +188,7 @@ enum class EEngineShowFlags : uint64
 	SF_StaticMesh = 1ull << 3,
 	SF_Text = 1ull << 4,
 	SF_Decal = 1ull << 5,
+	SF_Fog = 1ull << 6,
 };
 
 inline uint64 operator|(EEngineShowFlags lhs, EEngineShowFlags rhs)

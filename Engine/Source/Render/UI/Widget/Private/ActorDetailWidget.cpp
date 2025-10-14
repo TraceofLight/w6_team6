@@ -8,6 +8,7 @@
 #include "Component/Public/TextComponent.h"
 #include "Component/Public/BillBoardComponent.h"
 #include "Component/Public/DecalComponent.h"
+#include "Component/Public/HeightFogComponent.h"
 #include "Component/Mesh/Public/SphereComponent.h"
 #include "Component/Mesh/Public/SquareComponent.h"
 #include "Component/Mesh/Public/StaticMeshComponent.h"
@@ -406,7 +407,7 @@ void UActorDetailWidget::RenderAddComponentButton(AActor* InSelectedActor)
 		// TODO - mesh 컴포넌트는 추후에 메쉬가 없어도 추가될 수 있도록
 		const char* componentNames[] = {
 			"Triangle", "Sphere", "Square", "Cube",
-			"Static Mesh", "BillBoard", "Text", "Decal"
+			"Static Mesh", "BillBoard", "Text", "Decal", "HeightFog"
 		};
 
 		// 반복문 안에서 헬퍼 함수를 호출하여 원하는 UI를 그립니다.
@@ -489,6 +490,10 @@ void UActorDetailWidget::AddComponentByName(AActor* InSelectedActor, const FStri
 	else if (InComponentName == "Decal")
 	{
 		NewComponent = InSelectedActor->AddComponent<UDecalComponent>(NewComponentName);
+	}
+	else if (InComponentName == "HeightFog")
+	{
+		NewComponent = InSelectedActor->AddComponent<UHeightFogComponent>(NewComponentName);
 	}
 	else
 	{

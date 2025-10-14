@@ -314,6 +314,7 @@
     <ClInclude Include="Source\Actor\Public\BillBoardActor.h" />
     <ClInclude Include="Source\Actor\Public\CubeActor.h" />
     <ClInclude Include="Source\Actor\Public\DecalActor.h" />
+    <ClInclude Include="Source\Actor\Public\HeightFogActor.h" />
     <ClInclude Include="Source\Actor\Public\MovingCubeActor.h" />
     <ClInclude Include="Source\Actor\Public\SemiLightActor.h" />
     <ClInclude Include="Source\Actor\Public\SphereActor.h" />
@@ -333,6 +334,7 @@
     <ClInclude Include="Source\Component\Public\ActorComponent.h" />
     <ClInclude Include="Source\Component\Public\BillBoardComponent.h" />
     <ClInclude Include="Source\Component\Public\DecalComponent.h" />
+    <ClInclude Include="Source\Component\Public\HeightFogComponent.h" />
     <ClInclude Include="Source\Component\Public\SemiLightComponent.h" />
     <ClInclude Include="Source\Component\Public\TextComponent.h" />
     <ClInclude Include="Source\Component\Public\UUIDTextComponent.h" />
@@ -433,6 +435,7 @@
     <ClInclude Include="Source\Render\UI\Widget\Public\ConsoleWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\DecalComponentWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\FPSWidget.h" />
+    <ClInclude Include="Source\Render\UI\Widget\Public\HeightFogComponentWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\InputInformationWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\MainBarWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\PostProcessWidget.h" />
@@ -478,6 +481,7 @@
     <ClCompile Include="Source\Actor\Private\BillBoardActor.cpp" />
     <ClCompile Include="Source\Actor\Private\CubeActor.cpp" />
     <ClCompile Include="Source\Actor\Private\DecalActor.cpp" />
+    <ClCompile Include="Source\Actor\Private\HeightFogActor.cpp" />
     <ClCompile Include="Source\Actor\Private\MovingCubeActor.cpp">
     </ClCompile>
     <ClCompile Include="Source\Actor\Private\SemiLightActor.cpp" />
@@ -500,6 +504,7 @@
     <ClCompile Include="Source\Component\Private\ActorComponent.cpp" />
     <ClCompile Include="Source\Component\Private\BillBoardComponent.cpp" />
     <ClCompile Include="Source\Component\Private\DecalComponent.cpp" />
+    <ClCompile Include="Source\Component\Private\HeightFogComponent.cpp" />
     <ClCompile Include="Source\Component\Private\SemiLightComponent.cpp" />
     <ClCompile Include="Source\Component\Private\TextComponent.cpp" />
     <ClCompile Include="Source\Component\Private\UUIDTextComponent.cpp" />
@@ -587,6 +592,7 @@
     <ClCompile Include="Source\Render\UI\Widget\Private\ConsoleWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\DecalComponentWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\FPSWidget.cpp" />
+    <ClCompile Include="Source\Render\UI\Widget\Private\HeightFogComponentWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\InputInformationWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\MainBarWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\PostProcessWidget.cpp" />

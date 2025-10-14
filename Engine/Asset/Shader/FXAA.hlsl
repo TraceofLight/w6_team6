@@ -47,35 +47,58 @@ float4 mainPS(VSOut In) : SV_Target
     float LMin = min(L, min(min(LN, LS), min(LW, LE)));
     float LMax = max(L, max(max(LN, LS), max(LW, LE)));
     float Contrast = LMax - LMin;
-
+    // 4방향 평균(가볍고 링잉 적음)
+    float3 Avg4 = (
+        SceneTexture.Sample(LinearClamp, In.UV + float2(0, -Rcp.y)).rgb +
+        SceneTexture.Sample(LinearClamp, In.UV + float2(0, Rcp.y)).rgb +
+        SceneTexture.Sample(LinearClamp, In.UV + float2(-Rcp.x, 0)).rgb +
+        SceneTexture.Sample(LinearClamp, In.UV + float2(Rcp.x, 0)).rgb
+        ) * 0.25;
     if (Contrast < max(EdgeThresholdMin, LMax * EdgeThreshold))
     {
-        // 아주 약한 엣지는 그대로 통과 (서브픽셀 보정만 살짝 넣고 싶으면 아래에 따로 처리)
-        return float4(C, 1.0);
+        // SubpixelBlend는 0~1 권장(예: 0.5)
+        float3 Smooth = lerp(C, Avg4, saturate(SubpixelBlend));
+        return float4(Smooth, 1.0);
     }
+    // 대각선 루마 기반 edge tangent 추정 (FXAA 3.x 정석)
+    float LNW = Luma(SceneTexture.Sample(LinearClamp, In.UV + float2(-Rcp.x, -Rcp.y)).rgb);
+    float LNE = Luma(SceneTexture.Sample(LinearClamp, In.UV + float2(Rcp.x, -Rcp.y)).rgb);
+    float LSW = Luma(SceneTexture.Sample(LinearClamp, In.UV + float2(-Rcp.x, Rcp.y)).rgb);
+    float LSE = Luma(SceneTexture.Sample(LinearClamp, In.UV + float2(Rcp.x, Rcp.y)).rgb);
+    
+    // Edge tangent(법선이 아님)
+    float2 Dir;
+    Dir.x = -((LNW + LNE) - (LSW + LSE));
+    Dir.y = ((LNW + LSW) - (LNE + LSE));
 
-    // 엣지 방향 결정(가로/세로)
-    float EdgeH = abs(LW + LE - 2.0 * L);
-    float EdgeV = abs(LN + LS - 2.0 * L);
-    bool IsHorizontal = (EdgeH >= EdgeV);
+    float DirReduce = max((LN + LS + LW + LE) * (0.25 * 1 / 8), 1 / 128);
+    float RcpDirMin = 1.0 / (min(abs(Dir.x), abs(Dir.y)) + DirReduce);
+    // Dir = saturate(Dir * rcpDirMin) * rcp;
+    Dir *= RcpDirMin; // scale by inverse smallest axis + reduce
+    float Len = length(Dir);
+    if (Len > 0.0)
+        Dir *= (min(5.0, Len) / Len); // cap search to ~8 texels total span
 
-    float2 Step = IsHorizontal ? float2(Rcp.x, 0) : float2(0, Rcp.y);
+    Dir *= Rcp;
 
-    float L1 = Luma(SceneTexture.Sample(LinearClamp, In.UV - Step * 1.0).rgb);
-    float L2 = Luma(SceneTexture.Sample(LinearClamp, In.UV + Step * 1.0).rgb);
-    float Gradient1 = abs(L1 - L);
-    float Gradient2 = abs(L2 - L);
 
-    float2 Direction = (Gradient1 < Gradient2) ? Step : -Step;
+    // Two taps along the edge
+    float3 RgbA = 0.5 * (
+        SceneTexture.Sample(LinearClamp, In.UV + Dir * (1.0 / 3.0 - 0.5)).rgb +
+        SceneTexture.Sample(LinearClamp, In.UV + Dir * (2.0 / 3.0 - 0.5)).rgb);
 
-    float2 UVA = In.UV + Direction * 0.5;
-    float2 UVB = In.UV + Direction * 2.0;
+    float3 RgbB = RgbA * 0.5 + 0.25 * (
+        SceneTexture.Sample(LinearClamp, In.UV + Dir * -0.5).rgb +
+        SceneTexture.Sample(LinearClamp, In.UV + Dir * 0.5).rgb);
 
-    float3 CA = SceneTexture.Sample(LinearClamp, UVA).rgb;
-    float3 CB = SceneTexture.Sample(LinearClamp, UVB).rgb;
-
-    float3 CFxaa = (CA + CB + C) / 3.0;
-    CFxaa = lerp(C, CFxaa, SubpixelBlend);
-
-    return float4(CFxaa, 1.0);
+    float LumaB = Luma(RgbB);
+    // Choose between A and B to avoid over-blurring
+    float3 result = (LumaB < LMin || LumaB > LMax) ? RgbA : RgbB;
+    
+    // 엣지에서도 과블러 없이 '아주 약하게' 서브픽셀 보정 (Avg4)
+    // 엣지는 선명도 보호를 위해 1/4 배만 적용(원하면 0.15~0.35 사이로 튜닝)
+    result = lerp(result, Avg4, saturate(SubpixelBlend) * 0.25);
+    
+    // float3 result = RgbA;
+    return float4(result, 1.0);
 }
