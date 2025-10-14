@@ -500,6 +500,9 @@ void URenderer::ExecuteFXAA()
 	// 출력: 백버퍼 RTV로
 	ID3D11RenderTargetView* Rtvs[] = { GetRenderTargetView() };
 	Context->OMSetRenderTargets(1, Rtvs, nullptr);
+	// 전체(메뉴바 제외) 화면 뷰포트로 복구
+	const D3D11_VIEWPORT& FullViewport = DeviceResources->GetViewportInfo();
+	Context->RSSetViewports(1, &FullViewport);
 
 	// 파이프라인 셋업
 	FPipelineInfo PipelineInfo = {
