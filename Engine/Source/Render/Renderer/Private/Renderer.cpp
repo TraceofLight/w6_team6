@@ -288,7 +288,7 @@ void URenderer::Update()
 		FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferViewProj, CurrentCamera->GetFViewProjConstants());
 		Pipeline->SetConstantBuffer(1, true, ConstantBufferViewProj);
 
-		const D3D11_VIEWPORT& clientViewport = ViewportClient.GetViewportInfo();
+		const D3D11_VIEWPORT& ClientViewport = ViewportClient.GetViewportInfo();
 
 		// === Scene RT 렌더링: clientViewport와 동일한 viewport 사용 ===
 		// Scene RT는 SwapChain 전체 크기로 생성되었으므로
@@ -298,28 +298,27 @@ void URenderer::Update()
 		// (이전 viewport의 post-processing이 BackBuffer로 바인딩을 변경했으므로)
 		ID3D11RenderTargetView* SceneRtvs[] = { SceneColorRTV };
 		GetDeviceContext()->OMSetRenderTargets(1, SceneRtvs, SceneDepthDSV);
-		GetDeviceContext()->RSSetViewports(1, &clientViewport);
+		GetDeviceContext()->RSSetViewports(1, &ClientViewport);
 
 		{
 			TIME_PROFILE(RenderLevel)
 			RenderLevel(CurrentCamera);
 		}
 
-		// === Post-Processing: Scene RT -> 백버퍼 ===
-		// 통합 포스트 프로세싱 패스: Fog + Anti-Aliasing (FXAA)
-		// FXAA enabled: Fog → FXAA 순서로 처리
-		// FXAA disabled: Fog만 처리 (FXAA 비활성화)
-		GetDeviceContext()->RSSetViewports(1, &clientViewport);
-
-		{
-			TIME_PROFILE(ExecutePostProcess)
-			ExecutePostProcess(CurrentCamera, clientViewport); // Fog + FXAA 통합
-		}
-
-		// === 에디터 프리미티브 렌더링: post-processing 이후 백버퍼에 그림 ===
+		// === 에디터 프리미티브 렌더링: Scene RT에 렌더링 ===
 		{
 			TIME_PROFILE(RenderEditor)
 			GEditor->GetEditorModule()->RenderEditor(CurrentCamera);
+		}
+
+		// === Post-Processing: Scene RT -> 백버퍼 ===
+		// 통합 포스트 프로세싱 패스: Fog + Anti-Aliasing (FXAA)
+		// RenderLevel + RenderEditor 결과에 모두 FXAA 적용
+		GetDeviceContext()->RSSetViewports(1, &ClientViewport);
+
+		{
+			TIME_PROFILE(ExecutePostProcess)
+			ExecutePostProcess(CurrentCamera, ClientViewport); // Fog + FXAA 통합
 		}
 	}
 
