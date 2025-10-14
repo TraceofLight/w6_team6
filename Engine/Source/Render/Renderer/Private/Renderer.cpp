@@ -305,20 +305,26 @@ void URenderer::Update()
 			RenderLevel(CurrentCamera);
 		}
 
-		// === 에디터 프리미티브 렌더링: Scene RT에 렌더링 ===
+		// === 디버그 프리미티브 렌더링: Scene RT에 렌더링 (FXAA 적용) ===
 		{
-			TIME_PROFILE(RenderEditor)
-			GEditor->GetEditorModule()->RenderEditor(CurrentCamera);
+			TIME_PROFILE(RenderDebugPrimitives)
+			GEditor->GetEditorModule()->RenderDebugPrimitives(CurrentCamera);
 		}
 
 		// === Post-Processing: Scene RT -> 백버퍼 ===
 		// 통합 포스트 프로세싱 패스: Fog + Anti-Aliasing (FXAA)
-		// RenderLevel + RenderEditor 결과에 모두 FXAA 적용
+		// RenderLevel + RenderDebugPrimitives 결과에 모두 FXAA 적용
 		GetDeviceContext()->RSSetViewports(1, &ClientViewport);
 
 		{
 			TIME_PROFILE(ExecutePostProcess)
 			ExecutePostProcess(CurrentCamera, ClientViewport); // Fog + FXAA 통합
+		}
+
+		// === 기즈모 렌더링: BackBuffer에 직접 렌더링 (FXAA 미적용, 항상 선명) ===
+		{
+			TIME_PROFILE(RenderGizmo)
+			GEditor->GetEditorModule()->RenderGizmo(CurrentCamera);
 		}
 	}
 
