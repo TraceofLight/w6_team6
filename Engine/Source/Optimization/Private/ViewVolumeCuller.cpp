@@ -2,6 +2,7 @@
 #include "Optimization/Public/ViewVolumeCuller.h"
 #include "Core/Public/Object.h"
 #include "Global/Octree.h"
+#include "Component/Public/FireBallComponent.h"
 
 namespace
 {
@@ -49,6 +50,13 @@ void ViewVolumeCuller::Cull(FOctree* StaticOctree, TArray<UPrimitiveComponent*>&
 	for (UPrimitiveComponent* Primitive : DynamicPrimitives)
 	{
 		if (!Primitive || !Primitive->GetOwner()) continue;
+		
+		if (Primitive->IsA(UFireBallComponent::StaticClass()))
+		{
+			RenderableObjects.push_back(Primitive);
+			continue;
+		}
+
 		if (CurrentFrustum.CheckIntersection(GetPrimitiveBoundingBox(Primitive)) != EBoundCheckResult::Outside)
 			RenderableObjects.push_back(Primitive);
 	}

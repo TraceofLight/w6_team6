@@ -1,2 +1,4 @@
 #include "pch.h"
-#include "Source/Component/Public/FireBallComponent.h"
+#include "Component/Public/FireBallComponent.h"
+
+IMPLEMENT_CLASS(UFireBallComponent, UPrimitiveComponent)

@@ -18,4 +18,5 @@ struct FRenderingContext
 	TArray<class UDecalComponent*> AlphaDecals;
 	TArray<class UDecalComponent*> AdditiveDecals;
 	TArray<class UPrimitiveComponent*> DefaultPrimitives;
+    TArray<class UFireBallComponent*> FireBalls;
 };

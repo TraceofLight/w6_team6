@@ -386,6 +386,9 @@
     <ClCompile Include="Source\Render\UI\Widget\Private\SceneBVHDebugWidget.cpp" />
     <ClCompile Include="Source\Component\Private\FireBallComponent.cpp" />
     <ClCompile Include="Source\Render\RenderPass\Private\FireBallPass.cpp" />
+    <ClCompile Include="Source\Actor\Private\HeightFogActor.cpp" />
+    <ClCompile Include="Source\Component\Private\HeightFogComponent.cpp" />
+    <ClCompile Include="Source\Render\UI\Widget\Private\HeightFogComponentWidget.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
@@ -792,6 +795,9 @@
     <ClInclude Include="Source\Render\UI\Widget\Public\SceneBVHDebugWidget.h" />
     <ClInclude Include="Source\Component\Public\FireBallComponent.h" />
     <ClInclude Include="Source\Render\RenderPass\Public\FireBallPass.h" />
+    <ClInclude Include="Source\Actor\Public\HeightFogActor.h" />
+    <ClInclude Include="Source\Component\Public\HeightFogComponent.h" />
+    <ClInclude Include="Source\Render\UI\Widget\Public\HeightFogComponentWidget.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Source">

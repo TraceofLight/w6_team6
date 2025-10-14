@@ -1,7 +1,39 @@
 #pragma once
 #include "Render/RenderPass/Public/RenderPass.h"
 
+struct FPerObjectCB
+{
+    FMatrix gWorld;
+    FMatrix gViewProj;
+};
+
+struct FFireBallCB
+{
+    FVector gColor;   float gIntensity;
+    FVector gCenterWS; float gRadius;
+    FVector4 gCenterClip; // unused
+    float gProjRadiusNDC; float gFeather; float gHardness; float _pad;
+};
+
 class FFireBallPass : public FRenderPass
 {
+public:
+    FFireBallPass(UPipeline* InPipeline,
+        ID3D11Buffer* InConstantBufferViewProj,
+        ID3D11Buffer* InConstantBufferModel,
+        ID3D11DepthStencilState* InDepthReadState,
+        ID3D11BlendState* InAdditiveBlendState);
 
+    void Execute(FRenderingContext& Context) override;
+    void Release() override;
+
+private:
+    ID3D11VertexShader* VS = nullptr;
+    ID3D11PixelShader* PS = nullptr;
+    ID3D11InputLayout* InputLayout = nullptr;
+    ID3D11DepthStencilState* DS_Read = nullptr;
+    ID3D11BlendState* AdditiveBlend = nullptr;
+
+    ID3D11Buffer* CBPerObject = nullptr; // b1: gWorld, gViewProj
+    ID3D11Buffer* CBFireBall = nullptr; // b2: params
 };

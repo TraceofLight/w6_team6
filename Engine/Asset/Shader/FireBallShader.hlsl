@@ -1,4 +1,4 @@
-
+ï»¿
 cbuffer PerObject : register(b1)
 {
     float4x4 gWorld;
@@ -6,18 +6,18 @@ cbuffer PerObject : register(b1)
     // ...
 }
 
-// b2: FireBall ÆÄ¶ó¹ÌÅÍ
+// b2: FireBall íŒŒë¼ë¯¸í„°
 cbuffer FireBallCB : register(b2)
 {
     float3 gColor;
-    float gIntensity; // »ö/¼¼±â
+    float gIntensity; // ìƒ‰/ì„¸ê¸°
     
     float3 gCenterWS;
-    float gRadius; // Áß½É/¹İ°æ(¿ùµå)
+    float gRadius; // ì¤‘ì‹¬/ë°˜ê²½(ì›”ë“œ)
     
-    float4 gCenterClip; // CPU¿¡¼­ mul(float4(gCenterWS,1), ViewProj)
+    float4 gCenterClip; // CPUì—ì„œ mul(float4(gCenterWS,1), ViewProj)
     
-    float gProjRadiusNDC; // CPU¿¡¼­ °è»êÇÑ "NDC ¹İ°æ"
+    float gProjRadiusNDC; // CPUì—ì„œ ê³„ì‚°í•œ "NDC ë°˜ê²½"
     float gFeather;
     float gHardness;
     float _pad;
@@ -25,48 +25,57 @@ cbuffer FireBallCB : register(b2)
 
 struct VSIn
 {
-    float3 pos : POSITION; // ´ÜÀ§ ±¸(¿øÁ¡ Áß½É) ¹öÅØ½º
-    float3 WorldPos : TEXCOORD0;
-    // (¿øÇÑ´Ù¸é normal/uv ÀÖ¾îµµ ¹«°ü)
+    float3 pos : POSITION; // ë‹¨ìœ„ êµ¬(ì›ì  ì¤‘ì‹¬) ë²„í…ìŠ¤
 };
 
 struct VSOut
 {
-    float4 Position : SV_POSITION; // °¢ ÇÈ¼¿ÀÇ clip pos
+    float4 Position : SV_POSITION; // ê° í”½ì…€ì˜ clip pos
+    float3 WorldPos : TEXCOORD0;
 };
 
 VSOut VS_Sphere(VSIn i)
 {
     VSOut o;
-    // ´ÜÀ§ ±¸¸¦ World·Î ½ºÄÉÀÏ/ÀÌµ¿(R Æ÷ÇÔ)ÇØ ¹èÄ¡
+    // ë‹¨ìœ„ êµ¬ë¥¼ Worldë¡œ ìŠ¤ì¼€ì¼/ì´ë™(R í¬í•¨)í•´ ë°°ì¹˜
     float4 wpos = mul(float4(i.pos, 1.0), gWorld);
     o.Position = mul(wpos, gViewProj);
     return o;
 }
 
-// È­¸é °ø°£ ¿øÇü falloff (NDC¿¡¼­ Áß½É±îÁö °Å¸® ±â¹İ)
-// feather: 0~1 (°¡ÀåÀÚ¸® Æø), hardness: 1.5~3 ÃßÃµ
+// í™”ë©´ ê³µê°„ ì›í˜• falloff (NDCì—ì„œ ì¤‘ì‹¬ê¹Œì§€ ê±°ë¦¬ ê¸°ë°˜)
+// feather: 0~1 (ê°€ì¥ìë¦¬ í­), hardness: 1.5~3 ì¶”ì²œ
 float SmoothCircleNDC(float2 ndc, float2 centerNdc, float projRadiusNdc, float feather, float hardness)
 {
-    // NDC °Å¸®(0=Áß½É, projRadiusNdc=¿Ü°û)
+    // NDC ê±°ë¦¬(0=ì¤‘ì‹¬, projRadiusNdc=ì™¸ê³½)
     float r = length(ndc - centerNdc);
     float x = r / max(projRadiusNdc, 1e-5);
 
-    float edge0 = 1.0 - saturate(feather); // 0.6~0.8 ±ÇÀå
+    float edge0 = 1.0 - saturate(feather); // 0.6~0.8 ê¶Œì¥
     float t = saturate((x - edge0) / max(1.0 - edge0, 1e-5));
     return pow(1.0 - t, hardness);
 }
 
 float4 PS_Sphere(VSOut i) : SV_Target
 {
-    // ÇöÀç ÇÈ¼¿ NDC
+    // í˜„ì¬ í”½ì…€ NDC
     float2 ndc = (i.Position.xy / i.Position.w);
-    // Áß½É NDC
+    // ì¤‘ì‹¬ NDC
     float2 cndc = (gCenterClip.xy / gCenterClip.w);
 
-    // ¿øÇü falloff
+    // ì›í˜• falloff
     float a = SmoothCircleNDC(ndc, cndc, gProjRadiusNDC, gFeather, gHardness);
 
-    // Additive Ãâ·Â (¾ËÆÄ´Â ÀÇ¹Ì ¾øÀ½)
+    // Additive ì¶œë ¥ (ì•ŒíŒŒëŠ” ì˜ë¯¸ ì—†ìŒ)
     return float4(gColor * (gIntensity * a), 0.0);
+}
+
+VSOut mainVS(VSIn i)
+{ 
+    return VS_Sphere(i);
+}
+
+float4 mainPS(VSOut i) : SV_Target
+{ 
+    return PS_Sphere(i);
 }

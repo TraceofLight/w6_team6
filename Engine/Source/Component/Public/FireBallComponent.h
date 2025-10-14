@@ -8,9 +8,25 @@ class UFireBallComponent : public UPrimitiveComponent
     GENERATED_BODY()
     DECLARE_CLASS(UFireBallComponent, UPrimitiveComponent)
 
-    float Intensity;
-    float Radius;
-    float RadiusFallOff;
-    //FLinearColor
-    FVector4 Color;
+public:
+    UFireBallComponent()
+    {
+
+    }
+
+    float GetIntensity() const { return Intensity; }
+    float GetRadius() const { return Radius; }
+    float GetRadiusFallOff() const { return RadiusFallOff; }
+    FVector4 GetLightColor() const { return Color; }
+
+    void SetIntensity(float In) { Intensity = In; }
+    void SetRadius(float In) { Radius = In; }
+    void SetRadiusFallOff(float In) { RadiusFallOff = In; }
+    void SetLightColor(const FVector4& In) { Color = In; }
+
+private:
+    float Intensity = 2.0f;
+    float Radius = 100.0f;
+    float RadiusFallOff = 0.2f;
+    FVector4 Color = FVector4{ 1.0f, 0.5f, 0.1f, 1.0f };
 };

@@ -7,6 +7,7 @@
 #include "Component/Public/DecalComponent.h"
 #include "Component/Public/HeightFogComponent.h"
 #include "Component/Public/SemiLightComponent.h"
+#include "Component/Public/FireBallComponent.h"
 #include "Editor/Public/Editor.h"
 #include "Editor/Public/Viewport.h"
 #include "Editor/Public/ViewportClient.h"
@@ -23,6 +24,7 @@
 #include "Render/RenderPass/Public/StaticMeshPass.h"
 #include "Render/RenderPass/Public/TextPass.h"
 #include "Render/RenderPass/Public/DecalPass.h"
+#include "Render/RenderPass/Public/FireBallPass.h"
 
 IMPLEMENT_SINGLETON_CLASS_BASE(URenderer)
 
@@ -44,6 +46,7 @@ void URenderer::Init(HWND InWindowHandle)
 	CreateDecalShader();
 	CreateDepthShader();
 	CreateFogShader();
+	CreateFireBallShader();
 	CreateFullscreenQuad();
 	CreateConstantBuffers();
 	CreatePostProcessResources();
@@ -87,6 +90,9 @@ void URenderer::Init(HWND InWindowHandle)
 
 	FTextPass* TextPass = new FTextPass(Pipeline, ConstantBufferViewProj, ConstantBufferModels);
 	RenderPasses.push_back(TextPass);
+
+	FFireBallPass* FireBallPass = new FFireBallPass(Pipeline, ConstantBufferViewProj, ConstantBufferModels, DecalDepthStencilState, AdditiveBlendState);
+	RenderPasses.push_back(FireBallPass);
 }
 
 void URenderer::Release()
@@ -95,6 +101,7 @@ void URenderer::Release()
 	ReleaseConstantBuffers();
 	ReleaseDefaultShader();
 	ReleaseDepthShader();
+	ReleaseFireBallShader();
 	ReleaseFogShader();
 	ReleaseFullscreenQuad();
 	ReleaseDepthStencilState();
@@ -362,6 +369,7 @@ void URenderer::RenderLevel(UCamera* InCurrentCamera)
 	// );
 	// TIME_PROFILE_END(Occlusion)
 
+
 	FRenderingContext RenderingContext(&ViewProj, InCurrentCamera, GEditor->GetEditorModule()->GetViewMode(), CurrentLevel->GetShowFlags());
 	RenderingContext.AllPrimitives = FinalVisiblePrims;
 	for (auto& Prim : FinalVisiblePrims)
@@ -373,6 +381,10 @@ void URenderer::RenderLevel(UCamera* InCurrentCamera)
 		else if (auto BillBoard = Cast<UBillBoardComponent>(Prim))
 		{
 			RenderingContext.BillBoards.push_back(BillBoard);
+		}
+		else if (auto BillBoard = Cast<UFireBallComponent>(Prim))
+		{
+			RenderingContext.FireBalls.push_back(BillBoard);
 		}
 		else if (auto Text = Cast<UTextComponent>(Prim); Text && !Text->IsExactly(UUUIDTextComponent::StaticClass()))
 		{
@@ -612,11 +624,34 @@ void URenderer::CreateFogShader()
 	ConstantBufferFog = FRenderResourceFactory::CreateConstantBuffer<FFogConstants>();
 }
 
+void URenderer::CreateFireBallShader()
+{
+	TArray<D3D11_INPUT_ELEMENT_DESC> Layout =
+	{
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+	};
+
+	// Use default factory entries (mainVS/mainPS)
+	FRenderResourceFactory::CreateVertexShaderAndInputLayout(L"Asset/Shader/FireBallShader.hlsl", Layout, &FireBallVertexShader, &FireBallInputLayout);
+	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/FireBallShader.hlsl", &FireBallPixelShader);
+
+	CBPerObject = FRenderResourceFactory::CreateConstantBuffer<FPerObjectCB>();
+	CBFireBall = FRenderResourceFactory::CreateConstantBuffer<FFireBallCB>();
+}
+
 void URenderer::ReleaseFogShader()
 {
 	SafeRelease(FogInputLayout);
 	SafeRelease(FogPixelShader);
 	SafeRelease(FogVertexShader);
+}
+
+void URenderer::ReleaseFireBallShader()
+{
+
+	SafeRelease(FireBallVertexShader);
+	SafeRelease(FireBallPixelShader);
+	SafeRelease(FireBallInputLayout);
 }
 
 void URenderer::CreateFullscreenQuad()

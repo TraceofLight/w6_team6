@@ -24,6 +24,7 @@
 #include "Manager/Asset/Public/AssetManager.h"
 #include "Render/Renderer/Public/RenderResourceFactory.h"
 #include "Component/Public/SemiLightComponent.h"
+#include "Component/Public/FireBallComponent.h"
 
 UEditor::UEditor()
 {
@@ -207,6 +208,10 @@ void UEditor::UpdateBatchLines()
 		{
 			if (UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(Component))
 			{
+				if (PrimitiveComponent->IsA(UFireBallComponent::StaticClass()))
+				{
+					return;
+				}
 				if (PrimitiveComponent->GetBoundingBox()->GetType() == EBoundingVolumeType::AABB)
 				{
 					FVector WorldMin, WorldMax; PrimitiveComponent->GetWorldAABB(WorldMin, WorldMax);

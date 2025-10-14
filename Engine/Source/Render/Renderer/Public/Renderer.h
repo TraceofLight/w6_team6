@@ -65,6 +65,7 @@ public:
 	void CreateTextureShader();
 	void CreateDepthShader();
 	void CreateFogShader();
+	void CreateFireBallShader();
 	void CreateFullscreenQuad();
 	void CreateConstantBuffers();
 	void CreateSceneRenderTargets();
@@ -76,6 +77,7 @@ public:
 	void ReleaseBlendState();
 	void ReleaseDepthShader();
 	void ReleaseFogShader();
+	void ReleaseFireBallShader();
 	void ReleaseFullscreenQuad();
 	void ReleaseSceneRenderTargets();
 
@@ -169,6 +171,12 @@ private:
 	ID3D11InputLayout* FogInputLayout = nullptr;
 	ID3D11Buffer* ConstantBufferFog = nullptr;
 	ID3D11SamplerState* FogSamplerState = nullptr;
+
+	ID3D11VertexShader* FireBallVertexShader = nullptr;
+	ID3D11PixelShader* FireBallPixelShader = nullptr;
+	ID3D11InputLayout* FireBallInputLayout = nullptr;
+	ID3D11Buffer* CBPerObject = nullptr;
+	ID3D11Buffer* CBFireBall = nullptr;
 
 	// Fullscreen Quad for Post-Processing
 	ID3D11Buffer* FullscreenQuadVB = nullptr;
