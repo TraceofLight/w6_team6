@@ -22,10 +22,10 @@ UTextComponent::UTextComponent()
 	UAssetManager& ResourceManager = UAssetManager::GetInstance();
 
 	Vertices = &PickingAreaVertex;
-	NumVertices = PickingAreaVertex.size();
+	NumVertices = static_cast<uint32>(PickingAreaVertex.size());
 
 	Indices = &PickingAreaIndex;
-	NumIndices = PickingAreaIndex.size();
+	NumIndices = static_cast<uint32>(PickingAreaIndex.size());
 
 	RegulatePickingAreaByTextLength();
 }
@@ -114,7 +114,7 @@ void UTextComponent::DuplicateSubObjects(UObject* DuplicatedObject)
 void UTextComponent::RegulatePickingAreaByTextLength()
 {
 	PickingAreaVertex.clear();
-	int32 NewStrLen = Text.size();
+	int32 NewStrLen = static_cast<int32>(Text.size());
 
 	const static TPair<int32, int32> Offset[] =
 	{

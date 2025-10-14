@@ -19,28 +19,30 @@ class FViewport;
 class UCamera;
 class UPipeline;
 
-struct FFXAAParameters
+struct FPostProcessParameters
 {
 	float SubpixelBlend = 0.5f; // 0~1 권장: 0.5
 	float EdgeThreshold = 0.125f; // 0.0312~0.25
 	float EdgeThresholdMin = 0.0312f; // 0~0.0833
-	float Padding = 0.0f;
-};
+	float EnableFXAA = 1.0f; // FXAA 활성화 플래그 (0.0 = OFF, 1.0 = ON)
 
-struct FFogConstants
-{
-	float FogDensity;
-	float FogHeightFalloff;
-	float StartDistance;
-	float FogCutoffDistance;
-	float FogMaxOpacity;
-	FVector FogInscatteringColor;
-	FVector CameraPosition;
-	float FogHeight;
 	FVector2 ViewportTopLeft;
 	FVector2 ViewportSize;
 	FVector2 SceneRTSize;
 	FVector2 Padding2;
+
+	// Fog Parameters
+	float FogDensity;
+	float FogHeightFalloff;
+	float StartDistance;
+	float FogCutoffDistance;
+
+	float FogMaxOpacity;
+	FVector FogInscatteringColor;
+
+	FVector CameraPosition;
+	float FogHeight;
+
 	FMatrix InvViewProj;
 };
 
@@ -64,7 +66,6 @@ public:
 	void CreateDecalShader();
 	void CreateTextureShader();
 	void CreateDepthShader();
-	void CreateFogShader();
 	void CreateFullscreenQuad();
 	void CreateConstantBuffers();
 	void CreateSceneRenderTargets();
@@ -75,7 +76,6 @@ public:
 	void ReleaseDepthStencilState();
 	void ReleaseBlendState();
 	void ReleaseDepthShader();
-	void ReleaseFogShader();
 	void ReleaseFullscreenQuad();
 	void ReleaseSceneRenderTargets();
 
@@ -83,7 +83,6 @@ public:
 	void Update();
 	void RenderBegin() const;
 	void RenderLevel(UCamera* InCurrentCamera);
-	void RenderFog(UCamera* InCurrentCamera, const D3D11_VIEWPORT& InViewport);
 	void RenderEnd() const;
 	void RenderEditorPrimitive(const FEditorPrimitive& InPrimitive, const FRenderState& InRenderState, uint32 InStride = 0, uint32 InIndexBufferStride = 0);
 
@@ -119,9 +118,9 @@ public:
 	void SetFXAAEdgeThreshold(float InValue);
 	void SetFXAAEdgeThresholdMin(float InValue);
 
-	float GetFXAASubpixelBlend() const { return FXAAUserParameters.SubpixelBlend; }
-	float GetFXAAEdgeThreshold() const { return FXAAUserParameters.EdgeThreshold; }
-	float GetFXAAEdgeThresholdMin() const { return FXAAUserParameters.EdgeThresholdMin; }
+	float GetFXAASubpixelBlend() const { return PostProcessUserParameters.SubpixelBlend; }
+	float GetFXAAEdgeThreshold() const { return PostProcessUserParameters.EdgeThreshold; }
+	float GetFXAAEdgeThresholdMin() const { return PostProcessUserParameters.EdgeThresholdMin; }
 private:
 	UPipeline* Pipeline = nullptr;
 	UDeviceResources* DeviceResources = nullptr;
@@ -163,12 +162,9 @@ private:
 	ID3D11PixelShader* DepthPixelShader = nullptr;
 	ID3D11InputLayout* DepthInputLayout = nullptr;
 
-	// Fog Shaders
-	ID3D11VertexShader* FogVertexShader = nullptr;
-	ID3D11PixelShader* FogPixelShader = nullptr;
-	ID3D11InputLayout* FogInputLayout = nullptr;
-	ID3D11Buffer* ConstantBufferFog = nullptr;
-	ID3D11SamplerState* FogSamplerState = nullptr;
+	// PostProcess Shaders
+	ID3D11VertexShader* PostProcessVertexShader = nullptr;
+	ID3D11InputLayout* PostProcessInputLayout = nullptr;
 
 	// Fullscreen Quad for Post-Processing
 	ID3D11Buffer* FullscreenQuadVB = nullptr;
@@ -191,17 +187,16 @@ private:
 
 	bool bIsFXAAEnabled = false;
 
-	ID3D11VertexShader* FXAAVertexShader = nullptr;
-	ID3D11PixelShader* FXAAPixelShader = nullptr;
-	ID3D11SamplerState* FXAASamplerState = nullptr;
+	ID3D11PixelShader* PostProcessPixelShader = nullptr;
+	ID3D11SamplerState* PostProcessSamplerState = nullptr;
 
-	ID3D11Buffer* ConstantBufferFXAAParameters = nullptr;
-	FFXAAParameters FXAAUserParameters;
+	ID3D11Buffer* ConstantBufferPostProcessParameters = nullptr;
+	FPostProcessParameters PostProcessUserParameters;
 
 	void CreatePostProcessResources();
 	void ReleasePostProcessResources();
-	void ExecuteFXAA();
-	void UpdateFXAAConstantBuffer();
+	void ExecutePostProcess(UCamera* InCurrentCamera, const D3D11_VIEWPORT& InViewport);
+	void UpdatePostProcessConstantBuffer();
 
 	TArray<class FRenderPass*> RenderPasses;
 };

@@ -19,6 +19,8 @@
     <FxCompile Include="Asset\Shader\DecalShader.hlsl">
       <Filter>Asset\Shader</Filter>
     </FxCompile>
+    <FxCompile Include="Asset\Shader\FXAA.hlsl" />
+    <FxCompile Include="Asset\Shader\DepthShader.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp" />
@@ -375,6 +377,15 @@
     <ClCompile Include="Source\Actor\Private\DecalActor.cpp" />
     <ClCompile Include="Source\Render\RenderPass\Private\DecalPass.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\DecalComponentWidget.cpp" />
+    <ClCompile Include="Source\Actor\Private\HeightFogActor.cpp" />
+    <ClCompile Include="Source\Actor\Private\SemiLightActor.cpp" />
+    <ClCompile Include="Source\Component\Private\HeightFogComponent.cpp" />
+    <ClCompile Include="Source\Component\Private\SemiLightComponent.cpp" />
+    <ClCompile Include="Source\Editor\Private\ConeLines.cpp" />
+    <ClCompile Include="Source\Global\SceneBVH.cpp" />
+    <ClCompile Include="Source\Render\UI\Widget\Private\HeightFogComponentWidget.cpp" />
+    <ClCompile Include="Source\Render\UI\Widget\Private\PostProcessWidget.cpp" />
+    <ClCompile Include="Source\Render\UI\Widget\Private\SceneBVHDebugWidget.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
@@ -773,6 +784,15 @@
     <ClInclude Include="Source\Actor\Public\DecalActor.h" />
     <ClInclude Include="Source\Render\RenderPass\Public\DecalPass.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\DecalComponentWidget.h" />
+    <ClInclude Include="Source\Actor\Public\HeightFogActor.h" />
+    <ClInclude Include="Source\Actor\Public\SemiLightActor.h" />
+    <ClInclude Include="Source\Component\Public\HeightFogComponent.h" />
+    <ClInclude Include="Source\Component\Public\SemiLightComponent.h" />
+    <ClInclude Include="Source\Editor\Public\ConeLines.h" />
+    <ClInclude Include="Source\Global\SceneBVH.h" />
+    <ClInclude Include="Source\Render\UI\Widget\Public\HeightFogComponentWidget.h" />
+    <ClInclude Include="Source\Render\UI\Widget\Public\PostProcessWidget.h" />
+    <ClInclude Include="Source\Render\UI\Widget\Public\SceneBVHDebugWidget.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Source">
