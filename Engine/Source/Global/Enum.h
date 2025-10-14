@@ -137,6 +137,7 @@ enum class EPrimitiveType : uint8
 	Text,
 	Decal,
 	SemiLight, // TODO(KHJ): 임시
+	HeightFog,
 	Torus,
 	Arrow,
 	CubeArrow,
