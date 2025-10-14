@@ -16,7 +16,6 @@
 #include "Component/Mesh/Public/CubeComponent.h"
 #include "Component/Mesh/Public/MeshComponent.h"
 #include "Component/Public/SemiLightComponent.h"
-#include "Component/Public/FireBallComponent.h"
 #include "Global/Quaternion.h"
 #include "Global/Vector.h"
 
@@ -408,7 +407,7 @@ void UActorDetailWidget::RenderAddComponentButton(AActor* InSelectedActor)
 		// TODO - mesh 컴포넌트는 추후에 메쉬가 없어도 추가될 수 있도록
 		const char* componentNames[] = {
 			"Triangle", "Sphere", "Square", "Cube",
-			"Static Mesh", "BillBoard", "Text", "Decal", "HeightFog", "FireBall"
+			"Static Mesh", "BillBoard", "Text", "Decal", "HeightFog"
 		};
 
 		// 반복문 안에서 헬퍼 함수를 호출하여 원하는 UI를 그립니다.
@@ -495,10 +494,6 @@ void UActorDetailWidget::AddComponentByName(AActor* InSelectedActor, const FStri
 	else if (InComponentName == "HeightFog")
 	{
 		NewComponent = InSelectedActor->AddComponent<UHeightFogComponent>(NewComponentName);
-	}
-	else if (InComponentName == "FireBall")
-	{
-		NewComponent = InSelectedActor->AddComponent<UFireBallComponent>(NewComponentName);
 	}
 	else
 	{
