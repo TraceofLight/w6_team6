@@ -22,6 +22,6 @@ private:
     ID3D11DepthStencilState* DS_Read = nullptr;
     ID3D11BlendState* AdditiveBlend = nullptr;
 
-    ID3D11Buffer* CBFireBall = nullptr; // b2
+    ID3D11Buffer* CBFireBall = nullptr;
 };
 

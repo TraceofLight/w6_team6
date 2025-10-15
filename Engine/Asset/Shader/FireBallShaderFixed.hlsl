@@ -75,16 +75,30 @@ float4 PS_Sphere(PS_INPUT i) : SV_Target
         discard; // outside light volume
     }
 
-    // 3D falloff in world-space (soft edge using feather)
+    // 3D falloff in world-space (soft edge near boundary)
     float R0 = gRadius * (1.0 - saturate(gFeather));
     float t = saturate((d - R0) / max(gRadius - R0, 1e-5));
     float a3d = pow(1.0 - t, max(1.0, gHardness));
+
+    // Distance attenuation (inverse-square-like)
+    float normD = d / max(gRadius, 1e-5);
+    float attPhys = 1.0 / (1.0 + normD * normD);
 
     // 2D projected falloff (optional screen-space shaping)
     float2 cndc = gCenterClip.xy / gCenterClip.w;
     float a2d = SmoothCircleNDC(i.Ndc, cndc, gProjRadiusNDC, gFeather, gHardness);
 
-    float a = a3d * a2d;
+    float3 dx = ddx(world.xyz);
+    float3 dy = ddy(world.xyz);
+    float3 n = normalize(cross(dx, dy));
+    float3 Ldir = normalize(gCenterWS - world.xyz);
+    float len2 = dot(n, n);
+    if (len2 > 1e-6)
+    {
+        float nl = dot(n, Ldir);
+        if (nl <= 0.0f) discard;
+    }
+    float a = a3d * attPhys * a2d;
     return float4(gColor * (gIntensity * a), 1.0);
     //return float4(depth, depth, depth, 1.0);
 }
