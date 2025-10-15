@@ -92,9 +92,9 @@ void URenderer::Init(HWND InWindowHandle)
 	FTextPass* TextPass = new FTextPass(Pipeline, ConstantBufferViewProj, ConstantBufferModels);
 	RenderPasses.push_back(TextPass);
 
-	FFireBallPass* FireBallPass = new FFireBallPass(Pipeline, ConstantBufferViewProj, ConstantBufferModels,
-		FireBallVertexShader, FireBallPixelShader, FireBallInputLayout, DecalDepthStencilState, AdditiveBlendState);
-	RenderPasses.push_back(FireBallPass);
+	//FFireBallPass* FireBallPass = new FFireBallPass(Pipeline, ConstantBufferViewProj, ConstantBufferModels,
+	//	FireBallVertexShader, FireBallPixelShader, FireBallInputLayout, DecalDepthStencilState, AdditiveBlendState);
+	//RenderPasses.push_back(FireBallPass);
 
 	// Forward lighting over geometry (additive)
 	FFireBallForwardPass* FireBallForwardPass = new FFireBallForwardPass(Pipeline, ConstantBufferViewProj, ConstantBufferModels,
@@ -402,7 +402,7 @@ void URenderer::RenderLevel(UCamera* InCurrentCamera)
 	// 	InCurrentCamera->GetViewVolumeCuller().GetRenderableObjects(),
 	// 	InCurrentCamera->GetLocation()
 	// );
-	// TIME_PROFILE_END(Occlusion)
+	// TIME_PROFILE_END(Occlusion) 
 
 
 	FRenderingContext RenderingContext(&ViewProj, InCurrentCamera, GEditor->GetEditorModule()->GetViewMode(), CurrentLevel->GetShowFlags());
@@ -417,9 +417,9 @@ void URenderer::RenderLevel(UCamera* InCurrentCamera)
 		{
 			RenderingContext.BillBoards.push_back(BillBoard);
 		}
-		else if (auto BillBoard = Cast<UFireBallComponent>(Prim))
+		else if (auto FireBall = Cast<UFireBallComponent>(Prim))
 		{
-			RenderingContext.FireBalls.push_back(BillBoard);
+			RenderingContext.FireBalls.push_back(FireBall);
 		}
 		else if (auto Text = Cast<UTextComponent>(Prim); Text && !Text->IsExactly(UUUIDTextComponent::StaticClass()))
 		{

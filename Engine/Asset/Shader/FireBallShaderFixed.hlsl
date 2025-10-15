@@ -6,9 +6,14 @@ cbuffer PerObject : register(b1)
 
 cbuffer FireBallCB : register(b2)
 {
-    float3 gColor;   float gIntensity;
-    float3 gCenterWS; float gRadius;
+    float3 gColor;
+    float gIntensity;
+    
+    float3 gCenterWS;
+    float gRadius;
+    
     float4 gCenterClip; // CPU: mul(float4(gCenterWS,1), ViewProj)
+    
     float gProjRadiusNDC;
     float gFeather;
     float gHardness;
@@ -99,8 +104,8 @@ float4 PS_Sphere(PS_INPUT i) : SV_Target
         if (nl <= 0.0f) discard;
     }
     float a = a3d * attPhys * a2d;
-    return float4(gColor * (gIntensity * a), 1.0);
-    //return float4(depth, depth, depth, 1.0);
+    //return float4(gColor * (gIntensity * a), 1.0);
+    return float4(gFeather, gFeather, gFeather, 1.0);
 }
 
 PS_INPUT mainVS(VS_INPUT i)

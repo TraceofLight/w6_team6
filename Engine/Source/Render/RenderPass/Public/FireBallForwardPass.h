@@ -1,6 +1,14 @@
 #pragma once
 #include "Render/RenderPass/Public/RenderPass.h"
-#include "Render/RenderPass/Public/FireBallPass.h" // reuse FFireBallCB definition
+
+// Dedicated forward-pass constant buffer matching FireBallForward.hlsl layout
+struct FFireBallFwdCB
+{
+    FVector gColor;   float gIntensity;
+    FVector gCenterWS; float gRadius;
+    FVector4 gCenterClip; // kept for layout parity
+    float gProjRadiusNDC; float gFeather; float gHardness; float _pad;
+};
 
 class FFireBallForwardPass : public FRenderPass
 {

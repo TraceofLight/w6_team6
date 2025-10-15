@@ -18,7 +18,7 @@ FFireBallForwardPass::FFireBallForwardPass(UPipeline* InPipeline,
     , DS_Read(InDepthReadState)
     , AdditiveBlend(InAdditiveBlendState)
 {
-    CBFireBall = FRenderResourceFactory::CreateConstantBuffer<FFireBallCB>();
+    CBFireBall = FRenderResourceFactory::CreateConstantBuffer<FFireBallFwdCB>();
 }
 
 void FFireBallForwardPass::Execute(FRenderingContext& Context)
@@ -46,13 +46,13 @@ void FFireBallForwardPass::Execute(FRenderingContext& Context)
     {
         if (!Fire || !Fire->IsVisible()) { continue; }
 
-        const FVector CenterWS = Fire->GetWorldLocation();
-        const float Radius = Fire->GetRadius();
-        const FVector4 Color4 = Fire->GetLightColor();
-        const float Intensity = Fire->GetIntensity();
-        const float Feather = Fire->GetRadiusFallOff();
+         FVector CenterWS = Fire->GetWorldLocation();
+         float Radius = Fire->GetRadius();
+         FVector4 Color4 = Fire->GetLightColor();
+         float Intensity = Fire->GetIntensity();
+         float Feather = Fire->GetRadiusFallOff();
 
-        FFireBallCB cb = {};
+        FFireBallFwdCB cb = {};
         cb.gColor = FVector(Color4.X, Color4.Y, Color4.Z);
         cb.gIntensity = Intensity;
         cb.gCenterWS = CenterWS;
@@ -73,6 +73,10 @@ void FFireBallForwardPass::Execute(FRenderingContext& Context)
             {
                 Pipeline->SetIndexBuffer(ib, sizeof(uint32));
             }
+
+            //cb.gNoNormalCull = (Fire->GetOwner() == MeshComp->GetOwner()) ? 1.0f : 0.0f;
+            FRenderResourceFactory::UpdateConstantBufferData(CBFireBall, cb);
+            Pipeline->SetConstantBuffer(2, false, CBFireBall);
 
             FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferModel, MeshComp->GetWorldTransformMatrix());
             Pipeline->SetConstantBuffer(0, true, ConstantBufferModel);
@@ -99,6 +103,10 @@ void FFireBallForwardPass::Execute(FRenderingContext& Context)
             {
                 Pipeline->SetIndexBuffer(ib, sizeof(uint32));
             }
+
+            //cb.gNoNormalCull = (Fire->GetOwner() == Prim->GetOwner()) ? 1.0f : 0.0f;
+            FRenderResourceFactory::UpdateConstantBufferData(CBFireBall, cb);
+            Pipeline->SetConstantBuffer(2, false, CBFireBall);
 
             FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferModel, Prim->GetWorldTransformMatrix());
             Pipeline->SetConstantBuffer(0, true, ConstantBufferModel);

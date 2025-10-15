@@ -129,7 +129,7 @@ void UActorDetailWidget::RenderWidget()
 			}
 
 			float RadiusFallOff = FireBall->GetRadiusFallOff();
-			if (ImGui::DragFloat("Radius Fall Off", &RadiusFallOff, 0.5f, 1.0f, 100.f, "%.1f"))
+			if (ImGui::DragFloat("Radius Fall Off", &RadiusFallOff, 0.01f, 0.0f, 1.0f, "%.01f"))
 			{
 				FireBall->SetRadiusFallOff(RadiusFallOff);
 			}

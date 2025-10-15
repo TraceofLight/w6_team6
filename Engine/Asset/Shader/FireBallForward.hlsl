@@ -11,10 +11,18 @@ cbuffer PerFrame : register(b1)
 
 cbuffer FireBallCB : register(b2)
 {
-    float3 gColor;   float gIntensity;
-    float3 gCenterWS; float gRadius;
+    float3 gColor; 
+    float gIntensity;
+    
+    float3 gCenterWS;
+    float gRadius;
+    
     float4 gCenterClip;
-    float gProjRadiusNDC; float gFeather; float gHardness; float _pad;
+    
+    float gProjRadiusNDC;
+    float gFeather;
+    float gHardness;
+    float _pad;
 }
 
 struct VS_INPUT
@@ -60,9 +68,11 @@ float4 mainPS(PS_INPUT i) : SV_Target
     float R0 = gRadius * (1.0 - saturate(gFeather));
     float t = saturate((d - R0) / max(gRadius - R0, 1e-5));
     //float a3d = pow(1.0 - t, max(1.0, gHardness));
+    float edgeMask = pow(1.0 - t, 2);
+    float invSq = 1.0 / max(d * d, 1e-4);
+    //float a3d = pow(1.0 - t, max(0.001, gHardness));
+    float a3d = 1000 * invSq * edgeMask;
     
-    float a3d = pow(1 - t, 2);
-
     float normD = d / max(gRadius, 1e-5);
     float attPhys = 1.0 / (1.0 + normD * normD);
 
@@ -71,9 +81,11 @@ float4 mainPS(PS_INPUT i) : SV_Target
     if (len2 > 1e-6)
     {
         float nl = dot(normalize(i.worldNrm), Ldir);
-        if (nl <= 0.0f) discard;
+        if (nl < -0.0f)
+            discard;
         a3d *= nl;
     }
     float a = a3d * attPhys;
     return float4(gColor * (gIntensity * a), 1.0);
+    //return float4(0, 1000*gFeather, 0, 1.0);
 }
