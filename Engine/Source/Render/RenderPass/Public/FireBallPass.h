@@ -12,7 +12,11 @@ struct FFireBallCB
     FVector gColor;   float gIntensity;
     FVector gCenterWS; float gRadius;
     FVector4 gCenterClip; // unused
-    float gProjRadiusNDC; float gFeather; float gHardness; float _pad;
+    FVector2 ViewportTopLeft;
+    FVector2 ViewportSize;
+    FVector2 SceneRTSize;
+    float gProjRadiusNDC; float gFeather; float gHardness;
+    FVector _pad;
 };
 
 class FFireBallPass : public FRenderPass
@@ -39,5 +43,6 @@ private:
 
     ID3D11Buffer* CBPerObject = nullptr; // b1: gWorld, gViewProj
     ID3D11Buffer* CBFireBall = nullptr; // b2: params
+    ID3D11Buffer* CBInvViewProj = nullptr; // b3: inverse ViewProj
     ID3D11SamplerState* DepthSampler = nullptr;
 };

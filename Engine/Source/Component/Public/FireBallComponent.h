@@ -25,8 +25,8 @@ public:
     void SetLightColor(const FVector4& In) { Color = In; }
 
 private:
-    float Intensity = 1.0f;
-    float Radius = 5.0f;
+    float Intensity = 10.0f;
+    float Radius = 10.0f;
     float RadiusFallOff = 0.2f;
     FVector4 Color = FVector4{ 0.5f, 0.5f, 0.5f, 1.0f };
 };

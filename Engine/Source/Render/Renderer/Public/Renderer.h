@@ -108,9 +108,11 @@ public:
 	ID3D11BlendState* GetFireBallBlendState() const { return FireBallBlendState; }
 	ID3D11Buffer* GetConstantBufferModels() const { return ConstantBufferModels; }
 	ID3D11Buffer* GetConstantBufferViewProj() const { return ConstantBufferViewProj; }
+	ID3D11RenderTargetView* GetSceneColorRTV() const{ return SceneColorRTV; }
 	ID3D11ShaderResourceView* GetSceneDepthSRV() const { return SceneDepthSRV; }
 	ID3D11DepthStencilView* GetSceneDepthDSV() const { return SceneDepthDSV; }
 	ID3D11Texture2D* GetSceneDepthTexture() const { return SceneDepthTexture; }
+	ID3D11DepthStencilView* GetReadOnlyDSV() const { return SceneDepthDSV_ReadOnly; }
 
 	ID3D11VertexShader* GetDepthVertexShader() const { return DepthVertexShader; }
 	ID3D11PixelShader* GetDepthPixelShader() const { return DepthPixelShader; }
@@ -192,9 +194,11 @@ private:
 	ID3D11RenderTargetView* SceneColorRTV = nullptr;
 	ID3D11ShaderResourceView* SceneColorSRV = nullptr;
 
+
 	ID3D11Texture2D* SceneDepthTexture = nullptr;
 	ID3D11DepthStencilView* SceneDepthDSV = nullptr;
 	ID3D11ShaderResourceView* SceneDepthSRV = nullptr;
+	ID3D11DepthStencilView* SceneDepthDSV_ReadOnly = nullptr;
 
 	uint32 Stride = 0;
 

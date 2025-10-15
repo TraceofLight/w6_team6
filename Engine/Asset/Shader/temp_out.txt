@@ -1,0 +1,2 @@
+\tFRenderResourceFactory::CreateVertexShaderAndInputLayout(L"Asset/Shader/DepthCopy.hlsl", {}, &DepthCopyVS, $null);
+\tFRenderResourceFactory::CreatePixelShader(L"Asset/Shader/DepthCopy.hlsl", &DepthCopyPS);

@@ -786,6 +786,14 @@ void URenderer::CreateSceneRenderTargets()
 	depthSRVDesc.Texture2D.MipLevels = 1;
 	GetDevice()->CreateShaderResourceView(SceneDepthTexture, &depthSRVDesc, &SceneDepthSRV);
 
+	// Read Only DSV
+	D3D11_DEPTH_STENCIL_VIEW_DESC dsvRO = {};
+	dsvRO.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	dsvRO.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+	dsvRO.Texture2D.MipSlice = 0;
+	dsvRO.Flags = D3D11_DSV_READ_ONLY_DEPTH; // 필요 시 | D3D11_DSV_READ_ONLY_STENCIL
+	GetDevice()->CreateDepthStencilView(SceneDepthTexture, &dsvRO, &SceneDepthDSV_ReadOnly);
+
 	UE_LOG("Scene Render Targets Created: %ux%u", Width, Height);
 }
 

@@ -20,6 +20,8 @@ FFireBallPass::FFireBallPass(UPipeline* InPipeline,
 {
     CBPerObject = FRenderResourceFactory::CreateConstantBuffer<FPerObjectCB>();
     CBFireBall = FRenderResourceFactory::CreateConstantBuffer<FFireBallCB>();
+    CBInvViewProj = FRenderResourceFactory::CreateConstantBuffer<FMatrix>();
+    DepthSampler = FRenderResourceFactory::CreateSamplerState(D3D11_FILTER_MIN_MAG_MIP_POINT, D3D11_TEXTURE_ADDRESS_CLAMP);
 
     D3D11_DEPTH_STENCIL_DESC d = {};
     d.DepthEnable = TRUE;
@@ -40,11 +42,21 @@ void FFireBallPass::Execute(FRenderingContext& Context)
     const FMatrix ProjMat = VP->Projection;
     const FMatrix ViewProj = ViewMat * ProjMat;
 
-    // 공통: RTV + DSV 바인딩 (깊이 테스트 활성)
-    ID3D11RenderTargetView* rtv = URenderer::GetInstance().GetDeviceResources()->GetSceneColorRTV();
-    ID3D11DepthStencilView* dsv = URenderer::GetInstance().GetSceneDepthDSV(); // ← DSV!
-    ID3D11Texture2D* LinearDepth = URenderer::GetInstance().GetSceneDepthTexture();
-    //ctx->OMSetRenderTargets(1, &rtv, dsv);
+    
+    ID3D11RenderTargetView* rtv = URenderer::GetInstance().GetSceneColorRTV();
+    ID3D11Texture2D* depthTexture = URenderer::GetInstance().GetSceneDepthTexture();
+    ID3D11DepthStencilView* depthDSV = URenderer::GetInstance().GetSceneDepthDSV();
+    ID3D11DepthStencilView* depthReadOnlyDSV = URenderer::GetInstance().GetReadOnlyDSV();
+    ID3D11ShaderResourceView* depthSRV = URenderer::GetInstance().GetSceneDepthSRV();
+
+    ID3D11ShaderResourceView* nullSRV = nullptr;
+    //ctx->PSSetShaderResources(0, 1, &nullSRV); // <- SceneColorSRV 쓰던 슬롯
+    //ctx->VSSetShaderResources(0, 1, &nullSRV);
+    //ctx->OMSetRenderTargets(1, &rtv, depthReadOnlyDSV);
+    ctx->OMSetRenderTargets(1, &rtv, depthReadOnlyDSV);
+
+    ctx->PSSetShaderResources(5, 1, &depthSRV);
+    ctx->PSSetSamplers(5, 1, &DepthSampler);
 
     for (UFireBallComponent* Fire : Context.FireBalls)
     {
@@ -66,8 +78,8 @@ void FFireBallPass::Execute(FRenderingContext& Context)
         // - 카메라 안: Back-face  Cull, DepthFunc=ALWAYS     (읽기전용)
         //auto CullFrontRS = FRenderResourceFactory::GetRasterizerState({ ECullMode::Back, EFillMode::Solid });
         //auto CullBackRS = FRenderResourceFactory::GetRasterizerState({ ECullMode::Back,  EFillMode::Solid });
-        auto CullFrontRS = FRenderResourceFactory::GetRasterizerState({ ECullMode::None, EFillMode::Solid });
-        auto CullBackRS = FRenderResourceFactory::GetRasterizerState({ ECullMode::None,  EFillMode::Solid });
+        auto CullFrontRS = FRenderResourceFactory::GetRasterizerState({ ECullMode::Front, EFillMode::Solid });
+        auto CullBackRS = FRenderResourceFactory::GetRasterizerState({ ECullMode::Back,  EFillMode::Solid });
 
         ID3D11DepthStencilState* DS_LESS_EQUAL = DS_Read;         // (LESS_EQUAL, WriteOff)
         ID3D11DepthStencilState* DS_ALWAYS = DS_AlwaysRead;    // (ALWAYS,     WriteOff) ← 없으면 하나 만들어 두세요
@@ -87,7 +99,7 @@ void FFireBallPass::Execute(FRenderingContext& Context)
             D3D11_DEPTH_STENCIL_DESC d = {};
             d.DepthEnable = TRUE;
             d.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
-            d.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+            d.DepthFunc = D3D11_COMPARISON_ALWAYS;
             URenderer::GetInstance().GetDevice()->CreateDepthStencilState(&d, &DS_DebugAlways);
         }
         
@@ -107,18 +119,20 @@ void FFireBallPass::Execute(FRenderingContext& Context)
             //cameraInside ? CullBackRS : CullFrontRS,
             //cameraInside ? DS_ALWAYS : DS_LESS_EQUAL,
             PS,
-            BS_Opaque
+            BS_Opaque,
             //URenderer::GetInstance().GetAdditiveBlendState()
+            D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST
         };
 
-        //FPipelineInfo dbg = {
-        //    InputLayout,
-        //    VS,
-        //    RS_CullNone,        // ← 컬링 없음
-        //    DS_DebugAlways,     // ← 깊이 항상 통과(쓰기 OFF)
-        //    PS,
-        //    BS_Opaque           // ← Opaque로 확실히 보이게
-        //};
+        FPipelineInfo dbg = {
+            InputLayout,
+            VS, 
+            RS_CullNone,        // ← 컬링 없음
+            DS_DebugAlways,     // ← 깊이 항상 통과(쓰기 OFF)
+            PS,
+            BS_Opaque,           // ← Opaque로 확실히 보이게
+            D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST
+        };
 
         Pipeline->UpdatePipeline(Info);
         //Pipeline->UpdatePipeline(dbg);
@@ -129,6 +143,10 @@ void FFireBallPass::Execute(FRenderingContext& Context)
         POCB.gViewProj = ViewProj;
         FRenderResourceFactory::UpdateConstantBufferData(CBPerObject, POCB);
         Pipeline->SetConstantBuffer(1, true, CBPerObject);
+
+        FMatrix InvVP = ViewProj.Inverse();
+        FRenderResourceFactory::UpdateConstantBufferData(CBInvViewProj, InvVP);
+        Pipeline->SetConstantBuffer(3, false, CBInvViewProj);
 
         // FireBall 파라미터 (b2)
         FFireBallCB FBC{};
@@ -143,26 +161,29 @@ void FFireBallPass::Execute(FRenderingContext& Context)
         const FVector4 CenterView = FMatrix::VectorMultiply(FVector4(CenterWS.X, CenterWS.Y, CenterWS.Z, 1.0f), ViewMat);
         const float viewZ = std::max(1e-5f, std::abs(CenterView.Z));
         const float fy = 1.0f / std::max(1e-5f, tanf((Context.CurrentCamera ? Context.CurrentCamera->GetFovY() : 1.1f) * 0.5f));
+        //auto& ViewportInfo = URenderer::GetInstance().GetViewportClient()->GetViewportInfo();
+
+        //FBC.ViewportTopLeft = URenderer::GetInstance().GetViewportClient();
+        //FBC.ViewportSize;
+        //FBC.SceneRTSize;
+        
         FBC.gProjRadiusNDC = (Radius * fy) / viewZ;
         FRenderResourceFactory::UpdateConstantBufferData(CBFireBall, FBC);
         Pipeline->SetConstantBuffer(2, false, CBFireBall);
 
-        // (D3D11.0 경로) 깊이 SRV는 바인딩하지 않음 — 같은 리소스를 DSV와 SRV로 동시 바인딩 불가
-        // ctx->PSSetShaderResources(5, 1, &depthSRV);    // X
-        // ctx->PSSetSamplers(5, 1, &DepthSampler);       // X
-
         // 구 메시 Draw
         auto* VB = UAssetManager::GetInstance().GetVertexbuffer(EPrimitiveType::Sphere);
         uint32 Num = UAssetManager::GetInstance().GetNumVertices(EPrimitiveType::Sphere);
-        if (VB && Num > 0) {
+        if (VB && (Num > 0))
+        {
             Pipeline->SetVertexBuffer(VB, sizeof(FNormalVertex));
             Pipeline->Draw(Num, 0);
         }
-    }
+   }
 
-    // (디버그) t5 언바인드 - 이번 경로에선 바인딩 안 했지만, 혹시 남아있을 수도 있으니 안전하게
-    ID3D11ShaderResourceView* nullSRV = nullptr;
-    ctx->PSSetShaderResources(5, 1, &nullSRV);
+   ctx->PSSetShaderResources(5, 1, &nullSRV);
+
+   ctx->OMSetRenderTargets(1, &rtv, depthDSV);
 }
 
 void FFireBallPass::Release()
