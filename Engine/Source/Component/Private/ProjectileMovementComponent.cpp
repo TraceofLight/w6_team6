@@ -172,6 +172,7 @@ void UProjectileMovementComponent::Serialize(const bool bInIsLoading, JSON& InOu
 
     if (bInIsLoading)
     {
+        UE_LOG("Projectile: Serialize - LOADING");
         FJsonSerializer::ReadFloat(InOutHandle, "InitialSpeed", InitialSpeed, 1000.0f, false);
         FJsonSerializer::ReadFloat(InOutHandle, "MaxSpeed", MaxSpeed, 3000.0f, false);
         FJsonSerializer::ReadFloat(InOutHandle, "ProjectileGravityScale", ProjectileGravityScale,
@@ -184,9 +185,17 @@ void UProjectileMovementComponent::Serialize(const bool bInIsLoading, JSON& InOu
         FJsonSerializer::ReadBool(InOutHandle, "bEnabled", bEnabled, true, false);
         FJsonSerializer::ReadVector(InOutHandle, "Velocity", Velocity, FVector::ZeroVector(),
                                     false);
+
+        // 런타임 플래그는 로드 시 초기화
+        bHasBegunPlay = false;
+
+        UE_LOG("Projectile: Serialize: Loaded: InitialSpeed=%.1f, MaxSpeed=%.1f, bEnabled=%d",
+            InitialSpeed, MaxSpeed, bEnabled);
     }
     else
     {
+        UE_LOG("Projectile: Serialize: SAVING: InitialSpeed=%.1f, MaxSpeed=%.1f, bEnabled=%d",
+            InitialSpeed, MaxSpeed, bEnabled);
         InOutHandle["InitialSpeed"] = InitialSpeed;
         InOutHandle["MaxSpeed"] = MaxSpeed;
         InOutHandle["ProjectileGravityScale"] = ProjectileGravityScale;
@@ -195,6 +204,7 @@ void UProjectileMovementComponent::Serialize(const bool bInIsLoading, JSON& InOu
         InOutHandle["Bounciness"] = Bounciness;
         InOutHandle["Friction"] = Friction;
         InOutHandle["bEnabled"] = bEnabled;
-        InOutHandle["Velocity"] = FJsonSerializer::VectorToJson(Velocity);
+        // Velocity는 저장하지 않음
+        // 런타임에 BeginPlay에서 InitialSpeed로 다시 계산
     }
 }

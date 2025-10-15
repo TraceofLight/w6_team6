@@ -120,12 +120,13 @@ UClass* URotatingMovementComponent::GetSpecificWidgetClass() const
     return URotatingMovementComponentWidget::StaticClass();
 }
 
-void URotatingMovementComponent::Serialize(bool bInIsLoading, JSON& InOutHandle)
+void URotatingMovementComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 {
     UActorComponent::Serialize(bInIsLoading, InOutHandle);
 
     if (bInIsLoading)
     {
+        UE_LOG("Rotating: Serialize: LOADING");
         FJsonSerializer::ReadVector(InOutHandle, "RotationRate", RotationRate,
                                     FVector(0.0f, 90.0f, 0.0f), false);
         FJsonSerializer::ReadVector(InOutHandle, "PivotTranslation", PivotTranslation,
@@ -133,9 +134,17 @@ void URotatingMovementComponent::Serialize(bool bInIsLoading, JSON& InOutHandle)
         FJsonSerializer::ReadBool(InOutHandle, "bRotateInLocalSpace", bRotateInLocalSpace, true,
                                   false);
         FJsonSerializer::ReadBool(InOutHandle, "bEnabled", bEnabled, true, false);
+
+        // 런타임 플래그는 로드 시 초기화
+        bHasBegunPlay = false;
+
+        UE_LOG("Rotating: Serialize: Loaded: RotationRate=(%.1f, %.1f, %.1f), bEnabled=%d",
+            RotationRate.X, RotationRate.Y, RotationRate.Z, bEnabled);
     }
     else
     {
+        UE_LOG("Rotating: Serialize: SAVING: RotationRate=(%.1f, %.1f, %.1f), bEnabled=%d",
+            RotationRate.X, RotationRate.Y, RotationRate.Z, bEnabled);
         InOutHandle["RotationRate"] = FJsonSerializer::VectorToJson(RotationRate);
         InOutHandle["PivotTranslation"] = FJsonSerializer::VectorToJson(PivotTranslation);
         InOutHandle["bRotateInLocalSpace"] = bRotateInLocalSpace;

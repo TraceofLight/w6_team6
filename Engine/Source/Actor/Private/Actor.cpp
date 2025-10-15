@@ -135,6 +135,7 @@ void AActor::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 	    		SetActorScale3D(Scale); 
         	}
             // 모든 컴포넌트 중 데칼을 레벨에 등록해서 VisibleDecals에 반영
+            // 로드된 컴포넌트에서 Tick이 필요한 것이 있으면 Actor Tick 활성화
             if (GWorld && GWorld->GetLevel())
             {
                 for (UActorComponent* Comp : OwnedComponents)
@@ -143,8 +144,19 @@ void AActor::Serialize(const bool bInIsLoading, JSON& InOutHandle)
                     {
                         GWorld->GetLevel()->RegisterDecalComponent(Decal);
                     }
+
+                    // 컴포넌트가 Tick이 필요하면 Actor도 Tick 활성화
+                    if (Comp && Comp->CanTick())
+                    {
+                        bCanEverTick = true;
+                        UE_LOG("Actor: Serialize: Enabled Actor tick for %s (loaded %s)",
+                            GetName().ToString().data(), Comp->GetClass()->GetName().ToString().data());
+                    }
                 }
             }
+
+            // 런타임 플래그 초기화
+            bBegunPlay = false;
         }
     }
     // 저장 (Save)
