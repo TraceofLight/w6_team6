@@ -34,13 +34,46 @@ URotatingMovementComponentWidget::FindSelectedRotatingMovementComponent() const
     return nullptr;
 }
 
+void URotatingMovementComponentWidget::RefreshSceneComponentCache(AActor* CurrentActor, UActorComponent* CurrentComponent)
+{
+    // Check if we need to refresh the cache
+    if (CachedOwnerActor != CurrentActor || CachedSelectedComponent != CurrentComponent)
+    {
+        CachedOwnerActor = CurrentActor;
+        CachedSelectedComponent = CurrentComponent;
+        CachedSceneComponents.clear();
+
+        if (CurrentActor)
+        {
+            // Gather all SceneComponents from the actor
+            for (UActorComponent* Comp : CurrentActor->GetOwnedComponents())
+            {
+                if (USceneComponent* SceneComp = Cast<USceneComponent>(Comp))
+                {
+                    CachedSceneComponents.push_back(SceneComp);
+                }
+            }
+        }
+    }
+}
+
 void URotatingMovementComponentWidget::RenderWidget()
 {
     URotatingMovementComponent* Rotation = FindSelectedRotatingMovementComponent();
     if (!Rotation)
     {
+        // Clear cache when no component is selected
+        CachedOwnerActor = nullptr;
+        CachedSelectedComponent = nullptr;
+        CachedSceneComponents.clear();
         return;
     }
+
+    AActor* SelectedActor = GEditor->GetEditorModule()->GetSelectedActor();
+    UActorComponent* SelectedComponent = GEditor->GetEditorModule()->GetSelectedComponent();
+
+    // Refresh cache if actor or component selection changed
+    RefreshSceneComponentCache(SelectedActor, SelectedComponent);
 
     ImGui::Text("Rotating Movement");
     ImGui::Separator();
@@ -50,6 +83,60 @@ void URotatingMovementComponentWidget::RenderWidget()
     if (ImGui::Checkbox("Enabled", &bEnabled))
     {
         Rotation->SetEnabled(bEnabled);
+    }
+
+    ImGui::Separator();
+
+    // Updated Component Selection
+    ImGui::Text("Updated Component:");
+
+    // Get current UpdatedComponent
+    USceneComponent* CurrentUpdatedComponent = Rotation->GetUpdatedComponent();
+
+    // Create combo box for component selection
+    const char* PreviewValue = CurrentUpdatedComponent
+        ? CurrentUpdatedComponent->GetName().ToString().data()
+        : "None (Use RootComponent)";
+
+    if (ImGui::BeginCombo("##UpdatedComponent", PreviewValue))
+    {
+        // Option for None (use RootComponent)
+        bool bIsSelected = (CurrentUpdatedComponent == nullptr);
+        if (ImGui::Selectable("None (Use RootComponent)", bIsSelected))
+        {
+            Rotation->SetUpdatedComponent(nullptr);
+        }
+        if (bIsSelected)
+        {
+            ImGui::SetItemDefaultFocus();
+        }
+
+        // List all SceneComponents
+        for (USceneComponent* SceneComp : CachedSceneComponents)
+        {
+            if (SceneComp)
+            {
+                const char* ComponentName = SceneComp->GetName().ToString().data();
+                bIsSelected = (CurrentUpdatedComponent == SceneComp);
+
+                if (ImGui::Selectable(ComponentName, bIsSelected))
+                {
+                    Rotation->SetUpdatedComponent(SceneComp);
+                }
+
+                if (bIsSelected)
+                {
+                    ImGui::SetItemDefaultFocus();
+                }
+            }
+        }
+
+        ImGui::EndCombo();
+    }
+
+    if (ImGui::IsItemHovered())
+    {
+        ImGui::SetTooltip("Select which SceneComponent to rotate. If None, rotates the RootComponent.");
     }
 
     ImGui::Separator();

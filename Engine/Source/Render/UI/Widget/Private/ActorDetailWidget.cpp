@@ -439,6 +439,7 @@ void UActorDetailWidget::RenderAddComponentButton(AActor* InSelectedActor)
 		ImGui::Separator();
 		// TODO - mesh 컴포넌트는 추후에 메쉬가 없어도 추가될 수 있도록
 		const char* componentNames[] = {
+			"Scene",
 			"Triangle", "Sphere", "Square", "Cube",
 			"Static Mesh", "BillBoard", "Text", "Decal", "HeightFog", "FireBall",
 			"Projectile", "Rotating"
@@ -491,9 +492,13 @@ void UActorDetailWidget::AddComponentByName(AActor* InSelectedActor, const FStri
 	}
 
 	FName NewComponentName(InComponentName);
-	UActorComponent* NewComponent; 
+	UActorComponent* NewComponent;
 
-	if (InComponentName == "Triangle")
+	if (InComponentName == "Scene")
+	{
+		NewComponent = InSelectedActor->AddComponent<USceneComponent>(NewComponentName);
+	}
+	else if (InComponentName == "Triangle")
 	{
 		NewComponent = InSelectedActor->AddComponent<UTriangleComponent>(NewComponentName);
 	}
@@ -636,6 +641,7 @@ void UActorDetailWidget::RenderTransformEdit()
 
 	bool bNeedsBVHUpdate = false;
 
+	// Position with reset button
 	FVector ComponentPosition = SceneComponent->GetRelativeLocation();
 	if (ImGui::DragFloat3("Position", &ComponentPosition.X, 0.1f))
 	{
@@ -646,7 +652,18 @@ void UActorDetailWidget::RenderTransformEdit()
 	{
 		bNeedsBVHUpdate = true;
 	}
+	ImGui::SameLine();
+	if (ImGui::Button("R##ResetPosition"))
+	{
+		SceneComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 0.0f));
+		bNeedsBVHUpdate = true;
+	}
+	if (ImGui::IsItemHovered())
+	{
+		ImGui::SetTooltip("Reset Position to (0, 0, 0)");
+	}
 
+	// Rotation with reset button
 	FVector ComponentRotation = SceneComponent->GetRelativeRotation();
 	if (ImGui::DragFloat3("Rotation", &ComponentRotation.X, 1.0f))
 	{
@@ -657,14 +674,39 @@ void UActorDetailWidget::RenderTransformEdit()
 	{
 		bNeedsBVHUpdate = true;
 	}
+	ImGui::SameLine();
+	if (ImGui::Button("R##ResetRotation"))
+	{
+		SceneComponent->SetRelativeRotation(FVector(0.0f, 0.0f, 0.0f));
+		bNeedsBVHUpdate = true;
+	}
+	if (ImGui::IsItemHovered())
+	{
+		ImGui::SetTooltip("Reset Rotation to (0, 0, 0)");
+	}
 
-	// Scale 편집 UI
+	// Scale with reset button
 	if (SceneComponent->IsUniformScale())
 	{
 		float s = SceneComponent->GetRelativeScale3D().X;
 		if (ImGui::DragFloat("Scale", &s, 0.05f, 0.001f, 100.0f, "%.3f"))
 		{
 			SceneComponent->SetRelativeScale3D(FVector(s, s, s));
+		}
+		// 드래그가 끝났는지 확인
+		if (ImGui::IsItemDeactivatedAfterEdit())
+		{
+			bNeedsBVHUpdate = true;
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("R##ResetScale"))
+		{
+			SceneComponent->SetRelativeScale3D(FVector(1.0f, 1.0f, 1.0f));
+			bNeedsBVHUpdate = true;
+		}
+		if (ImGui::IsItemHovered())
+		{
+			ImGui::SetTooltip("Reset Scale to (1, 1, 1)");
 		}
 	}
 	else
@@ -674,14 +716,23 @@ void UActorDetailWidget::RenderTransformEdit()
 		{
 			SceneComponent->SetRelativeScale3D(ComponentScale);
 		}
+		// 드래그가 끝났는지 확인
+		if (ImGui::IsItemDeactivatedAfterEdit())
+		{
+			bNeedsBVHUpdate = true;
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("R##ResetScale"))
+		{
+			SceneComponent->SetRelativeScale3D(FVector(1.0f, 1.0f, 1.0f));
+			bNeedsBVHUpdate = true;
+		}
+		if (ImGui::IsItemHovered())
+		{
+			ImGui::SetTooltip("Reset Scale to (1, 1, 1)");
+		}
 	}
 
-	// 드래그가 끝났는지 확인
-	if (ImGui::IsItemDeactivatedAfterEdit())
-	{
-		bNeedsBVHUpdate = true;
-	}
-	
 	bool bUniform = SceneComponent->IsUniformScale();
 	if (ImGui::Checkbox("Uniform Scale", &bUniform))
 	{
@@ -694,7 +745,6 @@ void UActorDetailWidget::RenderTransformEdit()
 		}
 		SceneComponent->SetUniformScale(bUniform);
 	}
-
 
 	ImGui::PopID();
 
