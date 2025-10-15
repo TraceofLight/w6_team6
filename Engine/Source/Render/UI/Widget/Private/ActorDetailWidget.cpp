@@ -19,6 +19,7 @@
 #include "Component/Public/ProjectileMovementComponent.h"
 #include "Component/Public/RotatingMovementComponent.h"
 #include "Component/Public/FireBallComponent.h"
+#include "Component/Public/OrbitComponent.h"
 #include "Global/Quaternion.h"
 #include "Global/Vector.h"
 
@@ -442,7 +443,7 @@ void UActorDetailWidget::RenderAddComponentButton(AActor* InSelectedActor)
 			"Scene",
 			"Triangle", "Sphere", "Square", "Cube",
 			"Static Mesh", "BillBoard", "Text", "Decal", "HeightFog", "FireBall",
-			"Projectile", "Rotating"
+			"Projectile", "Rotating", "Orbit"
 		};
 
 		// 반복문 안에서 헬퍼 함수를 호출하여 원하는 UI를 그립니다.
@@ -545,6 +546,10 @@ void UActorDetailWidget::AddComponentByName(AActor* InSelectedActor, const FStri
 	else if (InComponentName == "FireBall")
 	{
 		NewComponent = InSelectedActor->AddComponent<UFireBallComponent>(NewComponentName);
+	}
+	else if (InComponentName == "Orbit")
+	{
+		NewComponent = InSelectedActor->AddComponent<UOrbitComponent>(NewComponentName);
 	}
 	else
 	{

@@ -342,6 +342,7 @@
     <ClInclude Include="Source\Component\Public\TextComponent.h" />
     <ClInclude Include="Source\Component\Public\UUIDTextComponent.h" />
     <ClInclude Include="Source\Component\Public\LineComponent.h" />
+    <ClInclude Include="Source\Component\Public\OrbitComponent.h" />
     <ClInclude Include="Source\Component\Public\PrimitiveComponent.h" />
     <ClInclude Include="Source\Component\Public\SceneComponent.h" />
     <ClInclude Include="Source\Component\Mesh\Public\CubeComponent.h" />
@@ -443,6 +444,7 @@
     <ClInclude Include="Source\Render\UI\Widget\Public\HeightFogComponentWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\InputInformationWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\MainBarWidget.h" />
+    <ClInclude Include="Source\Render\UI\Widget\Public\OrbitComponentWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\PostProcessWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\PrimitiveSpawnWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\ProjectileMovementComponentWidget.h" />
@@ -517,6 +519,7 @@
     <ClCompile Include="Source\Component\Private\TextComponent.cpp" />
     <ClCompile Include="Source\Component\Private\UUIDTextComponent.cpp" />
     <ClCompile Include="Source\Component\Private\LineComponent.cpp" />
+    <ClCompile Include="Source\Component\Private\OrbitComponent.cpp" />
     <ClCompile Include="Source\Component\Private\PrimitiveComponent.cpp" />
     <ClCompile Include="Source\Component\Private\SceneComponent.cpp" />
     <ClCompile Include="Source\Component\Mesh\Private\CubeComponent.cpp" />
@@ -605,6 +608,7 @@
     <ClCompile Include="Source\Render\UI\Widget\Private\HeightFogComponentWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\InputInformationWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\MainBarWidget.cpp" />
+    <ClCompile Include="Source\Render\UI\Widget\Private\OrbitComponentWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\PostProcessWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\PrimitiveSpawnWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\ProjectileMovementComponentWidget.cpp" />
