@@ -67,6 +67,10 @@ void FTextPass::Execute(FRenderingContext& Context)
     PipelineInfo.VertexShader = SelectedVS;
     PipelineInfo.PixelShader = SelectedPS;
     PipelineInfo.RasterizerState = FRenderResourceFactory::GetRasterizerState({ ECullMode::None, EFillMode::Solid });
+    if (Context.ViewMode == EViewModeIndex::VMI_Wireframe)
+    {
+        PipelineInfo.RasterizerState = FRenderResourceFactory::GetRasterizerState({ ECullMode::None, EFillMode::WireFrame });
+    }
     PipelineInfo.BlendState = URenderer::GetInstance().GetAlphaBlendState();
     PipelineInfo.DepthStencilState = URenderer::GetInstance().GetDefaultDepthStencilState(); // Or DisabledDepthStencilState based on a flag
     Pipeline->UpdatePipeline(PipelineInfo);
