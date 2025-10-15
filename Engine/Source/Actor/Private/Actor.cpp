@@ -41,14 +41,14 @@ void AActor::Serialize(const bool bInIsLoading, JSON& InOutHandle)
     	// 컴포넌트 포인터와 JSON 데이터를 임시 저장할 구조체
         struct FComponentLoadData
         {
-            USceneComponent* Component = nullptr;
+            UActorComponent* Component = nullptr; // ActorComponent로 변경
             FString ParentName; // ParentName을 임시 저장
             JSON ComponentData;     // 모든 JSON 데이터 임시 저장
         };
         TMap<FString, FComponentLoadData> ComponentMap;
         TArray<FComponentLoadData*> LoadList;
         // ----------------------------------------------------
-        
+
         // Components 목록 로드 및 역직렬화 시작
         JSON ComponentsJson;
         if (FJsonSerializer::ReadArray(InOutHandle, "Components", ComponentsJson))
@@ -59,43 +59,51 @@ void AActor::Serialize(const bool bInIsLoading, JSON& InOutHandle)
                 FString TypeString;
                 FString NameString;
                 std::string ParentNameStd;
-        
+
                 FJsonSerializer::ReadString(ComponentData, "Type", TypeString);
                 FJsonSerializer::ReadString(ComponentData, "Name", NameString);
                 FJsonSerializer::ReadString(ComponentData, "ParentName", ParentNameStd, ""); // 부모 이름 로드
-        
+
             	UClass* ComponentClass = UClass::FindClass(TypeString);
-                USceneComponent* NewComp = Cast<USceneComponent>(NewObject(ComponentClass));
-                
+                UActorComponent* NewComp = Cast<UActorComponent>(NewObject(ComponentClass));
+
                 if (NewComp)
                 {
                 	NewComp->SetOwner(this);
                 	OwnedComponents.push_back(NewComp);
-                    NewComp->Serialize(bInIsLoading, ComponentData); 
-                    
+                    NewComp->Serialize(bInIsLoading, ComponentData);
+
                     FComponentLoadData LoadData;
                     LoadData.Component = NewComp;
                     LoadData.ParentName = ParentNameStd;
                     LoadData.ComponentData = ComponentData;
-                    
+
                     ComponentMap[NameString] = LoadData;
                     LoadList.push_back(&ComponentMap[NameString]);
                 }
             }
-            
-            // --- [PASS 2: Hierarchy Rebuild] ---
+
+            // --- [PASS 2: Hierarchy Rebuild (SceneComponent만) ---
             for (FComponentLoadData* LoadDataPtr : LoadList)
             {
-                USceneComponent* ChildComp = LoadDataPtr->Component;
+                UActorComponent* Comp = LoadDataPtr->Component;
+                USceneComponent* ChildComp = Cast<USceneComponent>(Comp);
+
+                // SceneComponent가 아니면 계층구조 처리 건너뜀
+                if (!ChildComp)
+                {
+                	continue;
+                }
+
                 const FString& ParentName = LoadDataPtr->ParentName;
-                
+
                 if (!ParentName.empty())
                 {
                     // 5. ParentName을 키로 부모 컴포넌트 포인터 검색
                     auto ParentIt = ComponentMap.find(ParentName);
                     if (ParentIt != ComponentMap.end())
                     {
-                        USceneComponent* ParentComp = ParentIt->second.Component;
+                        USceneComponent* ParentComp = Cast<USceneComponent>(ParentIt->second.Component);
                         // 6. 부착 함수 호출
                         if (ParentComp)
                         {
@@ -127,6 +135,7 @@ void AActor::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 	    		SetActorScale3D(Scale); 
         	}
             // 모든 컴포넌트 중 데칼을 레벨에 등록해서 VisibleDecals에 반영
+            // 로드된 컴포넌트에서 Tick이 필요한 것이 있으면 Actor Tick 활성화
             if (GWorld && GWorld->GetLevel())
             {
                 for (UActorComponent* Comp : OwnedComponents)
@@ -135,8 +144,19 @@ void AActor::Serialize(const bool bInIsLoading, JSON& InOutHandle)
                     {
                         GWorld->GetLevel()->RegisterDecalComponent(Decal);
                     }
+
+                    // 컴포넌트가 Tick이 필요하면 Actor도 Tick 활성화
+                    if (Comp && Comp->CanTick())
+                    {
+                        bCanEverTick = true;
+                        UE_LOG("Actor: Serialize: Enabled Actor tick for %s (loaded %s)",
+                            GetName().ToString().data(), Comp->GetClass()->GetName().ToString().data());
+                    }
                 }
             }
+
+            // 런타임 플래그 초기화
+            bBegunPlay = false;
         }
     }
     // 저장 (Save)
@@ -146,25 +166,34 @@ void AActor::Serialize(const bool bInIsLoading, JSON& InOutHandle)
         InOutHandle["Rotation"] = FJsonSerializer::VectorToJson(GetActorRotation());
         InOutHandle["Scale"] = FJsonSerializer::VectorToJson(GetActorScale3D());
 
-        JSON ComponentsJson = json::Array(); 
+        JSON ComponentsJson = json::Array();
 
-        for (UActorComponent* Component : OwnedComponents) 
+        for (UActorComponent* Component : OwnedComponents)
         {
-        	USceneComponent* SceneComponent = Cast<USceneComponent>(Component);
-        	if (SceneComponent == nullptr) { continue; }
-        	
+        	if (!Component) { continue; }
+
             JSON ComponentJson;
-            ComponentJson["Type"] = SceneComponent->GetClass()->GetName().ToString();
-            
-            FString ComponentName = SceneComponent->GetName().ToString();
+            ComponentJson["Type"] = Component->GetClass()->GetName().ToString();
+
+            FString ComponentName = Component->GetName().ToString();
         	ComponentJson["Name"] = ComponentName;
 
-            USceneComponent* Parent = SceneComponent->GetParentComponent();
-            FString ParentName = Parent ? Parent->GetName().ToString() : "";
-        	ComponentJson["ParentName"] = ParentName;
+        	// SceneComponent인 경우 부모 정보도 저장
+        	USceneComponent* SceneComponent = Cast<USceneComponent>(Component);
+        	if (SceneComponent)
+        	{
+	            USceneComponent* Parent = SceneComponent->GetParentComponent();
+	            FString ParentName = Parent ? Parent->GetName().ToString() : "";
+	        	ComponentJson["ParentName"] = ParentName;
+        	}
+        	else
+        	{
+        		// ActorComponent는 부모가 없음
+        		ComponentJson["ParentName"] = "";
+        	}
 
-            SceneComponent->Serialize(bInIsLoading, ComponentJson); 
-            
+            Component->Serialize(bInIsLoading, ComponentJson);
+
             ComponentsJson.append(ComponentJson);
         }
         InOutHandle["Components"] = ComponentsJson;
@@ -254,6 +283,7 @@ UObject* AActor::Duplicate()
 {
 	AActor* Actor = Cast<AActor>(Super::Duplicate());
 	Actor->bCanEverTick = bCanEverTick;
+	Actor->bBegunPlay = false;
 	return Actor;
 }
 
@@ -265,6 +295,14 @@ void AActor::RegisterComponent(UActorComponent* InNewComponent)
 	}
 
 	OwnedComponents.push_back(InNewComponent);
+
+	// 컴포넌트가 Tick이 필요하면 Actor도 Tick 활성화
+	if (InNewComponent->CanTick())
+	{
+		bCanEverTick = true;
+		UE_LOG("RegisterComponent: Enabled Actor tick for %s (added %s)",
+			GetName().ToString().data(), InNewComponent->GetClass()->GetName().ToString().data());
+	}
 
 	// PrimitiveComponent 등록 (기존)
 	if (UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(InNewComponent))
@@ -405,8 +443,13 @@ void AActor::Tick(float DeltaTimes)
 
 void AActor::BeginPlay()
 {
-	if (bBegunPlay) return;
+	if (bBegunPlay)
+	{
+		UE_LOG_WARNING("BeginPlay: Already begun play for %s", GetName().ToString().c_str());
+		return;
+	}
 	bBegunPlay = true;
+	UE_LOG("BeginPlay: %s (Components: %zu)", GetName().ToString().c_str(), OwnedComponents.size());
 	for (auto& Component : OwnedComponents)
 	{
 		if (Component)

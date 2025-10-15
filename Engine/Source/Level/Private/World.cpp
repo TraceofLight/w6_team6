@@ -46,6 +46,16 @@ void UWorld::BeginPlay()
 	}
 
 	Level->Init();
+
+	// 모든 Actor의 BeginPlay 호출
+	for (AActor* Actor : Level->GetActors())
+	{
+		if (Actor)
+		{
+			Actor->BeginPlay();
+		}
+	}
+
 	bBegunPlay = true;
 }
 
@@ -55,6 +65,15 @@ bool UWorld::EndPlay()
 	{
 		bBegunPlay = false;
 		return false;
+	}
+
+	// 모든 Actor의 EndPlay 호출
+	for (AActor* Actor : Level->GetActors())
+	{
+		if (Actor)
+		{
+			Actor->EndPlay();
+		}
 	}
 
 	FlushPendingDestroy();

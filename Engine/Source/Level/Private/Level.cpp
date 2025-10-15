@@ -354,7 +354,7 @@ void ULevel::DuplicateSubObjects(UObject* DuplicatedObject)
 		// 복제된 컴포넌트들로 BVH 빌드
 		DuplicatedLevel->SceneBVH->Build(DuplicatedPrimitives);
 
-		UE_LOG("Level: Duplicated Scene BVH built with %d nodes (Total primitives: %d)",
+		UE_LOG("Level: Duplicated Scene BVH built with %d nodes (Total primitives: %zu)",
 		       DuplicatedLevel->SceneBVH->GetNodeCount(), DuplicatedPrimitives.size());
 	}
 }
@@ -504,7 +504,7 @@ void ULevel::BuildSceneBVH()
 
 	SceneBVH->Build(AllPrimitives);
 
-	UE_LOG("Level: Scene BVH built with %d nodes (Total primitives: %d)",
+	UE_LOG("Level: Scene BVH built with %d nodes (Total primitives: %zu)",
 	       SceneBVH->GetNodeCount(), AllPrimitives.size());
 }
 
