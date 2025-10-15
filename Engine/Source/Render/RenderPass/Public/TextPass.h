@@ -11,7 +11,7 @@ public:
 
 private:
     void RenderTextInternal(const FString& Text, const FMatrix& WorldMatrix);
-    
+
     // Font rendering resources
     ID3D11VertexShader* FontVertexShader = nullptr;
     ID3D11PixelShader* FontPixelShader = nullptr;
@@ -21,6 +21,11 @@ private:
     ID3D11Buffer* DynamicVertexBuffer = nullptr;
     ID3D11Buffer* FontDataConstantBuffer = nullptr;
     UFontRenderer::FFontConstantBuffer ConstantBufferData;
+
+    // Depth shader resources
+    ID3D11VertexShader* DepthVertexShader = nullptr;
+    ID3D11PixelShader* DepthPixelShader = nullptr;
+    ID3D11InputLayout* DepthInputLayout = nullptr;
 
     static constexpr uint32 MAX_FONT_VERTICES = 4096;
 };

@@ -107,15 +107,19 @@ void UEditorEngine::StartPIE()
     {
         EditorModule->SelectComponent(nullptr);
         EditorModule->SelectActor(nullptr);
+
+        // PIE 시작 전 현재 ViewMode 저장하고 Lit으로 변경
+        SavedViewMode = EditorModule->GetViewMode();
+        EditorModule->SetViewMode(EViewModeIndex::VMI_Lit);
     }
     UWorld* PIEWorld = Cast<UWorld>(EditorWorld->Duplicate());
-    
+
     if (PIEWorld)
     {
         PIEWorld->SetWorldType(EWorldType::PIE);
         FWorldContext PIEContext;
         PIEContext.SetWorld(PIEWorld);
-        WorldContexts.push_back(PIEContext); 
+        WorldContexts.push_back(PIEContext);
         GWorld = PIEWorld;
 
         PIEWorld->BeginPlay();
@@ -129,6 +133,9 @@ void UEditorEngine::EndPIE()
     {
         EditorModule->SelectComponent(nullptr);
         EditorModule->SelectActor(nullptr);
+
+        // PIE 종료 후 저장된 ViewMode로 복원
+        EditorModule->SetViewMode(SavedViewMode);
     }
     PIEState = EPIEState::Stopped;
     if (FWorldContext* PIEContext = GetPIEWorldContext())
@@ -136,11 +143,11 @@ void UEditorEngine::EndPIE()
         UWorld* PIEWorld = PIEContext->World();
         PIEWorld->EndPlay();
         delete PIEWorld;
-        
+
         WorldContexts.erase(std::remove(WorldContexts.begin(), WorldContexts.end(), *PIEContext),WorldContexts.end());
     }
-    
-    GWorld = GetEditorWorldContext().World(); 
+
+    GWorld = GetEditorWorldContext().World();
     GWorld->BeginPlay();
 }
 
