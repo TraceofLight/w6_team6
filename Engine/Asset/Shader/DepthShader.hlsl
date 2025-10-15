@@ -44,10 +44,10 @@ float4 mainPS(PS_INPUT input) : SV_TARGET
 {
 	// Normalize depth to 0-1 range
 	// Assuming typical far plane is around 1000-10000 units
-	float normalizedDepth = saturate(input.depth / 1000.0f);
+	float normalizedDepth = (input.depth % 100.0f) / 100.0f;
 
 	// Create color gradient from near (dark blue) to far (white)
-	float3 nearColor = float3(0.0f, 0.0f, 0.2f);	// Dark blue
+	float3 nearColor = float3(0.0f, 0.0f, 0.0f);	// Dark blue
 	float3 farColor = float3(1.0f, 1.0f, 1.0f);		// White
 
 	float3 depthColor = lerp(nearColor, farColor, normalizedDepth);
