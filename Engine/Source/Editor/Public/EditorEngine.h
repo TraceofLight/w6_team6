@@ -98,10 +98,13 @@ private:
     FWorldContext* GetPIEWorldContext();
     // 현재 PIE 세션 중인지 확인하고, 그렇다면 현재 WorldContext를 반환
     FWorldContext* GetActiveWorldContext();
-    
+
     EPIEState PIEState = EPIEState::Stopped;
     TArray<FWorldContext> WorldContexts;
     UEditor* EditorModule;
+
+    // PIE 시작 전 에디터의 ViewMode 저장
+    EViewModeIndex SavedViewMode = EViewModeIndex::VMI_Lit;
 };
 
 // UEditorEngine의 전역 인스턴스 포인터

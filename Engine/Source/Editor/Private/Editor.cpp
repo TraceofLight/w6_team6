@@ -102,14 +102,13 @@ void UEditor::RenderEditor(UCamera* InCamera)
 
 void UEditor::RenderDebugPrimitives(UCamera* InCamera)
 {
-	if (GEditor->IsPIESessionActive()) { return; }
-
-	// Scene Depth 모드에서는 그리드와 Axis를 렌더링하지 않음
-	if (CurrentViewMode != EViewModeIndex::VMI_SceneDepth)
+	if (GEditor->IsPIESessionActive())
 	{
-		BatchLines.Render();
-		Axis.Render();
+		return;
 	}
+
+	BatchLines.Render();
+	Axis.Render();
 
 	// SceneBVH 디버그 렌더링
 	RenderSceneBVH();

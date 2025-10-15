@@ -19,7 +19,7 @@ inline namespace DecalConfig
 	inline constexpr float GDecalUnitHalfExtent = 0.5f;
 }
 
-constexpr float PI = 3.141592f;
+constexpr float PI = 3.14159265359f;
 constexpr uint64 KILO = 1024;
 constexpr uint64 MEGA = 1024 * 1024;
 constexpr float MATH_EPSILON = 1e-6f;
