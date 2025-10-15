@@ -59,7 +59,9 @@ float4 mainPS(PS_INPUT i) : SV_Target
 
     float R0 = gRadius * (1.0 - saturate(gFeather));
     float t = saturate((d - R0) / max(gRadius - R0, 1e-5));
-    float a3d = pow(1.0 - t, max(1.0, gHardness));
+    //float a3d = pow(1.0 - t, max(1.0, gHardness));
+    
+    float a3d = pow(1 - t, 2);
 
     float normD = d / max(gRadius, 1e-5);
     float attPhys = 1.0 / (1.0 + normD * normD);
@@ -70,6 +72,7 @@ float4 mainPS(PS_INPUT i) : SV_Target
     {
         float nl = dot(normalize(i.worldNrm), Ldir);
         if (nl <= 0.0f) discard;
+        a3d *= nl;
     }
     float a = a3d * attPhys;
     return float4(gColor * (gIntensity * a), 1.0);

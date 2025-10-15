@@ -24,6 +24,11 @@ public:
     void SetRadiusFallOff(float In) { RadiusFallOff = In; }
     void SetLightColor(const FVector4& In) { Color = In; }
 
+    void Serialize(const bool bInIsLoading, JSON& InOutHandle);
+
+    UObject* Duplicate();
+    void DuplicateSubObjects(UObject* DuplicatedObject);
+
 private:
     float Intensity = 10.0f;
     float Radius = 5.0f;
