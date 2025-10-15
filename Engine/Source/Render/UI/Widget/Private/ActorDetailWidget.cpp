@@ -111,6 +111,36 @@ void UActorDetailWidget::RenderWidget()
 
 			ImGui::PopItemWidth(); // 폭 원복
 		}
+		else if (UFireBallComponent* FireBall = Cast<UFireBallComponent>(Component))
+		{
+			ImGui::Separator();
+			ImGui::Text("Semi Light Properties");
+
+			float Intensity = FireBall->GetIntensity();
+			if (ImGui::DragFloat("Intensity", &Intensity, 0.5f, 1.0f, 100.f, "%.1f"))
+			{
+				FireBall->SetIntensity(Intensity);
+			}
+
+			float Radius = FireBall->GetRadius();
+			if (ImGui::DragFloat("Radius", &Radius, 0.5f, 1.0f, 100.f, "%.1f"))
+			{
+				FireBall->SetRadius(Radius);
+			}
+
+			float RadiusFallOff = FireBall->GetRadiusFallOff();
+			if (ImGui::DragFloat("Radius Fall Off", &RadiusFallOff, 0.5f, 1.0f, 100.f, "%.1f"))
+			{
+				FireBall->SetRadiusFallOff(RadiusFallOff);
+			}
+
+			FVector4 Color = FireBall->GetLightColor();
+			float ColorArray[4] = { Color.X, Color.Y, Color.Z, Color.W };
+			if (ImGui::ColorEdit4("Color", ColorArray, 0))
+			{
+				FireBall->SetLightColor(FVector4{ ColorArray[0], ColorArray[1], ColorArray[2], ColorArray[3] });
+			}
+		}
 	}
 	
 	// 선택된 컴포넌트의 속성 UI

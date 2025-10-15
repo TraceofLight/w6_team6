@@ -33,5 +33,5 @@ private:
     float Intensity = 10.0f;
     float Radius = 5.0f;
     float RadiusFallOff = 0.5f;
-    FVector4 Color = FVector4{ 1.0f, 0.0f, 1.0f, 1.0f };
+    FVector4 Color = FVector4{ 1.0f, 1.0f, 1.0f, 1.0f };
 };

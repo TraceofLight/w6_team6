@@ -18,7 +18,7 @@ void UFireBallComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 
         // Color ·Îµå
         JSON ColorArray;
-        if (FJsonSerializer::ReadArray(InOutHandle, "Color", ColorArray, nullptr, false))
+        if (FJsonSerializer::ReadArray(InOutHandle, "Color", ColorArray, { 1.0f, 0.0f, 1.0f, 1.0f }, false))
         {
             if (ColorArray.size() >= 4)
             {
