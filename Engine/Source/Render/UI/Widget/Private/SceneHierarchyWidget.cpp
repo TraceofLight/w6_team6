@@ -129,17 +129,18 @@ void USceneHierarchyWidget::RenderWidget()
 		&& !ImGui::GetIO().WantTextInput && !ImGui::IsAnyItemActive()) {
 
 		auto& Input = UInputManager::GetInstance();
-		static bool sDeleteHeld = false;
+		static bool bDeleteHeld = false;
 		bool down = Input.IsKeyDown(EKeyInput::Delete);
 
-		if (down && !sDeleteHeld) {
-			sDeleteHeld = true;
-			if (AActor* sel = GEditor->GetEditorModule()->GetSelectedActor()) {
-				GWorld->DestroyActor(sel);
+		if (down && !bDeleteHeld) {
+			bDeleteHeld = true;
+			if (AActor* SelectedActor = GEditor->GetEditorModule()->GetSelectedActor())
+			{
+				GWorld->DestroyActor(SelectedActor);
 			}
 		}
 		else if (!down) {
-			sDeleteHeld = false;
+			bDeleteHeld = false;
 		}
 	}
 }
