@@ -45,7 +45,6 @@ void URenderer::Init(HWND InWindowHandle)
 	CreateTextureShader();
 	CreateDecalShader();
 	CreateDepthShader();
-	CreateFogShader();
 	CreateFireBallShader();
 	CreateFullscreenQuad();
 	CreateConstantBuffers();
@@ -103,7 +102,6 @@ void URenderer::Release()
 	ReleaseDefaultShader();
 	ReleaseDepthShader();
 	ReleaseFireBallShader();
-	ReleaseFogShader();
 	ReleaseFullscreenQuad();
 	ReleaseDepthStencilState();
 	ReleaseBlendState();
@@ -716,14 +714,9 @@ void URenderer::SetFXAAEdgeThresholdMin(float InValue)
 	float Clamped = std::clamp(InValue, 0.001f, 0.1f);
 	if (PostProcessUserParameters.EdgeThresholdMin != Clamped)
 	{
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 }
-	};
-
-	FRenderResourceFactory::CreateVertexShaderAndInputLayout(L"Asset/Shader/HeightFogShader.hlsl", FogLayout, &FogVertexShader, &FogInputLayout);
-	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/HeightFogShader.hlsl", &FogPixelShader);
-
-	ConstantBufferFog = FRenderResourceFactory::CreateConstantBuffer<FFogConstants>();
+		PostProcessUserParameters.EdgeThresholdMin = Clamped;
+		UpdatePostProcessConstantBuffer();
+	}
 }
 
 void URenderer::CreateFireBallShader()
@@ -742,12 +735,6 @@ void URenderer::CreateFireBallShader()
 	CBFireBall = FRenderResourceFactory::CreateConstantBuffer<FFireBallCB>();
 }
 
-void URenderer::ReleaseFogShader()
-{
-	SafeRelease(FogInputLayout);
-	SafeRelease(FogPixelShader);
-	SafeRelease(FogVertexShader);
-}
 
 void URenderer::ReleaseFireBallShader()
 {
@@ -897,56 +884,4 @@ void URenderer::ReleaseSceneRenderTargets()
 	SafeRelease(SceneDepthSRV);
 	SafeRelease(SceneDepthDSV);
 	SafeRelease(SceneDepthTexture);
-}
-
-	// Viewport 정보 설정 (Scene RT UV 계산용)
-	fogConstants.ViewportTopLeft = FVector2(InViewport.TopLeftX, InViewport.TopLeftY);
-	fogConstants.ViewportSize = FVector2(InViewport.Width, InViewport.Height);
-
-	// Scene RT 크기 가져오기
-	DXGI_SWAP_CHAIN_DESC swapChainDesc = {};
-	GetSwapChain()->GetDesc(&swapChainDesc);
-	fogConstants.SceneRTSize = FVector2(
-		static_cast<float>(swapChainDesc.BufferDesc.Width),
-		static_cast<float>(swapChainDesc.BufferDesc.Height)
-	);
-
-	// Inverse View-Projection Matrix using FMatrix::Inverse()
-	const FViewProjConstants& ViewProj = InCurrentCamera->GetFViewProjConstants();
-	FMatrix ViewProjMatrix = ViewProj.View * ViewProj.Projection;
-	fogConstants.InvViewProj = ViewProjMatrix.Inverse();
-
-	// Update constant buffer
-	FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferFog, fogConstants);
-
-	// Setup Pipeline
-	FPipelineInfo pipelineInfo = {};
-	pipelineInfo.InputLayout = FogInputLayout;
-	pipelineInfo.VertexShader = FogVertexShader;
-	pipelineInfo.RasterizerState = FRenderResourceFactory::GetRasterizerState(FRenderState());
-	pipelineInfo.DepthStencilState = NoTestButWriteDepthState;  // Depth test X, Depth write O (shader에서 depth 복사)
-	pipelineInfo.PixelShader = FogPixelShader;
-	pipelineInfo.BlendState = nullptr;  // 포스트 프로세스는 블렌딩 없이 덮어쓰기
-	pipelineInfo.Topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-
-	Pipeline->UpdatePipeline(pipelineInfo);
-	Pipeline->SetConstantBuffer(0, false, ConstantBufferFog);
-
-	// Bind Scene Color and Scene Depth textures
-	ID3D11ShaderResourceView* srvs[2] = { SceneColorSRV, SceneDepthSRV };
-	GetDeviceContext()->PSSetShaderResources(0, 2, srvs);
-
-	// Bind Sampler State
-	GetDeviceContext()->PSSetSamplers(0, 1, &FogSamplerState);
-
-	// Draw Fullscreen Quad
-	uint32 stride = sizeof(float) * 5;  // Position(3) + TexCoord(2)
-	uint32 offset = 0;
-	Pipeline->SetVertexBuffer(FullscreenQuadVB, stride);
-	Pipeline->SetIndexBuffer(FullscreenQuadIB, sizeof(uint32));
-	Pipeline->DrawIndexed(6, 0, 0);
-
-	// Unbind SRVs (다음 렌더패스에서 충돌 방지)
-	ID3D11ShaderResourceView* nullSRVs[2] = { nullptr, nullptr };
-	GetDeviceContext()->PSSetShaderResources(0, 2, nullSRVs);
 }

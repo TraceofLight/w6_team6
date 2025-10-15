@@ -410,7 +410,7 @@ void UActorDetailWidget::RenderAddComponentButton(AActor* InSelectedActor)
 		// TODO - mesh 컴포넌트는 추후에 메쉬가 없어도 추가될 수 있도록
 		const char* componentNames[] = {
 			"Triangle", "Sphere", "Square", "Cube",
-			"Static Mesh", "BillBoard", "Text", "Decal", "HeightFog", "FireBall"
+			"Static Mesh", "BillBoard", "Text", "Decal", "HeightFog", "FireBall",
 			"Projectile", "Rotating"
 		};
 
