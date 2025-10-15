@@ -1,5 +1,5 @@
 # SubUV material example for Sprite_1_6.png
-newmtl Gizmos
+newmtl Material_HOS
 Kd 1.0 1.0 1.0
 Ka 0.0 0.0 0.0
 Ks 0.0 0.0 0.0
@@ -9,8 +9,8 @@ d 1.0
 illum 1
 
 # Sprite sheet texture (1 row x 6 columns)
-map_Kd HOS_SubUV.png
-map_d HOS_SubUV.png
+map_Kd ../Asset/Texture/Sprite_HOS.png
+map_d ../Asset/Texture/Sprite_HOS.png
 
 # SubUV metadata (parsed by AssetManager)
 subuv_rows 16

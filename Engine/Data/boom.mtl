@@ -1,5 +1,5 @@
 # SubUV material example for Sprite_1_6.png
-newmtl Boom
+newmtl Material_Boom
 Kd 1.0 1.0 1.0
 Ka 0.0 0.0 0.0
 Ks 0.0 0.0 0.0
@@ -9,8 +9,8 @@ d 1.0
 illum 1
 
 # Sprite sheet texture (6 row x 6 columns)
-map_Kd boom.png
-map_d boom.png
+map_Kd ../Asset/Texture/Sprite_Boom.png
+map_d ../Asset/Texture/Sprite_Boom.png
 
 # SubUV metadata (parsed by AssetManager)
 subuv_rows 6
