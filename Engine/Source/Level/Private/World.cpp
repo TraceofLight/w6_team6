@@ -253,9 +253,13 @@ bool UWorld::DestroyActor(AActor* InActor)
 	// 선택도 해제
 	if (GEditor) {
 		if (GEditor->GetEditorModule()->GetSelectedActor() == InActor)
+		{
 			GEditor->GetEditorModule()->SelectActor(nullptr);
+		}
 		if (auto* SelComp = GEditor->GetEditorModule()->GetSelectedComponent())
+		{
 			if (SelComp->GetOwner() == InActor) GEditor->GetEditorModule()->SelectComponent(nullptr);
+		}
 	}
 
 	PendingDestroyActors.push_back(InActor);
@@ -398,4 +402,5 @@ void UWorld::CreateNewLevel(const FName& InLevelName)
 	NewLevel->SetName(InLevelName);
 	NewLevel->SetOuter(this);
 	SwitchToLevel(NewLevel);
+	BeginPlay();
 }
