@@ -16,6 +16,8 @@
 #include "Render/UI/Overlay/Public/StatOverlay.h"
 #include "Render/RenderPass/Public/RenderPass.h"
 #include "Component/Mesh/Public/StaticMesh.h"
+#include "Component/Public/PointLightComponent.h"
+#include "Manager/Asset/Public/AssetManager.h"
 #include "Optimization/Public/OcclusionCuller.h"
 #include "Render/Renderer/Public/RenderResourceFactory.h"
 #include "Render/RenderPass/Public/BillboardPass.h"
@@ -46,6 +48,7 @@ void URenderer::Init(HWND InWindowHandle)
 	CreateFullscreenQuad();
 	CreateConstantBuffers();
 	CreatePostProcessResources();
+	CreateLightVolumeResources();
 
 	// FontRenderer 초기화
 	FontRenderer = new UFontRenderer();
@@ -98,6 +101,7 @@ void URenderer::Release()
 	ReleaseDepthStencilState();
 	ReleaseBlendState();
 	ReleasePostProcessResources();
+	ReleaseLightVolumeResources();
 	FRenderResourceFactory::ReleaseRasterizerState();
 	for (auto& RenderPass : RenderPasses)
 	{
@@ -309,6 +313,12 @@ void URenderer::Update()
 		{
 			TIME_PROFILE(RenderDebugPrimitives)
 			GEditor->GetEditorModule()->RenderDebugPrimitives(CurrentCamera);
+		}
+
+		// === Fireball Lights 렌더링: Scene RT에 Additive 렌더링 ===
+		{
+			TIME_PROFILE(RenderFireballLights)
+			RenderFireballLights(CurrentCamera, ClientViewport);
 		}
 
 		// === Post-Processing: Scene RT -> 백버퍼 ===
@@ -827,5 +837,213 @@ void URenderer::ReleaseSceneRenderTargets()
 	SafeRelease(SceneDepthSRV);
 	SafeRelease(SceneDepthDSV);
 	SafeRelease(SceneDepthTexture);
+}
+
+// ========================================
+// Light Volume (Fireball) Implementation
+// ========================================
+
+void URenderer::CreateLightVolumeResources()
+{
+	// Light Volume 셰이더 로드
+	TArray<D3D11_INPUT_ELEMENT_DESC> LightVolumeLayout =
+	{
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(FNormalVertex, Position), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(FNormalVertex, Normal), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, offsetof(FNormalVertex, Color), D3D11_INPUT_PER_VERTEX_DATA, 0	},
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, offsetof(FNormalVertex, TexCoord), D3D11_INPUT_PER_VERTEX_DATA, 0	}
+	};
+
+	FRenderResourceFactory::CreateVertexShaderAndInputLayout(
+		L"Asset/Shader/PointLightShader.hlsl",
+		LightVolumeLayout,
+		&LightVolumeVertexShader,
+		&LightVolumeInputLayout
+	);
+
+	FRenderResourceFactory::CreatePixelShader(
+		L"Asset/Shader/PointLightShader.hlsl",
+		&LightVolumePixelShader
+	);
+
+	// Shader 로딩 실패 확인
+	if (!LightVolumeVertexShader || !LightVolumePixelShader || !LightVolumeInputLayout)
+	{
+		UE_LOG_ERROR("Light Volume Shader compilation failed!");
+		UE_LOG_ERROR("  VS=%p, PS=%p, Layout=%p", LightVolumeVertexShader, LightVolumePixelShader, LightVolumeInputLayout);
+		return;
+	}
+	else
+	{
+		UE_LOG("Light Volume Shaders Loaded: VS=%p, PS=%p, Layout=%p",
+			LightVolumeVertexShader, LightVolumePixelShader, LightVolumeInputLayout);
+	}
+
+	// 선형 클램프 샘플러 (Depth 샘플링용)
+	LightVolumeSamplerState = FRenderResourceFactory::CreateSamplerState(
+		D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_CLAMP
+	);
+
+	// Light Properties Constant Buffer
+	ConstantBufferLightProperties = FRenderResourceFactory::CreateConstantBuffer<FLightProperties>();
+
+	if (!ConstantBufferLightProperties)
+	{
+		UE_LOG_ERROR("Failed to create ConstantBufferLightProperties!");
+		UE_LOG_ERROR("sizeof(FLightProperties) = %zu bytes", sizeof(FLightProperties));
+		return;
+	}
+	else
+	{
+		UE_LOG("ConstantBufferLightProperties created: %p, size=%zu bytes",
+			ConstantBufferLightProperties, sizeof(FLightProperties));
+	}
+
+	// Depth Test Only State (Write 없음)
+	D3D11_DEPTH_STENCIL_DESC DepthTestOnlyDesc = {};
+	DepthTestOnlyDesc.DepthEnable = TRUE;
+	DepthTestOnlyDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;  // Depth write 비활성화
+	DepthTestOnlyDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;  // Depth test로 올바른 occlusion
+	DepthTestOnlyDesc.StencilEnable = FALSE;
+	GetDevice()->CreateDepthStencilState(&DepthTestOnlyDesc, &LightVolumeDepthState);
+
+	UE_LOG_SUCCESS("Light Volume Resources Created Successfully");
+}
+
+void URenderer::ReleaseLightVolumeResources()
+{
+	SafeRelease(LightVolumeVertexShader);
+	SafeRelease(LightVolumePixelShader);
+	SafeRelease(LightVolumeInputLayout);
+	SafeRelease(LightVolumeSamplerState);
+	SafeRelease(ConstantBufferLightProperties);
+	SafeRelease(LightVolumeDepthState);
+}
+
+void URenderer::RenderFireballLights(UCamera* InCurrentCamera, const D3D11_VIEWPORT& InViewport)
+{
+	const ULevel* CurrentLevel = GWorld->GetLevel();
+	if (!CurrentLevel) return;
+
+	const auto& Fireballs = CurrentLevel->GetAllPointLights();
+	if (Fireballs.empty()) return;
+
+	auto* Context = GetDeviceContext();
+
+	// IMPORTANT: Scene RT 바인딩, 하지만 DSV는 nullptr!
+	// Depth texture를 SRV로 읽어야 하므로 DSV로 바인딩하면 안됨
+	// (DirectX 11: 같은 리소스를 DSV와 SRV로 동시에 사용 불가)
+	ID3D11RenderTargetView* SceneRtvs[] = { SceneColorRTV };
+	Context->OMSetRenderTargets(1, SceneRtvs, nullptr);  // DSV = nullptr!
+	Context->RSSetViewports(1, &InViewport);
+
+	// Additive Blend + NO Depth Test (DSV가 nullptr이므로 depth test 불가능)
+	Context->OMSetBlendState(AdditiveBlendState, nullptr, 0xFFFFFFFF);
+	Context->OMSetDepthStencilState(DisabledDepthStencilState, 0);  // Depth 완전 비활성화!
+
+	// Pipeline 설정
+	FPipelineInfo PipelineInfo = {
+		LightVolumeInputLayout,
+		LightVolumeVertexShader,
+		FRenderResourceFactory::GetRasterizerState({ ECullMode::None, EFillMode::Solid }),  // Culling 비활성화!
+		DisabledDepthStencilState,  // Depth 완전 비활성화 (DSV가 nullptr)
+		LightVolumePixelShader,
+		AdditiveBlendState,
+		D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST
+	};
+	Pipeline->UpdatePipeline(PipelineInfo);
+
+	// Constant Buffer 유효성 확인
+	if (!ConstantBufferLightProperties)
+	{
+		UE_LOG_ERROR("ConstantBufferLightProperties is nullptr! Skipping light rendering.");
+		return;
+	}
+
+	// Constant Buffers 설정
+	Pipeline->SetConstantBuffer(1, true, ConstantBufferViewProj);
+	Pipeline->SetConstantBuffer(2, false, ConstantBufferLightProperties);
+
+	// Depth Texture 바인딩
+	Context->PSSetShaderResources(0, 1, &SceneDepthSRV);
+	Pipeline->SetSamplerState(0, false, LightVolumeSamplerState);
+
+	// Inverse ViewProj Matrix 계산
+	const FViewProjConstants& ViewProj = InCurrentCamera->GetFViewProjConstants();
+	FMatrix ViewProjMatrix = ViewProj.View * ViewProj.Projection;
+	FMatrix InvViewProj = ViewProjMatrix.Inverse();
+
+	// Scene RT 크기 가져오기 (PostProcess와 동일)
+	DXGI_SWAP_CHAIN_DESC swapChainDesc = {};
+	GetSwapChain()->GetDesc(&swapChainDesc);
+
+	// 각 Fireball 렌더링
+	for (auto* Fireball : Fireballs)
+	{
+		if (!Fireball || !Fireball->GetOwner()) continue;
+
+		// Light Properties 설정
+		FLightProperties lightProps;
+		lightProps.LightPosition = Fireball->GetWorldLocation();
+		lightProps.Intensity = Fireball->GetIntensity();
+		lightProps.LightColor = Fireball->GetLightColor();
+		lightProps.Radius = Fireball->GetRadius();
+		lightProps.RadiusFalloff = Fireball->GetRadiusFalloff();
+		lightProps.CameraPosition = InCurrentCamera->GetLocation();
+
+		// Viewport 정보 (PostProcess와 동일한 방식)
+		lightProps.ViewportTopLeft = FVector2(InViewport.TopLeftX, InViewport.TopLeftY);
+		lightProps.ViewportSize = FVector2(InViewport.Width, InViewport.Height);
+		lightProps.SceneRTSize = FVector2(
+			static_cast<float>(swapChainDesc.BufferDesc.Width),
+			static_cast<float>(swapChainDesc.BufferDesc.Height)
+		);
+
+		lightProps.InvViewProj = InvViewProj;
+
+		// Constant Buffer 업데이트
+		FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferLightProperties, lightProps);
+		Pipeline->SetConstantBuffer(2, false, ConstantBufferLightProperties);
+
+		// World Transform (Sphere를 라이트 위치/반경으로 스케일)
+		FVector LightPos = Fireball->GetWorldLocation();
+		FVector LightScale = FVector(Fireball->GetRadius(), Fireball->GetRadius(), Fireball->GetRadius());
+		FMatrix WorldMatrix = FMatrix::GetModelMatrix(LightPos, FVector::ZeroVector(), LightScale);
+
+		FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferModels, WorldMatrix);
+		Pipeline->SetConstantBuffer(0, true, ConstantBufferModels);
+
+		// Sphere Mesh 렌더링 (AssetManager에서 직접 가져옴 - Fireball visual mesh는 없음)
+		UAssetManager& AssetMgr = UAssetManager::GetInstance();
+		ID3D11Buffer* SphereVB = AssetMgr.GetVertexbuffer(EPrimitiveType::Sphere);
+		ID3D11Buffer* SphereIB = AssetMgr.GetIndexbuffer(EPrimitiveType::Sphere);
+		uint32 SphereNumIndices = AssetMgr.GetNumIndices(EPrimitiveType::Sphere);
+
+		Pipeline->SetVertexBuffer(SphereVB, sizeof(FNormalVertex));
+		if (SphereIB)
+		{
+			Pipeline->SetIndexBuffer(SphereIB, 0);
+			Pipeline->DrawIndexed(SphereNumIndices, 0, 0);
+		}
+		else
+		{
+			uint32 SphereNumVertices = AssetMgr.GetNumVertices(EPrimitiveType::Sphere);
+			Pipeline->Draw(SphereNumVertices, 0);
+		}
+	}
+
+	// SRV 언바인드
+	ID3D11ShaderResourceView* NullSRV = nullptr;
+	Context->PSSetShaderResources(0, 1, &NullSRV);
+
+	// CRITICAL: RTV도 unbind해야 함!
+	// PostProcess가 SceneColorSRV를 읽을 수 있도록 SceneColorRTV를 unbind
+	// (DirectX 11: 같은 리소스를 RTV와 SRV로 동시 사용 불가)
+	ID3D11RenderTargetView* NullRTV = nullptr;
+	Context->OMSetRenderTargets(1, &NullRTV, nullptr);
+
+	// Blend/Depth State 복원
+	Context->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFF);
+	Context->OMSetDepthStencilState(DefaultDepthStencilState, 0);
 }
 

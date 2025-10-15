@@ -314,6 +314,7 @@
     <ClInclude Include="Source\Actor\Public\BillBoardActor.h" />
     <ClInclude Include="Source\Actor\Public\CubeActor.h" />
     <ClInclude Include="Source\Actor\Public\DecalActor.h" />
+    <ClInclude Include="Source\Actor\Public\FireballActor.h" />
     <ClInclude Include="Source\Actor\Public\HeightFogActor.h" />
     <ClInclude Include="Source\Actor\Public\MovingCubeActor.h" />
     <ClInclude Include="Source\Actor\Public\SemiLightActor.h" />
@@ -334,6 +335,7 @@
     <ClInclude Include="Source\Component\Public\ActorComponent.h" />
     <ClInclude Include="Source\Component\Public\BillBoardComponent.h" />
     <ClInclude Include="Source\Component\Public\DecalComponent.h" />
+    <ClInclude Include="Source\Component\Public\PointLightComponent.h" />
     <ClInclude Include="Source\Component\Public\HeightFogComponent.h" />
     <ClInclude Include="Source\Component\Public\ProjectileMovementComponent.h" />
     <ClInclude Include="Source\Component\Public\RotatingMovementComponent.h" />
@@ -436,6 +438,7 @@
     <ClInclude Include="Source\Render\UI\Widget\Public\CameraControlWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\ConsoleWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\DecalComponentWidget.h" />
+    <ClInclude Include="Source\Render\UI\Widget\Public\UPointLightComponentWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\FPSWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\HeightFogComponentWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\InputInformationWidget.h" />
@@ -483,6 +486,7 @@
     <ClCompile Include="Source\Actor\Private\BillBoardActor.cpp" />
     <ClCompile Include="Source\Actor\Private\CubeActor.cpp" />
     <ClCompile Include="Source\Actor\Private\DecalActor.cpp" />
+    <ClCompile Include="Source\Actor\Private\FireballActor.cpp" />
     <ClCompile Include="Source\Actor\Private\HeightFogActor.cpp" />
     <ClCompile Include="Source\Actor\Private\MovingCubeActor.cpp">
     </ClCompile>
@@ -506,6 +510,7 @@
     <ClCompile Include="Source\Component\Private\ActorComponent.cpp" />
     <ClCompile Include="Source\Component\Private\BillBoardComponent.cpp" />
     <ClCompile Include="Source\Component\Private\DecalComponent.cpp" />
+    <ClCompile Include="Source\Component\Private\PointLightComponent.cpp" />
     <ClCompile Include="Source\Component\Private\HeightFogComponent.cpp" />
     <ClCompile Include="Source\Component\Private\ProjectileMovementComponent.cpp" />
     <ClCompile Include="Source\Component\Private\RotatingMovementComponent.cpp" />
@@ -595,6 +600,7 @@
     <ClCompile Include="Source\Render\UI\Widget\Private\CameraControlWIdget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\ConsoleWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\DecalComponentWidget.cpp" />
+    <ClCompile Include="Source\Render\UI\Widget\Private\UPointLightComponentWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\FPSWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\HeightFogComponentWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\InputInformationWidget.cpp" />

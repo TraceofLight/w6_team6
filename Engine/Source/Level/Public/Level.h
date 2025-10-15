@@ -3,6 +3,8 @@
 #include "Editor/Public/Camera.h"
 #include "Global/Enum.h"
 
+class UPointLightComponent;
+
 namespace json { class JSON; }
 using JSON = json::JSON;
 
@@ -83,6 +85,28 @@ public:
 	 * @return 렌더링 가능한 Decal 배열 (const 참조)
 	 */
 	const TArray<UDecalComponent*>& GetVisibleDecals() const { return VisibleDecals; }
+
+	// ========================================
+	// Fireball Management API
+	// ========================================
+
+	/**
+	 * PointLight 컴포넌트 등록
+	 * PointLightComponent::BeginPlay()에서 자동 호출됨
+	 */
+	void RegisterPointLight(UPointLightComponent* InFireball);
+
+	/**
+	 * PointLight 컴포넌트 등록 해제
+	 * PointLightComponent::~PointLightComponent()에서 자동 호출됨
+	 */
+	void UnregisterPointLight(UPointLightComponent* InFireball);
+
+	/**
+	 * 전체 PointLight 목록
+	 * @return 레벨에 속한 모든 PointLight 배열
+	 */
+	const TArray<UPointLightComponent*>& GetAllPointLights() const { return AllPointLights; }
 
 	/**
 	 * BVH 재구축 필요 여부
@@ -187,6 +211,11 @@ private:
 	TArray<UDecalComponent*> VisibleDecals;       // 가시 Decal만
 	TSet<UDecalComponent*> DirtyDecals;           // 변경된 Decal
 	bool bDecalsDirty = false;                     // BVH 재구축 플래그
+
+	// ========================================
+	// Fireball Cache
+	// ========================================
+	TArray<class UPointLightComponent*> AllPointLights;  // 모든 Fireball
 
 	// ========================================
 	// Scene BVH

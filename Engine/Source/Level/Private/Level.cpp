@@ -14,6 +14,7 @@
 #include "Global/SceneBVH.h"
 #include <json.hpp>
 
+#include "Component/Public/PointLightComponent.h"
 #include "Component/Public/UUIDTextComponent.h"
 #include "Render/UI/Widget/Public/DecalComponentWidget.h"
 
@@ -464,6 +465,48 @@ void ULevel::MarkDecalIndexClean()
 {
 	DirtyDecals.clear();
 	bDecalsDirty = false;
+}
+
+// ========================================
+// Fireball Management Implementation
+// ========================================
+
+void ULevel::RegisterPointLight(UPointLightComponent* InFireball)
+{
+	if (!InFireball)
+	{
+		UE_LOG("Level: RegisterPointLight called with nullptr");
+		return;
+	}
+
+	// PointLight 목록에 추가 (중복 방지)
+	if (std::find(AllPointLights.begin(), AllPointLights.end(), InFireball) == AllPointLights.end())
+	{
+		AllPointLights.push_back(InFireball);
+	}
+
+	UE_LOG("Level: PointLight '%s' registered (Intensity: %.1f, Radius: %.1f)",
+		InFireball->GetName().ToString().data(),
+		InFireball->GetIntensity(),
+		InFireball->GetRadius());
+}
+
+void ULevel::UnregisterPointLight(UPointLightComponent* InFireball)
+{
+	if (!InFireball)
+	{
+		return;
+	}
+
+	// AllPointLights에서 제거
+	if (auto It = std::find(AllPointLights.begin(), AllPointLights.end(), InFireball);
+		It != AllPointLights.end())
+	{
+		*It = std::move(AllPointLights.back());
+		AllPointLights.pop_back();
+	}
+
+	UE_LOG("Level: PointLight '%s' unregistered", InFireball->GetName().ToString().data());
 }
 
 // ========================================

@@ -46,6 +46,28 @@ struct FPostProcessParameters
 	FMatrix InvViewProj;
 };
 
+// Light Volume Properties (Constant Buffer for Shader)
+// IMPORTANT: HLSL packing rules 준수 (16-byte alignment)
+struct alignas(16) FLightProperties
+{
+	FVector LightPosition;       // 월드 공간 라이트 위치 (offset 0)
+	float Intensity;             // 조명 강도 (offset 12)
+
+	FVector LightColor;          // RGB 색상 (offset 16)
+	float Radius;                // 영향 반경 (offset 28)
+
+	FVector CameraPosition;      // 카메라 위치 (offset 32)
+	float RadiusFalloff;         // 감쇠 지수 (offset 44)
+
+	FVector2 ViewportTopLeft;    // Viewport 시작 위치 (offset 48)
+	FVector2 ViewportSize;       // Viewport 크기 (offset 56)
+
+	FVector2 SceneRTSize;        // Scene RT 전체 크기 (offset 64)
+	FVector2 Padding2;           // PADDING (offset 72)
+
+	FMatrix InvViewProj;         // World Position 재구성용 (offset 80)
+};
+
 /**
  * @brief Rendering Pipeline 전반을 처리하는 클래스
  */
@@ -121,6 +143,10 @@ public:
 	float GetFXAASubpixelBlend() const { return PostProcessUserParameters.SubpixelBlend; }
 	float GetFXAAEdgeThreshold() const { return PostProcessUserParameters.EdgeThreshold; }
 	float GetFXAAEdgeThresholdMin() const { return PostProcessUserParameters.EdgeThresholdMin; }
+
+	// Light Volume (Fireball) Rendering
+	void RenderFireballLights(UCamera* InCurrentCamera, const D3D11_VIEWPORT& InViewport);
+
 private:
 	UPipeline* Pipeline = nullptr;
 	UDeviceResources* DeviceResources = nullptr;
@@ -197,6 +223,17 @@ private:
 	void ReleasePostProcessResources();
 	void ExecutePostProcess(UCamera* InCurrentCamera, const D3D11_VIEWPORT& InViewport);
 	void UpdatePostProcessConstantBuffer();
+
+	// Light Volume Resources
+	ID3D11VertexShader* LightVolumeVertexShader = nullptr;
+	ID3D11PixelShader* LightVolumePixelShader = nullptr;
+	ID3D11InputLayout* LightVolumeInputLayout = nullptr;
+	ID3D11SamplerState* LightVolumeSamplerState = nullptr;
+	ID3D11Buffer* ConstantBufferLightProperties = nullptr;
+	ID3D11DepthStencilState* LightVolumeDepthState = nullptr;  // Depth test only, no write
+
+	void CreateLightVolumeResources();
+	void ReleaseLightVolumeResources();
 
 	TArray<class FRenderPass*> RenderPasses;
 };

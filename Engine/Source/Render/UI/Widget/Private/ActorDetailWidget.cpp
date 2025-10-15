@@ -18,6 +18,7 @@
 #include "Component/Public/SemiLightComponent.h"
 #include "Component/Public/ProjectileMovementComponent.h"
 #include "Component/Public/RotatingMovementComponent.h"
+#include "Component/Public/PointLightComponent.h"
 #include "Global/Quaternion.h"
 #include "Global/Vector.h"
 
@@ -410,7 +411,7 @@ void UActorDetailWidget::RenderAddComponentButton(AActor* InSelectedActor)
 		const char* componentNames[] = {
 			"Triangle", "Sphere", "Square", "Cube",
 			"Static Mesh", "BillBoard", "Text", "Decal", "HeightFog",
-			"Projectile", "Rotating"
+			"Projectile", "Rotating", "PointLight"
 		};
 
 		// 반복문 안에서 헬퍼 함수를 호출하여 원하는 UI를 그립니다.
@@ -505,6 +506,10 @@ void UActorDetailWidget::AddComponentByName(AActor* InSelectedActor, const FStri
 	else if (InComponentName == "Rotating")
 	{
 		NewComponent = InSelectedActor->AddComponent<URotatingMovementComponent>(NewComponentName);
+	}
+	else if (InComponentName == "PointLight")
+	{
+		NewComponent = InSelectedActor->AddComponent<UPointLightComponent>(NewComponentName);
 	}
 	else
 	{

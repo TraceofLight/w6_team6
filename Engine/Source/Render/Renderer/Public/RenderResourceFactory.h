@@ -22,7 +22,7 @@ public:
 	static ID3D11Buffer* CreateConstantBuffer()
 	{
 		D3D11_BUFFER_DESC Desc = {};
-		Desc.ByteWidth = sizeof(T) + 0xf & 0xfffffff0;
+		Desc.ByteWidth = (sizeof(T) + 0xf) & 0xfffffff0;
 		Desc.Usage = D3D11_USAGE_DYNAMIC;
 		Desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 		Desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
