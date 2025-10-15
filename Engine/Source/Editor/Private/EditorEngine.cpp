@@ -93,10 +93,16 @@ bool UEditorEngine::IsPIESessionActive() const
 
 void UEditorEngine::StartPIE()
 {
-    if (PIEState != EPIEState::Stopped) { return; }
+    if (PIEState != EPIEState::Stopped)
+    {
+        return;
+    }
     PIEState = EPIEState::Playing;
     UWorld* EditorWorld = GetEditorWorldContext().World();
-    if (!EditorWorld) { return; }
+    if (!EditorWorld)
+    {
+        return;
+    }
     if (EditorModule)
     {
         EditorModule->SelectComponent(nullptr);
