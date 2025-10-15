@@ -643,9 +643,10 @@ void URenderer::CreateFireBallShader()
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(FNormalVertex, Position), D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	};
 
-	// Use default factory entries (mainVS/mainPS)
-	FRenderResourceFactory::CreateVertexShaderAndInputLayout(L"Asset/Shader/FireBallShader.hlsl", FireBallLayout, &FireBallVertexShader, &FireBallInputLayout);
-	FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/FireBallShader.hlsl", &FireBallPixelShader);
+    // Use default factory entries (mainVS/mainPS)
+    // Viewport-corrected version of FireBall shader
+    FRenderResourceFactory::CreateVertexShaderAndInputLayout(L"Asset/Shader/FireBallShaderFixed.hlsl", FireBallLayout, &FireBallVertexShader, &FireBallInputLayout);
+    FRenderResourceFactory::CreatePixelShader(L"Asset/Shader/FireBallShaderFixed.hlsl", &FireBallPixelShader);
 
 	CBPerObject = FRenderResourceFactory::CreateConstantBuffer<FPerObjectCB>();
 	CBFireBall = FRenderResourceFactory::CreateConstantBuffer<FFireBallCB>();
