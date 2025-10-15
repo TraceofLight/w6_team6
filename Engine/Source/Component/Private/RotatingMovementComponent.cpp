@@ -66,13 +66,12 @@ void URotatingMovementComponent::TickComponent()
     }
 
     // Calculate rotation delta (degrees to apply this frame)
-    FVector RotationDelta = RotationRate * DeltaTime;
+    FVector RotationDeltaDegrees = RotationRate * DeltaTime;
 
-    // Get current rotation
-    FVector CurrentRotation = RootComponent->GetWorldRotation();
-    FVector NewRotation = CurrentRotation + RotationDelta;
+    // Convert to radians for matrix calculations
+    constexpr float DegToRad = PI / 180.0f;
 
-    // 오버플로우 방지를 위한 각도 clamping
+    // 오버플로우 방지를 위한 각도 정규화
     auto NormalizeAngle = [](float Angle) -> float
     {
         // Normalize to -180 ~ 180 range
@@ -87,11 +86,46 @@ void URotatingMovementComponent::TickComponent()
         return Angle;
     };
 
-    NewRotation.X = NormalizeAngle(NewRotation.X);
-    NewRotation.Y = NormalizeAngle(NewRotation.Y);
-    NewRotation.Z = NormalizeAngle(NewRotation.Z);
+    // Get current transform
+    FVector CurrentPosition = RootComponent->GetWorldLocation();
+    FVector CurrentRotationDegrees = RootComponent->GetWorldRotation();
 
-    RootComponent->SetWorldRotation(NewRotation);
+    // Calculate new rotation (in degrees for storage)
+    FVector NewRotationDegrees = CurrentRotationDegrees + RotationDeltaDegrees;
+    NewRotationDegrees.X = NormalizeAngle(NewRotationDegrees.X);
+    NewRotationDegrees.Y = NormalizeAngle(NewRotationDegrees.Y);
+    NewRotationDegrees.Z = NormalizeAngle(NewRotationDegrees.Z);
+
+    // Convert to radians for matrix operations
+    FVector CurrentRotationRadians = CurrentRotationDegrees * DegToRad;
+    FVector NewRotationRadians = NewRotationDegrees * DegToRad;
+
+    // PivotTranslation이 0이 아니면 피봇을 중심으로 회전
+    if (PivotTranslation.Length() > 0.01f)
+    {
+        // 현재 회전 행렬로 로컬 피봇을 월드 오프셋으로 변환
+        FMatrix CurrentRotMatrix = FMatrix::RotationMatrix(CurrentRotationRadians);
+        FVector WorldPivotOffset = FMatrix::VectorMultiply(PivotTranslation, CurrentRotMatrix);
+
+        // 피봇 포인트 = 액터 위치 + 피봇 오프셋
+        FVector PivotPoint = CurrentPosition + WorldPivotOffset;
+
+        // 새 회전 행렬로 피봇 오프셋 재계산
+        FMatrix NewRotMatrix = FMatrix::RotationMatrix(NewRotationRadians);
+        FVector NewWorldPivotOffset = FMatrix::VectorMultiply(PivotTranslation, NewRotMatrix);
+
+        // 새 위치 = 피봇 포인트 - 새 피봇 오프셋
+        FVector NewPosition = PivotPoint - NewWorldPivotOffset;
+
+        // 위치와 회전 모두 업데이트 (Degrees로 저장)
+        RootComponent->SetWorldLocation(NewPosition);
+        RootComponent->SetWorldRotation(NewRotationDegrees);
+    }
+    else
+    {
+        // 피봇 없으면 단순히 제자리 회전만 (Degrees로 저장)
+        RootComponent->SetWorldRotation(NewRotationDegrees);
+    }
 }
 
 UObject* URotatingMovementComponent::Duplicate()
