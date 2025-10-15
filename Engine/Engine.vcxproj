@@ -308,8 +308,9 @@
       <Command>xcopy "$(ProjectDir)Data" "$(OutDir)Data" /E /I /Y</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClInclude Include="Source\Render\RenderPass\Public\FireBallPass.h" />
+    <ItemGroup>
+      <ClInclude Include="Source\Render\RenderPass\Public\FireBallPass.h" />
+      <ClInclude Include="Source\Render\RenderPass\Public\FireBallForwardPass.h" />
     <ClInclude Include="Source\Component\Public\FireBallComponent.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="Source\Actor\Public\Actor.h" />
@@ -476,8 +477,9 @@
     <ClInclude Include="Source\Utility\Public\ScopeCycleCounter.h" />
     <ClInclude Include="Source\Utility\Public\UELogParser.h" />
   </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="Source\Render\RenderPass\Private\FireBallPass.cpp" />
+    <ItemGroup>
+      <ClCompile Include="Source\Render\RenderPass\Private\FireBallPass.cpp" />
+      <ClCompile Include="Source\Render\RenderPass\Private\FireBallForwardPass.cpp" />
     <ClCompile Include="Source\Component\Private\FireBallComponent.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>

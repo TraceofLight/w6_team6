@@ -85,7 +85,7 @@ float4 PS_Sphere(PS_INPUT i) : SV_Target
     float a2d = SmoothCircleNDC(i.Ndc, cndc, gProjRadiusNDC, gFeather, gHardness);
 
     float a = a3d * a2d;
-    return float4(gColor * (gIntensity * a), a);
+    return float4(gColor * (gIntensity * a), 1.0);
     //return float4(depth, depth, depth, 1.0);
 }
 

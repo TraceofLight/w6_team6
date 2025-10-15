@@ -67,6 +67,7 @@ public:
 	void CreateTextureShader();
 	void CreateDepthShader();
 	void CreateFireBallShader();
+	void CreateFireBallForwardShader();
 	void CreateFullscreenQuad();
 	void CreateConstantBuffers();
 	void CreateSceneRenderTargets();
@@ -78,6 +79,7 @@ public:
 	void ReleaseBlendState();
 	void ReleaseDepthShader();
 	void ReleaseFireBallShader();
+	void ReleaseFireBallForwardShader();
 	void ReleaseFullscreenQuad();
 	void ReleaseSceneRenderTargets();
 
@@ -144,6 +146,10 @@ private:
 	ID3D11BlendState* AlphaBlendState = nullptr;
 	ID3D11BlendState* AdditiveBlendState = nullptr;
 	ID3D11BlendState* FireBallBlendState = nullptr;
+	// FireBall Forward shader resources
+	ID3D11VertexShader* FireBallFwdVertexShader = nullptr;
+	ID3D11PixelShader* FireBallFwdPixelShader = nullptr;
+	ID3D11InputLayout* FireBallFwdInputLayout = nullptr;
 
 	// Constant Buffers
 	ID3D11Buffer* ConstantBufferModels = nullptr;
