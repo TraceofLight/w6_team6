@@ -21,7 +21,7 @@ FFireBallPass::FFireBallPass(UPipeline* InPipeline,
     CBPerObject = FRenderResourceFactory::CreateConstantBuffer<FPerObjectCB>();
     CBFireBall = FRenderResourceFactory::CreateConstantBuffer<FFireBallCB>();
     CBInvViewProj = FRenderResourceFactory::CreateConstantBuffer<FMatrix>();
-    DepthSampler = FRenderResourceFactory::CreateSamplerState(D3D11_FILTER_MIN_MAG_MIP_POINT, D3D11_TEXTURE_ADDRESS_CLAMP);
+    DepthSampler = FRenderResourceFactory::CreateSamplerState(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_CLAMP);
 
     D3D11_DEPTH_STENCIL_DESC d = {};
     d.DepthEnable = TRUE;
@@ -44,6 +44,7 @@ void FFireBallPass::Execute(FRenderingContext& Context)
 
     
     ID3D11RenderTargetView* rtv = URenderer::GetInstance().GetSceneColorRTV();
+    ID3D11ShaderResourceView* colorSRV = URenderer::GetInstance().GetSceneColorSRV();
     ID3D11Texture2D* depthTexture = URenderer::GetInstance().GetSceneDepthTexture();
     ID3D11DepthStencilView* depthDSV = URenderer::GetInstance().GetSceneDepthDSV();
     ID3D11DepthStencilView* depthReadOnlyDSV = URenderer::GetInstance().GetReadOnlyDSV();
@@ -53,7 +54,6 @@ void FFireBallPass::Execute(FRenderingContext& Context)
     //ctx->PSSetShaderResources(0, 1, &nullSRV); // <- SceneColorSRV 쓰던 슬롯
     //ctx->VSSetShaderResources(0, 1, &nullSRV);
     //ctx->OMSetRenderTargets(1, &rtv, depthReadOnlyDSV);
-    ctx->OMSetRenderTargets(1, &rtv, depthReadOnlyDSV);
 
     ctx->PSSetShaderResources(5, 1, &depthSRV);
     ctx->PSSetSamplers(5, 1, &DepthSampler);
@@ -119,8 +119,8 @@ void FFireBallPass::Execute(FRenderingContext& Context)
             //cameraInside ? CullBackRS : CullFrontRS,
             //cameraInside ? DS_ALWAYS : DS_LESS_EQUAL,
             PS,
-            BS_Opaque,
-            //URenderer::GetInstance().GetAdditiveBlendState()
+            //BS_Opaque,
+            URenderer::GetInstance().GetFireBallBlendState(),
             D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST
         };
 

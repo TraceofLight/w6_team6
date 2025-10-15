@@ -180,7 +180,7 @@ void URenderer::CreateBlendState()
 
 	D3D11_BLEND_DESC fireBallDesc = {};
 	additiveDesc.RenderTarget[0].BlendEnable = TRUE;
-	additiveDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+	additiveDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
 	additiveDesc.RenderTarget[0].DestBlend = D3D11_BLEND_ONE;
 	additiveDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
 	additiveDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;

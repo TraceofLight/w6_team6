@@ -68,18 +68,25 @@ float4 PS_Sphere(PS_INPUT i) : SV_Target
     float4 world = mul(clip, gInvViewProj);
     world /= world.w;
 
-    // 3D falloff (world-space)
+    // 3D volume test (world-space)
     float d = distance(world.xyz, gCenterWS);
+    if (d > gRadius)
+    {
+        discard; // outside light volume
+    }
+
+    // 3D falloff in world-space (soft edge using feather)
     float R0 = gRadius * (1.0 - saturate(gFeather));
     float t = saturate((d - R0) / max(gRadius - R0, 1e-5));
-    float a3d = pow(1.0 - t, 1.0);
+    float a3d = pow(1.0 - t, max(1.0, gHardness));
 
-    // 2D projected falloff (NDC)
+    // 2D projected falloff (optional screen-space shaping)
     float2 cndc = gCenterClip.xy / gCenterClip.w;
     float a2d = SmoothCircleNDC(i.Ndc, cndc, gProjRadiusNDC, gFeather, gHardness);
 
     float a = a3d * a2d;
-    return float4(gColor * (gIntensity * a), 1.0);
+    return float4(gColor * (gIntensity * a), a);
+    //return float4(depth, depth, depth, 1.0);
 }
 
 PS_INPUT mainVS(VS_INPUT i)
@@ -90,5 +97,5 @@ PS_INPUT mainVS(VS_INPUT i)
 float4 mainPS(PS_INPUT i) : SV_Target
 {
     return PS_Sphere(i);
+    //return float4(1, 0, 1, 1);
 }
-

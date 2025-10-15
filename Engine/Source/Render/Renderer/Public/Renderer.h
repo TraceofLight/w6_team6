@@ -66,7 +66,6 @@ public:
 	void CreateDecalShader();
 	void CreateTextureShader();
 	void CreateDepthShader();
-	void CreateFogShader();
 	void CreateFireBallShader();
 	void CreateFullscreenQuad();
 	void CreateConstantBuffers();
@@ -78,7 +77,6 @@ public:
 	void ReleaseDepthStencilState();
 	void ReleaseBlendState();
 	void ReleaseDepthShader();
-	void ReleaseFogShader();
 	void ReleaseFireBallShader();
 	void ReleaseFullscreenQuad();
 	void ReleaseSceneRenderTargets();
@@ -114,6 +112,7 @@ public:
 	ID3D11DepthStencilView* GetSceneDepthDSV() const { return SceneDepthDSV; }
 	ID3D11Texture2D* GetSceneDepthTexture() const { return SceneDepthTexture; }
 	ID3D11DepthStencilView* GetReadOnlyDSV() const { return SceneDepthDSV_ReadOnly; }
+	ID3D11ShaderResourceView* GetSceneColorSRV() const { return SceneColorSRV; }
 
 	ID3D11VertexShader* GetDepthVertexShader() const { return DepthVertexShader; }
 	ID3D11PixelShader* GetDepthPixelShader() const { return DepthPixelShader; }
