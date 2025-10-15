@@ -25,6 +25,16 @@ void FFireBallForwardPass::Execute(FRenderingContext& Context)
 {
     if (!VS || !PS || !InputLayout || !Pipeline) { return; }
 
+    if (Context.ViewMode == EViewModeIndex::VMI_Wireframe)
+    {
+        return;
+    }
+
+    if (Context.ViewMode == EViewModeIndex::VMI_Unlit)
+    {
+        return;
+    }
+
     ID3D11RenderTargetView* rtv = URenderer::GetInstance().GetSceneColorRTV();
     ID3D11DepthStencilView* depthReadOnly = URenderer::GetInstance().GetReadOnlyDSV();
     URenderer::GetInstance().GetDeviceContext()->OMSetRenderTargets(1, &rtv, depthReadOnly);
