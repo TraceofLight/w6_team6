@@ -19,7 +19,7 @@ USceneComponent::USceneComponent()
 
 void USceneComponent::BeginPlay()
 {
-	Super::BeginPlay();
+
 }
 
 void USceneComponent::TickComponent()

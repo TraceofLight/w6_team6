@@ -97,7 +97,7 @@ TPair<int32, int32> FNameTable::FindOrAddName(const FString& Str)
     }
     else
     {
-        ComparisonIndex = static_cast<int32>(ComparisonStringPool.size());
+        ComparisonIndex = ComparisonStringPool.size();
         ComparisonStringPool.push_back(LowerStr);
         ComparisonMap[LowerStr] = ComparisonIndex;
     }
@@ -110,7 +110,7 @@ TPair<int32, int32> FNameTable::FindOrAddName(const FString& Str)
     }
     else
     {
-        DisplayIndex = static_cast<int32>(DisplayStringPool.size());
+        DisplayIndex = DisplayStringPool.size();
         DisplayStringPool.push_back(Str);
         DisplayMap[Str] = DisplayIndex;
     }

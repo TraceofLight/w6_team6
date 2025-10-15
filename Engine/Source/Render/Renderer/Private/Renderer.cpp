@@ -309,46 +309,35 @@ void URenderer::Update()
 		FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferViewProj, CurrentCamera->GetFViewProjConstants());
 		Pipeline->SetConstantBuffer(1, true, ConstantBufferViewProj);
 
-		const D3D11_VIEWPORT& ClientViewport = ViewportClient.GetViewportInfo();
+		const D3D11_VIEWPORT& clientViewport = ViewportClient.GetViewportInfo();
 
 		// === Scene RT 렌더링: clientViewport와 동일한 viewport 사용 ===
 		// Scene RT는 SwapChain 전체 크기로 생성되었으므로
 		// 각 ViewportClient의 TopLeftX/Y를 그대로 사용하여 해당 영역에 렌더링
-
-		// IMPORTANT: 각 viewport마다 Scene RT를 다시 바인딩
-		// (이전 viewport의 post-processing이 BackBuffer로 바인딩을 변경했으므로)
-		ID3D11RenderTargetView* SceneRtvs[] = { SceneColorRTV };
-		GetDeviceContext()->OMSetRenderTargets(1, SceneRtvs, SceneDepthDSV);
-		GetDeviceContext()->RSSetViewports(1, &ClientViewport);
+		GetDeviceContext()->RSSetViewports(1, &clientViewport);
 
 		{
 			TIME_PROFILE(RenderLevel)
 			RenderLevel(CurrentCamera);
 		}
 
-		// === 디버그 프리미티브 렌더링: Scene RT에 렌더링 (FXAA 적용) ===
+		// === 백버퍼 렌더링: 메뉴바 오프셋 포함 viewport ===
+		// 백버퍼는 윈도우 전체를 포함하므로 메뉴바 오프셋 필요
+		GetDeviceContext()->RSSetViewports(1, &clientViewport);
+
 		{
-			TIME_PROFILE(RenderDebugPrimitives)
-			GEditor->GetEditorModule()->RenderDebugPrimitives(CurrentCamera);
+			TIME_PROFILE(RenderFog)
+			RenderFog(CurrentCamera, clientViewport);
 		}
-
-		// === Post-Processing: Scene RT -> 백버퍼 ===
-		// 통합 포스트 프로세싱 패스: Fog + Anti-Aliasing (FXAA)
-		// RenderLevel + RenderDebugPrimitives 결과에 모두 FXAA 적용
-		GetDeviceContext()->RSSetViewports(1, &ClientViewport);
-
 		{
-			TIME_PROFILE(ExecutePostProcess)
-			ExecutePostProcess(CurrentCamera, ClientViewport); // Fog + FXAA 통합
-		}
-
-		// === 기즈모 렌더링: BackBuffer에 직접 렌더링 (FXAA 미적용, 항상 선명) ===
-		{
-			TIME_PROFILE(RenderGizmo)
-			GEditor->GetEditorModule()->RenderGizmo(CurrentCamera);
+			TIME_PROFILE(RenderEditor)
+			GEditor->GetEditorModule()->RenderEditor(CurrentCamera);
 		}
 	}
-
+	if (bIsFXAAEnabled)
+	{
+		ExecuteFXAA();
+	}
 	{
 		TIME_PROFILE(UUIManager)
 		UUIManager::GetInstance().Render();
@@ -363,12 +352,6 @@ void URenderer::Update()
 
 void URenderer::RenderBegin() const
 {
-	// BackBuffer 클리어 (post-processing 결과를 받을 곳)
-	auto* BackBufferRTV = DeviceResources->GetRenderTargetView();
-	auto* BackBufferDSV = DeviceResources->GetDepthStencilView();
-	GetDeviceContext()->ClearRenderTargetView(BackBufferRTV, ClearColor);
-	GetDeviceContext()->ClearDepthStencilView(BackBufferDSV, D3D11_CLEAR_DEPTH, 1.0f, 0);
-
 	// Scene RT 클리어 및 바인딩 (Scene Color + Scene Depth)
 	// 이후 각 ViewportClient가 Scene RT의 해당 영역에 렌더링함
 	GetDeviceContext()->ClearRenderTargetView(SceneColorRTV, ClearColor);
@@ -529,173 +512,91 @@ void URenderer::OnResize(uint32 InWidth, uint32 InHeight)
 
 void URenderer::CreatePostProcessResources()
 {
-	// PostProcess 셰이더 로드 (통합 포스트 프로세싱: Fog + FXAA)
-	TArray<D3D11_INPUT_ELEMENT_DESC> PostProcessLayout =
-	{
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 }
-	};
-
+	// FXAA 셰이더 로드 (엔트리: mainVS/mainPS)
 	FRenderResourceFactory::CreateVertexShaderAndInputLayout(
-		L"Asset/Shader/PostProcess.hlsl",
-		PostProcessLayout,
-		&PostProcessVertexShader,
-		&PostProcessInputLayout
+		L"Asset/Shader/FXAA.hlsl",
+		{}, // SV_VertexID 사용으로 InputLayout 없음
+		&FXAAVertexShader,
+		nullptr
 	);
-
 	FRenderResourceFactory::CreatePixelShader(
-		L"Asset/Shader/PostProcess.hlsl",
-		&PostProcessPixelShader
+		L"Asset/Shader/FXAA.hlsl",
+		&FXAAPixelShader
 	);
 
 	// 선형 클램프 샘플러
-	PostProcessSamplerState = FRenderResourceFactory::CreateSamplerState(
+	FXAASamplerState = FRenderResourceFactory::CreateSamplerState(
 		D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_CLAMP
 	);
-	ConstantBufferPostProcessParameters = FRenderResourceFactory::CreateConstantBuffer<FPostProcessParameters>();
-	PostProcessUserParameters = {}; // 기본값(위 구조체 디폴트)
-	FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferPostProcessParameters, PostProcessUserParameters);
+	ConstantBufferFXAAParameters = FRenderResourceFactory::CreateConstantBuffer<FFXAAParameters>();
+	FXAAUserParameters = {}; // 기본값(위 구조체 디폴트)
+	FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferFXAAParameters, FXAAUserParameters);
+
+	// Fog용 선형 클램프 샘플러
+	FogSamplerState = FRenderResourceFactory::CreateSamplerState(
+		D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_CLAMP
+	);
 }
 
 void URenderer::ReleasePostProcessResources()
 {
-	SafeRelease(PostProcessVertexShader);
-	SafeRelease(PostProcessInputLayout);
-	SafeRelease(PostProcessPixelShader);
-	SafeRelease(PostProcessSamplerState);
-	SafeRelease(ConstantBufferPostProcessParameters);
+	SafeRelease(FXAAVertexShader);
+	SafeRelease(FXAAPixelShader);
+	SafeRelease(FXAASamplerState);
+	SafeRelease(ConstantBufferFXAAParameters);
+	SafeRelease(FogSamplerState);
 }
 
-void URenderer::ExecutePostProcess(UCamera* InCurrentCamera, const D3D11_VIEWPORT& InViewport)
+void URenderer::ExecuteFXAA()
 {
 	auto* Context = GetDeviceContext();
-	const ULevel* CurrentLevel = GWorld->GetLevel();
 
 	// 출력: 백버퍼 RTV로
-	auto* BackBufferRTV = DeviceResources->GetRenderTargetView();
-	auto* BackBufferDSV = DeviceResources->GetDepthStencilView();
-	Context->OMSetRenderTargets(1, &BackBufferRTV, BackBufferDSV);
-
-	// Viewport 설정 (각 ViewportClient 영역에만 적용)
-	Context->RSSetViewports(1, &InViewport);
-
-	// PostProcess 상수 버퍼 업데이트 (viewport + fog + FXAA 정보)
-	FPostProcessParameters postProcessParams = PostProcessUserParameters; // 기존 사용자 파라미터 복사
-
-	// FXAA 활성화 플래그 설정
-	postProcessParams.EnableFXAA = bIsFXAAEnabled ? 1.0f : 0.0f;
-
-	// Viewport 정보 설정
-	postProcessParams.ViewportTopLeft = FVector2(InViewport.TopLeftX, InViewport.TopLeftY);
-	postProcessParams.ViewportSize = FVector2(InViewport.Width, InViewport.Height);
-
-	// Scene RT 크기 가져오기
-	DXGI_SWAP_CHAIN_DESC swapChainDesc = {};
-	GetSwapChain()->GetDesc(&swapChainDesc);
-	postProcessParams.SceneRTSize = FVector2(
-		static_cast<float>(swapChainDesc.BufferDesc.Width),
-		static_cast<float>(swapChainDesc.BufferDesc.Height)
-	);
-
-	// Fog 파라미터 설정
-	const bool bShowFog = CurrentLevel && (CurrentLevel->GetShowFlags() & EEngineShowFlags::SF_Fog) != 0;
-
-	// Find first enabled HeightFogComponent
-	UHeightFogComponent* FogComponent = nullptr;
-	if (CurrentLevel && bShowFog)
-	{
-		for (AActor* Actor : CurrentLevel->GetActors())
-		{
-			if (!Actor) continue;
-			for (UActorComponent* Comp : Actor->GetOwnedComponents())
-			{
-				if (auto* Fog = Cast<UHeightFogComponent>(Comp))
-				{
-					if (Fog->IsEnabled())
-					{
-						FogComponent = Fog;
-						break;
-					}
-				}
-			}
-			if (FogComponent) break;
-		}
-	}
-
-	// Fog 파라미터 채우기
-	if (FogComponent && bShowFog)
-	{
-		postProcessParams.FogDensity = FogComponent->GetFogDensity();
-		postProcessParams.FogHeightFalloff = FogComponent->GetFogHeightFalloff();
-		postProcessParams.StartDistance = FogComponent->GetStartDistance();
-		postProcessParams.FogCutoffDistance = FogComponent->GetFogCutoffDistance();
-		postProcessParams.FogMaxOpacity = FogComponent->GetFogMaxOpacity();
-
-		FVector4 ColorRGBA = FogComponent->GetFogInscatteringColor();
-		postProcessParams.FogInscatteringColor = FVector(ColorRGBA.X, ColorRGBA.Y, ColorRGBA.Z);
-
-		postProcessParams.CameraPosition = InCurrentCamera->GetLocation();
-		postProcessParams.FogHeight = FogComponent->GetWorldLocation().Z;
-	}
-	else
-	{
-		// Fog 비활성화
-		postProcessParams.FogDensity = 0.0f;
-		postProcessParams.FogMaxOpacity = 0.0f;
-	}
-
-	// Inverse View-Projection Matrix
-	const FViewProjConstants& ViewProj = InCurrentCamera->GetFViewProjConstants();
-	FMatrix ViewProjMatrix = ViewProj.View * ViewProj.Projection;
-	postProcessParams.InvViewProj = ViewProjMatrix.Inverse();
-
-	FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferPostProcessParameters, postProcessParams);
+	ID3D11RenderTargetView* Rtvs[] = { GetRenderTargetView() };
+	Context->OMSetRenderTargets(1, Rtvs, nullptr);
+	// 전체(메뉴바 제외) 화면 뷰포트로 복구
+	const D3D11_VIEWPORT& FullViewport = DeviceResources->GetViewportInfo();
+	Context->RSSetViewports(1, &FullViewport);
 
 	// 파이프라인 셋업
 	FPipelineInfo PipelineInfo = {
-		PostProcessInputLayout,                     // PostProcess fullscreen quad layout
-		PostProcessVertexShader,                    // PostProcess VS (fullscreen quad)
+		nullptr,                                    // InputLayout
+		FXAAVertexShader,                           // VS
 		FRenderResourceFactory::GetRasterizerState({ ECullMode::None, EFillMode::Solid }),
-		NoTestButWriteDepthState,                   // Depth test X, Depth write O
-		PostProcessPixelShader,                     // PostProcess PS (Fog + FXAA 통합)
+		DisabledDepthStencilState,                  // 깊이 비활성
+		FXAAPixelShader,                            // PS
 		nullptr,                                    // Blend
 		D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST
 	};
 	Pipeline->UpdatePipeline(PipelineInfo);
 
-	Pipeline->SetConstantBuffer(0, false, ConstantBufferPostProcessParameters);
-
-	// 소스 텍스처/샘플러 (Scene Color + Scene Depth)
-	ID3D11ShaderResourceView* srvs[2] = { SceneColorSRV, SceneDepthSRV };
-	Context->PSSetShaderResources(0, 2, srvs);
-	Pipeline->SetSamplerState(0, false, PostProcessSamplerState);
-
-	// Fullscreen Quad 그리기 (RenderFog와 동일한 방식)
-	uint32 stride = sizeof(float) * 5;  // Position(3) + TexCoord(2)
-	uint32 offset = 0;
-	Pipeline->SetVertexBuffer(FullscreenQuadVB, stride);
-	Pipeline->SetIndexBuffer(FullscreenQuadIB, sizeof(uint32));
-	Pipeline->DrawIndexed(6, 0, 0);
+	// 소스 텍스처/샘플러
+	// XXX(KHJ): FXAA와 Fog post-processing이 동시에 활성화되면 충돌할 수도 있나?
+	Pipeline->SetTexture(0, false, SceneColorSRV);
+	Pipeline->SetSamplerState(0, false, FXAASamplerState);
+	Pipeline->SetConstantBuffer(0, false, ConstantBufferFXAAParameters);
+	// 풀스크린 삼각형 드로우
+	Pipeline->Draw(3, 0);
 
 	// SRV 언바인드(경고 방지)
-	ID3D11ShaderResourceView* NullSrvs[2] = { nullptr, nullptr };
-	Context->PSSetShaderResources(0, 2, NullSrvs);
+	ID3D11ShaderResourceView* NullSrv[1] = { nullptr };
+	Context->PSSetShaderResources(0, 1, NullSrv);
 }
-void URenderer::UpdatePostProcessConstantBuffer()
+void URenderer::UpdateFXAAConstantBuffer()
 {
-	if (ConstantBufferPostProcessParameters)
+	if (ConstantBufferFXAAParameters)
 	{
-		FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferPostProcessParameters, PostProcessUserParameters);
+		FRenderResourceFactory::UpdateConstantBufferData(ConstantBufferFXAAParameters, FXAAUserParameters);
 	}
 }
 
 void URenderer::SetFXAASubpixelBlend(float InValue)
 {
 	float Clamped = std::clamp(InValue, 0.0f, 1.0f);
-	if (PostProcessUserParameters.SubpixelBlend != Clamped)
+	if (FXAAUserParameters.SubpixelBlend != Clamped)
 	{
-		PostProcessUserParameters.SubpixelBlend = Clamped;
-		UpdatePostProcessConstantBuffer();
+		FXAAUserParameters.SubpixelBlend = Clamped;
+		UpdateFXAAConstantBuffer();
 	}
 }
 
@@ -703,10 +604,10 @@ void URenderer::SetFXAAEdgeThreshold(float InValue)
 {
 	// 일반적으로 0.05 ~ 0.25 권장
 	float Clamped = std::clamp(InValue, 0.01f, 0.5f);
-	if (PostProcessUserParameters.EdgeThreshold != Clamped)
+	if (FXAAUserParameters.EdgeThreshold != Clamped)
 	{
-		PostProcessUserParameters.EdgeThreshold = Clamped;
-		UpdatePostProcessConstantBuffer();
+		FXAAUserParameters.EdgeThreshold = Clamped;
+		UpdateFXAAConstantBuffer();
 	}
 }
 
@@ -714,7 +615,16 @@ void URenderer::SetFXAAEdgeThresholdMin(float InValue)
 {
 	// 일반적으로 0.002 ~ 0.05 권장
 	float Clamped = std::clamp(InValue, 0.001f, 0.1f);
-	if (PostProcessUserParameters.EdgeThresholdMin != Clamped)
+	if (FXAAUserParameters.EdgeThresholdMin != Clamped)
+	{
+		FXAAUserParameters.EdgeThresholdMin = Clamped;
+		UpdateFXAAConstantBuffer();
+	}
+}
+
+void URenderer::CreateFogShader()
+{
+	TArray<D3D11_INPUT_ELEMENT_DESC> FogLayout =
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 }
@@ -898,6 +808,91 @@ void URenderer::ReleaseSceneRenderTargets()
 	SafeRelease(SceneDepthDSV);
 	SafeRelease(SceneDepthTexture);
 }
+
+void URenderer::RenderFog(UCamera* InCurrentCamera, const D3D11_VIEWPORT& InViewport)
+{
+	const ULevel* CurrentLevel = GWorld->GetLevel();
+	if (!CurrentLevel)
+	{
+		return;
+	}
+
+	// ShowFlag 확인, Fog가 비활성화되어 있으면 Scene Color만 백버퍼에 복사
+	const bool bShowFog = (CurrentLevel->GetShowFlags() & EEngineShowFlags::SF_Fog) != 0;
+
+	// Scene RT가 null인지 체크
+	if (!SceneColorSRV || !SceneDepthSRV || !FullscreenQuadVB)
+	{
+		UE_LOG_ERROR("Renderer: Scene textures or fullscreen quad is null!");
+		UE_LOG("Renderer: SceneColorSRV: %p", SceneColorSRV);
+		UE_LOG("Renderer: SceneDepthSRV: %p", SceneDepthSRV);
+		UE_LOG("Renderer: FullscreenQuadVB: %p", FullscreenQuadVB);
+		return;
+	}
+
+	// Find first enabled HeightFogComponent in the level
+	UHeightFogComponent* FogComponent = nullptr;
+	for (AActor* Actor : CurrentLevel->GetActors())
+	{
+		if (!Actor)
+		{
+			continue;
+		}
+		for (UActorComponent* Comp : Actor->GetOwnedComponents())
+		{
+			if (auto* Fog = Cast<UHeightFogComponent>(Comp))
+			{
+				if (Fog->IsEnabled())
+				{
+					FogComponent = Fog;
+					break;
+				}
+			}
+		}
+		if (FogComponent)
+		{
+			break;
+		}
+	}
+
+	// 포그가 없어도 Scene Color를 백버퍼로 복사해야 함
+	// ShowFlag와 FogComponent 둘 다 활성화되어야 Fog 렌더링
+	const bool hasFog = bShowFog && (FogComponent != nullptr);
+
+	// Render Target을 백버퍼로 전환
+	auto* BackBufferRTV = DeviceResources->GetRenderTargetView();
+	auto* BackBufferDSV = DeviceResources->GetDepthStencilView();
+	GetDeviceContext()->OMSetRenderTargets(1, &BackBufferRTV, BackBufferDSV);
+
+	// 백버퍼용 viewport 설정, ViewportClient의 오프셋 포함
+	// Scene RT (0, 0)이 백버퍼의 (TopLeftX, TopLeftY)로 정확히 매핑됨
+	// 이렇게 하면 메뉴바 영역을 제외한 영역에 정확히 복사됨
+	GetDeviceContext()->RSSetViewports(1, &InViewport);
+
+	// 백버퍼 클리어 안 함
+	// fullscreen quad가 전체를 덮어쓰고, depth는 shader에서 복사
+
+	FFogConstants fogConstants = {};
+	if (hasFog)
+	{
+		fogConstants.FogDensity = FogComponent->GetFogDensity();
+		fogConstants.FogHeightFalloff = FogComponent->GetFogHeightFalloff();
+		fogConstants.StartDistance = FogComponent->GetStartDistance();
+		fogConstants.FogCutoffDistance = FogComponent->GetFogCutoffDistance();
+		fogConstants.FogMaxOpacity = FogComponent->GetFogMaxOpacity();
+
+		FVector4 ColorRGBA = FogComponent->GetFogInscatteringColor();
+		fogConstants.FogInscatteringColor = FVector(ColorRGBA.X, ColorRGBA.Y, ColorRGBA.Z);
+
+		fogConstants.CameraPosition = InCurrentCamera->GetLocation();
+		fogConstants.FogHeight = FogComponent->GetWorldLocation().Z;  // Z-up LH: Z축 = 높이
+	}
+	else
+	{
+		// 포그 없으면 FogDensity = 0으로 설정 (Scene Color만 복사)
+		fogConstants.FogDensity = 0.0f;
+		fogConstants.FogMaxOpacity = 0.0f;
+	}
 
 	// Viewport 정보 설정 (Scene RT UV 계산용)
 	fogConstants.ViewportTopLeft = FVector2(InViewport.TopLeftX, InViewport.TopLeftY);

@@ -89,7 +89,7 @@ void UStaticMesh::SetMaterial(int32 MaterialIndex, UMaterial* Material)
 
 int32 UStaticMesh::GetNumMaterials() const
 {
-	return static_cast<int32>(Materials.size());
+	return Materials.size();
 }
 
 const TArray<FMeshSection>& UStaticMesh::GetSections() const

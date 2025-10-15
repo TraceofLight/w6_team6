@@ -107,11 +107,11 @@ void UStaticMeshComponent::SetStaticMesh(const FName& InObjPath)
 
 		Vertices = &(StaticMesh->GetVertices());
 		VertexBuffer = AssetManager.GetVertexBuffer(InObjPath);
-		NumVertices = static_cast<uint32>(Vertices->size());
+		NumVertices = Vertices->size();
 
 		Indices = &(StaticMesh->GetIndices());
 		IndexBuffer = AssetManager.GetIndexBuffer(InObjPath);
-		NumIndices = static_cast<uint32>(Indices->size());
+		NumIndices = Indices->size();
 
 		RenderState.CullMode = ECullMode::Back;
 		RenderState.FillMode = EFillMode::Solid;

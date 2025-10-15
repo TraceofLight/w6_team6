@@ -223,7 +223,6 @@
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -246,7 +245,6 @@
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -337,8 +335,6 @@
     <ClInclude Include="Source\Component\Public\BillBoardComponent.h" />
     <ClInclude Include="Source\Component\Public\DecalComponent.h" />
     <ClInclude Include="Source\Component\Public\HeightFogComponent.h" />
-    <ClInclude Include="Source\Component\Public\ProjectileMovementComponent.h" />
-    <ClInclude Include="Source\Component\Public\RotatingMovementComponent.h" />
     <ClInclude Include="Source\Component\Public\SemiLightComponent.h" />
     <ClInclude Include="Source\Component\Public\TextComponent.h" />
     <ClInclude Include="Source\Component\Public\UUIDTextComponent.h" />
@@ -444,8 +440,6 @@
     <ClInclude Include="Source\Render\UI\Widget\Public\MainBarWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\PostProcessWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\PrimitiveSpawnWidget.h" />
-    <ClInclude Include="Source\Render\UI\Widget\Public\ProjectileMovementComponentWidget.h" />
-    <ClInclude Include="Source\Render\UI\Widget\Public\RotatingMovementComponentWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\SceneBVHDebugWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\SceneHierarchyWidget.h" />
     <ClInclude Include="Source\Render\UI\Widget\Public\SceneIOWidget.h" />
@@ -511,8 +505,6 @@
     <ClCompile Include="Source\Component\Private\BillBoardComponent.cpp" />
     <ClCompile Include="Source\Component\Private\DecalComponent.cpp" />
     <ClCompile Include="Source\Component\Private\HeightFogComponent.cpp" />
-    <ClCompile Include="Source\Component\Private\ProjectileMovementComponent.cpp" />
-    <ClCompile Include="Source\Component\Private\RotatingMovementComponent.cpp" />
     <ClCompile Include="Source\Component\Private\SemiLightComponent.cpp" />
     <ClCompile Include="Source\Component\Private\TextComponent.cpp" />
     <ClCompile Include="Source\Component\Private\UUIDTextComponent.cpp" />
@@ -605,8 +597,6 @@
     <ClCompile Include="Source\Render\UI\Widget\Private\MainBarWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\PostProcessWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\PrimitiveSpawnWidget.cpp" />
-    <ClCompile Include="Source\Render\UI\Widget\Private\ProjectileMovementComponentWidget.cpp" />
-    <ClCompile Include="Source\Render\UI\Widget\Private\RotatingMovementComponentWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\SceneBVHDebugWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\SceneHierarchyWidget.cpp" />
     <ClCompile Include="Source\Render\UI\Widget\Private\SceneIOWidget.cpp" />

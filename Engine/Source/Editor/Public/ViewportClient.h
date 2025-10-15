@@ -27,7 +27,7 @@ inline EViewportCameraType ToClientCameraType(int InValue)
 	case static_cast<int>(EViewportCameraType::Ortho_Right):   return EViewportCameraType::Ortho_Right;
 
 	default:
-		UE_LOG_ERROR("[EViewportCameraType] Enum 파싱에 실패했습니다 (기본값 사용): %d", InValue);
+		UE_LOG_ERROR("[EViewportCameraType] Enum 파싱에 실패했습니다 (기본값 사용)", InValue);
 		return EViewportCameraType::Perspective;
 	}
 }

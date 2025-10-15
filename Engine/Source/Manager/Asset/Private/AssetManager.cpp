@@ -325,7 +325,6 @@ ID3D11Buffer* UAssetManager::GetVertexBuffer(FName InObjPath)
 	{
 		return StaticMeshVertexBuffers[InObjPath];
 	}
-	return nullptr;
 }
 
 ID3D11Buffer* UAssetManager::GetIndexBuffer(FName InObjPath)
@@ -334,7 +333,6 @@ ID3D11Buffer* UAssetManager::GetIndexBuffer(FName InObjPath)
 	{
 		return StaticMeshIndexBuffers[InObjPath];
 	}
-	return nullptr;
 }
 
 ID3D11Buffer* UAssetManager::CreateVertexBuffer(TArray<FNormalVertex> InVertices)
@@ -752,7 +750,7 @@ void UAssetManager::LoadAllMaterials()
 		LoadMaterialsFromMTL(MtlPath);
 	}
 
-	UE_LOG("AssetManager: 총 %zu개의 MTL 파일에서 %zu개의 Material 로드 완료",
+	UE_LOG("AssetManager: 총 %d개의 MTL 파일에서 %d개의 Material 로드 완료",
 		MtlList.size(), MaterialCache.size());
 }
 
@@ -773,7 +771,7 @@ TArray<UMaterial*> UAssetManager::LoadMaterialsFromMTL(const FName& InMtlPath)
 				LoadedMaterials.push_back(MatIter->second);
 			}
 		}
-		UE_LOG("AssetManager: MTL 파일 캐시에서 반환 - %s (%zu개 Material)",
+		UE_LOG("AssetManager: MTL 파일 캐시에서 반환 - %s (%d개 Material)",
 			InMtlPath.ToString().c_str(), LoadedMaterials.size());
 		return LoadedMaterials;
 	}
@@ -917,7 +915,7 @@ TArray<UMaterial*> UAssetManager::LoadMaterialsFromMTL(const FName& InMtlPath)
 	// MTL 파일과 Material 매핑 저장
 	MTLFileMaterials[InMtlPath] = MaterialNames;
 
-	UE_LOG("AssetManager: MTL 파일에서 %zu개의 Material 로드 완료 - %s",
+	UE_LOG("AssetManager: MTL 파일에서 %d개의 Material 로드 완료 - %s",
 		LoadedMaterials.size(), InMtlPath.ToString().c_str());
 
 	return LoadedMaterials;

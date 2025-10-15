@@ -4,6 +4,7 @@
 class UClass;
 class UBillBoardComponent;
 
+UClass;
 class USpriteSelectionWidget
 	: public UWidget
 {

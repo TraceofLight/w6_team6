@@ -85,7 +85,7 @@ void USceneHierarchyWidget::RenderWidget()
 		{
 			// 검색어가 없으면 모든 Actor 표시
 			ImGuiListClipper clipper;
-			clipper.Begin(static_cast<int>(LevelActors.size()));
+			clipper.Begin(LevelActors.size());
 			while (clipper.Step())
 			{
 				for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
@@ -101,7 +101,7 @@ void USceneHierarchyWidget::RenderWidget()
 		{
 			// 필터링된 Actor들만 표시
 			ImGuiListClipper clipper;
-			clipper.Begin(static_cast<int>(FilteredIndices.size()));
+			clipper.Begin(FilteredIndices.size());
 			while (clipper.Step())
 			{
 				for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
@@ -357,10 +357,10 @@ void USceneHierarchyWidget::FocusOnActor(AActor* InActor)
 	auto& Viewports = Viewport->GetViewports();
 	const int32 ViewportCount = static_cast<int32>(Viewports.size());
 
-	CameraStartLocation.resize(static_cast<size_t>(ViewportCount));
-	CameraStartRotation.resize(static_cast<size_t>(ViewportCount));
-	CameraTargetLocation.resize(static_cast<size_t>(ViewportCount));
-	CameraTargetRotation.resize(static_cast<size_t>(ViewportCount));
+	CameraStartLocation.resize(ViewportCount);
+	CameraStartRotation.resize(ViewportCount);
+	CameraTargetLocation.resize(ViewportCount);
+	CameraTargetRotation.resize(ViewportCount);
 
 	for (int32 i = 0; i < ViewportCount; ++i)
 	{
@@ -429,7 +429,7 @@ void USceneHierarchyWidget::UpdateCameraAnimation()
 	}
 
 	auto& Viewports = Viewport->GetViewports();
-	for (int Index = 0; Index < static_cast<int>(Viewports.size()); ++Index)
+	for (int Index = 0; Index < Viewports.size(); ++Index)
 	{
 		UCamera& Camera = Viewports[Index].Camera;
 
@@ -502,7 +502,7 @@ void USceneHierarchyWidget::UpdateFilteredActors(const TArray<AActor*>& InLevelA
 	// UE_LOG("SceneHierarchy: 검색어 = '%s', 변환된 검색어 = '%s'", SearchFilter.data(), SearchLower.data());
 	// UE_LOG("SceneHierarchy: Level에 %zu개의 Actor가 있습니다", InLevelActors.size());
 
-	for (int32 i = 0; i < static_cast<int32>(InLevelActors.size()); ++i)
+	for (int32 i = 0; i < InLevelActors.size(); ++i)
 	{
 		if (InLevelActors[i])
 		{

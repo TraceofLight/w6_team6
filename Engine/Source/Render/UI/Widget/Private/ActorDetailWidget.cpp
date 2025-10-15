@@ -16,8 +16,6 @@
 #include "Component/Mesh/Public/CubeComponent.h"
 #include "Component/Mesh/Public/MeshComponent.h"
 #include "Component/Public/SemiLightComponent.h"
-#include "Component/Public/ProjectileMovementComponent.h"
-#include "Component/Public/RotatingMovementComponent.h"
 #include "Component/Public/FireBallComponent.h"
 #include "Global/Quaternion.h"
 #include "Global/Vector.h"
@@ -240,9 +238,9 @@ void UActorDetailWidget::RenderComponentNodeRecursive(UActorComponent* InCompone
 	bool bNodeOpen = ImGui::TreeNodeEx((void*)InComponent, NodeFlags, "%s", ComponentName.c_str());
 
 	// -----------------------------
-	// Drag Source (SceneComponent만 드래그 가능)
+	// Drag Source
 	// -----------------------------
-	if (SceneComp && ImGui::IsItemHovered() && ImGui::IsMouseDragging(ImGuiMouseButton_Left))
+	if (ImGui::IsItemHovered() && ImGui::IsMouseDragging(ImGuiMouseButton_Left))
 	{
 		if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None))
 		{
@@ -411,7 +409,6 @@ void UActorDetailWidget::RenderAddComponentButton(AActor* InSelectedActor)
 		const char* componentNames[] = {
 			"Triangle", "Sphere", "Square", "Cube",
 			"Static Mesh", "BillBoard", "Text", "Decal", "HeightFog", "FireBall"
-			"Projectile", "Rotating"
 		};
 
 		// 반복문 안에서 헬퍼 함수를 호출하여 원하는 UI를 그립니다.
@@ -461,7 +458,7 @@ void UActorDetailWidget::AddComponentByName(AActor* InSelectedActor, const FStri
 	}
 
 	FName NewComponentName(InComponentName);
-	UActorComponent* NewComponent; 
+	UActorComponent* NewComponent = nullptr; 
 
 	if (InComponentName == "Triangle")
 	{
@@ -498,14 +495,6 @@ void UActorDetailWidget::AddComponentByName(AActor* InSelectedActor, const FStri
 	else if (InComponentName == "HeightFog")
 	{
 		NewComponent = InSelectedActor->AddComponent<UHeightFogComponent>(NewComponentName);
-	}
-	else if (InComponentName == "Projectile")
-	{
-		NewComponent = InSelectedActor->AddComponent<UProjectileMovementComponent>(NewComponentName);
-	}
-	else if (InComponentName == "Rotating")
-	{
-		NewComponent = InSelectedActor->AddComponent<URotatingMovementComponent>(NewComponentName);
 	}
 	else if (InComponentName == "FireBall")
 	{

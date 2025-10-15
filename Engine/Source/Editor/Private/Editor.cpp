@@ -96,12 +96,6 @@ void UEditor::Update()
 
 void UEditor::RenderEditor(UCamera* InCamera)
 {
-	RenderDebugPrimitives(InCamera);
-	RenderGizmo(InCamera);
-}
-
-void UEditor::RenderDebugPrimitives(UCamera* InCamera)
-{
 	if (GEditor->IsPIESessionActive()) { return; }
 
 	// Scene Depth 모드에서는 그리드와 Axis를 렌더링하지 않음
@@ -111,18 +105,13 @@ void UEditor::RenderDebugPrimitives(UCamera* InCamera)
 		Axis.Render();
 	}
 
-	// SceneBVH 디버그 렌더링
-	RenderSceneBVH();
-}
-
-void UEditor::RenderGizmo(UCamera* InCamera)
-{
-	if (GEditor->IsPIESessionActive()) { return; }
-
 	if (InCamera)
 	{
 		Gizmo.RenderGizmo(Cast<USceneComponent>(GetSelectedComponent()), InCamera);
 	}
+
+	// SceneBVH 디버그 렌더링
+	RenderSceneBVH();
 }
 
 void UEditor::SetSingleViewportLayout(int InActiveIndex)
@@ -542,7 +531,7 @@ void UEditor::ProcessMouseInput()
 				FScopeCycleCounter PickCounter;
 				UPrimitiveComponent* PrimitiveCollided = ObjectPicker.PickPrimitive(CurrentCamera, WorldRay, Candidate, &ActorDistance);
 				ActorPicked = PrimitiveCollided ? PrimitiveCollided->GetOwner() : nullptr;
-				float ElapsedMs = static_cast<float>(PickCounter.Finish()); // 피킹 시간 측정 종료
+				float ElapsedMs = PickCounter.Finish(); // 피킹 시간 측정 종료
 				UStatOverlay::GetInstance().RecordPickingStats(ElapsedMs);
 			}
 		}

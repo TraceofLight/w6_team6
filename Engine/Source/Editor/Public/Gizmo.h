@@ -70,8 +70,8 @@ public:
 	const float GetRotateScale() const { return RotateCollisionConfig.Scale; }
 	const EGizmoDirection GetGizmoDirection() { return GizmoDirection; }
 	const FVector& GetGizmoLocation() { return Primitives[(int)GizmoMode].Location; }
-	FVector GetComponentRotation() const { return TargetComponent->GetWorldRotation(); }
-	FVector GetComponentScale() const { return TargetComponent->GetWorldScale3D(); }
+	const FVector& GetComponentRotation() { return TargetComponent->GetWorldRotation(); }
+	const FVector& GetComponentScale() { return TargetComponent->GetWorldScale3D(); }
 	const FVector& GetDragStartMouseLocation() { return DragStartMouseLocation; }
 	const FVector& GetDragStartActorLocation() { return DragStartActorLocation; }
 	const FVector& GetDragStartActorRotation() { return DragStartActorRotation; }

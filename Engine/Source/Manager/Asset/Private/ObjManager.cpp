@@ -43,7 +43,7 @@ FStaticMesh* FObjManager::LoadObjStaticMeshAsset(const FName& PathFileName, cons
 	FObjInfo ObjInfo;
 	if (!FObjImporter::LoadObj(PathFileName.ToString(), &ObjInfo, Config))
 	{
-		UE_LOG_ERROR("파일 정보를 읽어오는데 실패했습니다: %s", PathFileName.ToString().c_str());
+		UE_LOG_ERROR("파일 정보를 읽어오는데 실패했습니다: %s", PathFileName.ToString());
 		return nullptr;
 	}
 
@@ -98,12 +98,12 @@ FStaticMesh* FObjManager::LoadObjStaticMeshAsset(const FName& PathFileName, cons
 
 			size_t Index = StaticMesh->Vertices.size();
 			StaticMesh->Vertices.push_back(Vertex);
-			StaticMesh->Indices.push_back(static_cast<uint32>(Index));
+			StaticMesh->Indices.push_back(Index);
 			VertexMap[Key] = Index;
 		}
 		else
 		{
-			StaticMesh->Indices.push_back(static_cast<uint32>(It->second));
+			StaticMesh->Indices.push_back(It->second);
 		}
 	}
 
@@ -150,14 +150,14 @@ FStaticMesh* FObjManager::LoadObjStaticMeshAsset(const FName& PathFileName, cons
 	StaticMesh->Sections.resize(ObjectInfo.MaterialIndexList.size());
 	for (size_t i = 0; i < ObjectInfo.MaterialIndexList.size(); ++i)
 	{
-		StaticMesh->Sections[i].StartIndex = static_cast<uint32>(ObjectInfo.MaterialIndexList[i] * 3);
+		StaticMesh->Sections[i].StartIndex = ObjectInfo.MaterialIndexList[i] * 3;
 		if (i < ObjectInfo.MaterialIndexList.size() - 1)
 		{
-			StaticMesh->Sections[i].IndexCount = static_cast<uint32>((ObjectInfo.MaterialIndexList[i + 1] - ObjectInfo.MaterialIndexList[i]) * 3);
+			StaticMesh->Sections[i].IndexCount = (ObjectInfo.MaterialIndexList[i + 1] - ObjectInfo.MaterialIndexList[i]) * 3;
 		}
 		else
 		{
-			StaticMesh->Sections[i].IndexCount = static_cast<uint32>((StaticMesh->Indices.size() / 3 - ObjectInfo.MaterialIndexList[i]) * 3);
+			StaticMesh->Sections[i].IndexCount = (StaticMesh->Indices.size() / 3 - ObjectInfo.MaterialIndexList[i]) * 3;
 		}
 
 		const FName& MaterialName = ObjectInfo.MaterialNameList[i];
@@ -168,7 +168,7 @@ FStaticMesh* FObjManager::LoadObjStaticMeshAsset(const FName& PathFileName, cons
 		}
 		else
 		{
-			StaticMesh->Sections[i].MaterialSlot = static_cast<uint32>(INVALID_INDEX);
+			StaticMesh->Sections[i].MaterialSlot = INVALID_INDEX;
 		}
 	}
 
