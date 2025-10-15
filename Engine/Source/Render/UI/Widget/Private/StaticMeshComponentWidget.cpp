@@ -26,16 +26,32 @@ void UStaticMeshComponentWidget::RenderWidget()
 		ImGui::TextUnformatted("No Object Selected");
 		return;
 	}
-
+	StaticMeshComponent = nullptr;
 	for (UActorComponent* Component : SelectedActor->GetOwnedComponents())
 	{
-		StaticMeshComponent = Cast<UStaticMeshComponent>(Component);
+		UActorComponent* SelectedComponent = GEditor->GetEditorModule()->GetSelectedComponent();
 
-		// 위젯이 편집해야 할 대상 컴포넌트가 유효한지 확인합니다.
-		if (StaticMeshComponent)
+		if (SelectedComponent && SelectedComponent->GetOwner() == SelectedActor)
 		{
-			break;
+			if (UStaticMeshComponent* SelectedStaticMeshComponent = Cast<UStaticMeshComponent>(SelectedComponent))
+			{
+				StaticMeshComponent = SelectedStaticMeshComponent;
+			}
 		}
+
+		// 폴백: 선택된 컴포넌트가 StaticMeshComponent가 아니거나 다른 액터의 컴포넌트인 경우
+		if (!StaticMeshComponent)
+		{
+			for (UActorComponent* Component : SelectedActor->GetOwnedComponents())
+			{
+				if (UStaticMeshComponent* CandidateComponent = Cast<UStaticMeshComponent>(Component))
+				{
+					StaticMeshComponent = CandidateComponent;
+					break;
+				}
+			}
+		}
+
 	}
 
 	if (!StaticMeshComponent)
