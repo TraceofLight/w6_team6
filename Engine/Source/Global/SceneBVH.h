@@ -41,7 +41,7 @@ public:
 	void Clear();
 
 	int32 GetRootIndex() const { return RootIndex; }
-	int32 GetNodeCount() const { return Nodes.size(); }
+	int32 GetNodeCount() const { return static_cast<int32>(Nodes.size()); }
 	const FSceneNode& GetNode(uint32 Index) const;
 	FSceneNode& GetNode(uint32 Index);
 

@@ -95,6 +95,12 @@ void UEditor::Update()
 
 void UEditor::RenderEditor(UCamera* InCamera)
 {
+	RenderDebugPrimitives(InCamera);
+	RenderGizmo(InCamera);
+}
+
+void UEditor::RenderDebugPrimitives(UCamera* InCamera)
+{
 	if (GEditor->IsPIESessionActive()) { return; }
 
 	// Scene Depth 모드에서는 그리드와 Axis를 렌더링하지 않음
@@ -104,13 +110,18 @@ void UEditor::RenderEditor(UCamera* InCamera)
 		Axis.Render();
 	}
 
+	// SceneBVH 디버그 렌더링
+	RenderSceneBVH();
+}
+
+void UEditor::RenderGizmo(UCamera* InCamera)
+{
+	if (GEditor->IsPIESessionActive()) { return; }
+
 	if (InCamera)
 	{
 		Gizmo.RenderGizmo(Cast<USceneComponent>(GetSelectedComponent()), InCamera);
 	}
-
-	// SceneBVH 디버그 렌더링
-	RenderSceneBVH();
 }
 
 void UEditor::SetSingleViewportLayout(int InActiveIndex)
@@ -526,7 +537,7 @@ void UEditor::ProcessMouseInput()
 				FScopeCycleCounter PickCounter;
 				UPrimitiveComponent* PrimitiveCollided = ObjectPicker.PickPrimitive(CurrentCamera, WorldRay, Candidate, &ActorDistance);
 				ActorPicked = PrimitiveCollided ? PrimitiveCollided->GetOwner() : nullptr;
-				float ElapsedMs = PickCounter.Finish(); // 피킹 시간 측정 종료
+				float ElapsedMs = static_cast<float>(PickCounter.Finish()); // 피킹 시간 측정 종료
 				UStatOverlay::GetInstance().RecordPickingStats(ElapsedMs);
 			}
 		}
@@ -597,16 +608,18 @@ FVector UEditor::GetGizmoDragRotation(UCamera* InActiveCamera, FRay& WorldRay)
 {
 	FVector MouseWorld;
 	FVector PlaneOrigin{ Gizmo.GetGizmoLocation() };
-	FVector GizmoAxis = Gizmo.GetGizmoAxis();
+	FVector GizmoAxisLocal = Gizmo.GetGizmoAxis();  // 로컬 축 (쿼터니언용)
+	FVector GizmoAxisWorld = GizmoAxisLocal;         // 월드 축 (평면 계산용)
 
 	if (!Gizmo.IsWorldMode())
 	{
-		FVector4 GizmoAxis4{ GizmoAxis.X, GizmoAxis.Y, GizmoAxis.Z, 0.0f };
-		FVector RadRotation = FVector::GetDegreeToRadian(Gizmo.GetComponentRotation());
-		GizmoAxis = GizmoAxis4 * FMatrix::RotationMatrix(RadRotation);
+		// Local 모드: 평면 계산용으로만 world space로 변환
+		FVector4 GizmoAxis4{ GizmoAxisLocal.X, GizmoAxisLocal.Y, GizmoAxisLocal.Z, 0.0f };
+		FVector RadRotation = FVector::GetDegreeToRadian(Gizmo.GetDragStartActorRotation());
+		GizmoAxisWorld = GizmoAxis4 * FMatrix::RotationMatrix(RadRotation);
 	}
 
-	if (ObjectPicker.IsRayCollideWithPlane(WorldRay, PlaneOrigin, GizmoAxis, MouseWorld))
+	if (ObjectPicker.IsRayCollideWithPlane(WorldRay, PlaneOrigin, GizmoAxisWorld, MouseWorld))
 	{
 		FVector PlaneOriginToMouse = MouseWorld - PlaneOrigin;
 		FVector PlaneOriginToMouseStart = Gizmo.GetDragStartMouseLocation() - PlaneOrigin;
@@ -614,13 +627,14 @@ FVector UEditor::GetGizmoDragRotation(UCamera* InActiveCamera, FRay& WorldRay)
 		PlaneOriginToMouseStart.Normalize();
 		float DotResult = (PlaneOriginToMouseStart).Dot(PlaneOriginToMouse);
 		float Angle = acosf(std::max(-1.0f, std::min(1.0f, DotResult)));
-		if ((PlaneOriginToMouse.Cross(PlaneOriginToMouseStart)).Dot(GizmoAxis) < 0)
+		if ((PlaneOriginToMouse.Cross(PlaneOriginToMouseStart)).Dot(GizmoAxisWorld) < 0)
 		{
 			Angle = -Angle;
 		}
 
 		FQuaternion StartRotQuat = FQuaternion::FromEuler(Gizmo.GetDragStartActorRotation());
-		FQuaternion DeltaRotQuat = FQuaternion::FromAxisAngle(Gizmo.GetGizmoAxis(), Angle);
+		// Local 모드: 로컬 축 사용, World 모드: 월드 축 사용
+		FQuaternion DeltaRotQuat = FQuaternion::FromAxisAngle(GizmoAxisLocal, Angle);
 		if (Gizmo.IsWorldMode())
 		{
 			return (DeltaRotQuat * StartRotQuat).ToEuler();

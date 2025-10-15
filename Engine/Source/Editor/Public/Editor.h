@@ -30,6 +30,8 @@ public:
 
 	void Update();
 	void RenderEditor(UCamera* InCamera);
+	void RenderDebugPrimitives(UCamera* InCamera); // BatchLines, Axis, BVH (FXAA 적용)
+	void RenderGizmo(UCamera* InCamera);           // Gizmo만 (FXAA 미적용)
 
 	void SetViewMode(EViewModeIndex InNewViewMode) { CurrentViewMode = InNewViewMode; }
 	EViewModeIndex GetViewMode() const { return CurrentViewMode; }

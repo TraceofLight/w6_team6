@@ -34,11 +34,11 @@ struct FGizmoTranslationCollisionConfig
 struct FGizmoRotateCollisionConfig
 {
 	FGizmoRotateCollisionConfig()
-		: OuterRadius(1.0f), InnerRadius(0.9f), Scale(2.f) {
+		: OuterRadius(1.05f), InnerRadius(0.85f), Scale(2.f) {
 	}
 
-	float OuterRadius = {1.0f};  // 링 큰 반지름
-	float InnerRadius = {0.9f};  // 링 굵기 r
+	float OuterRadius = {1.05f};  // 링 큰 반지름
+	float InnerRadius = {0.85f};  // 링 두께 (OuterRadius - InnerRadius = 0.2)
 	float Scale = {2.0f};
 };
 
@@ -70,8 +70,8 @@ public:
 	const float GetRotateScale() const { return RotateCollisionConfig.Scale; }
 	const EGizmoDirection GetGizmoDirection() { return GizmoDirection; }
 	const FVector& GetGizmoLocation() { return Primitives[(int)GizmoMode].Location; }
-	const FVector& GetComponentRotation() { return TargetComponent->GetWorldRotation(); }
-	const FVector& GetComponentScale() { return TargetComponent->GetWorldScale3D(); }
+	FVector GetComponentRotation() const { return TargetComponent->GetWorldRotation(); }
+	FVector GetComponentScale() const { return TargetComponent->GetWorldScale3D(); }
 	const FVector& GetDragStartMouseLocation() { return DragStartMouseLocation; }
 	const FVector& GetDragStartActorLocation() { return DragStartActorLocation; }
 	const FVector& GetDragStartActorRotation() { return DragStartActorRotation; }

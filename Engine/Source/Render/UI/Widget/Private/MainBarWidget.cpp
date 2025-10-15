@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include "Level/Public/Level.h"
+#include "Render/Renderer/Public/Renderer.h"
 
 
 
@@ -363,6 +364,28 @@ void UMainBarWidget::RenderShowFlagsMenu()
 			{
 				ShowFlags |= static_cast<uint64>(EEngineShowFlags::SF_Decal);
 				UE_LOG("MainBarWidget: 데칼 표시");
+			}
+			CurrentLevel->SetShowFlags(ShowFlags);
+		}
+		bool bFxaaEnabled = URenderer::GetInstance().IsFXAAEnabled();
+		if (ImGui::MenuItem("FXAA 활성화", nullptr, bFxaaEnabled))
+		{
+			URenderer::GetInstance().SetFXAAEnabled(!bFxaaEnabled);
+		}
+
+		// Fog 표시 옵션
+		bool bShowFog = (ShowFlags & EEngineShowFlags::SF_Fog) != 0;
+		if (ImGui::MenuItem("안개 표시", nullptr, bShowFog))
+		{
+			if (bShowFog)
+			{
+				ShowFlags &= ~static_cast<uint64>(EEngineShowFlags::SF_Fog);
+				UE_LOG("MainBarWidget: 안개 비표시");
+			}
+			else
+			{
+				ShowFlags |= static_cast<uint64>(EEngineShowFlags::SF_Fog);
+				UE_LOG("MainBarWidget: 안개 표시");
 			}
 			CurrentLevel->SetShowFlags(ShowFlags);
 		}

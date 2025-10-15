@@ -13,6 +13,7 @@
 #include "Actor/Public/MovingCubeActor.h"
 #include "Actor/Public/SemiLightActor.h"
 #include "Actor/Public/TextActor.h"
+#include "Actor/Public/HeightFogActor.h"
 
 UPrimitiveSpawnWidget::UPrimitiveSpawnWidget()
 	: UWidget("Primitive Spawn Widget")
@@ -49,6 +50,7 @@ void UPrimitiveSpawnWidget::RenderWidget()
 		"Text",
 		"Decal",
 		"SemiLight",
+		"HeightFog",
 	};
 
 	// None을 고려한 Enum 변환 처리
@@ -153,6 +155,10 @@ void UPrimitiveSpawnWidget::SpawnActors() const
 		else if (SelectedPrimitiveType == EPrimitiveType::SemiLight)
 		{
 			NewActor = GWorld->SpawnActor(ASemiLightActor::StaticClass());
+		}
+		else if (SelectedPrimitiveType == EPrimitiveType::HeightFog)
+		{
+			NewActor = GWorld->SpawnActor(AHeightFogActor::StaticClass());
 		}
 		if (NewActor)
 		{

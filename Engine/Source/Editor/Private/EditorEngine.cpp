@@ -31,7 +31,7 @@ UEditorEngine::UEditorEngine()
     if (!bSuccessLoad) { CreateNewLevel(); }
     EditorWorld->BeginPlay();
     // 에디터 시작 시 모든 통계 표시
-    UStatOverlay::GetInstance().ShowAll(true);
+    // UStatOverlay::GetInstance().ShowAll(true);
 }
 
 UEditorEngine::~UEditorEngine()
@@ -93,10 +93,16 @@ bool UEditorEngine::IsPIESessionActive() const
 
 void UEditorEngine::StartPIE()
 {
-    if (PIEState != EPIEState::Stopped) { return; }
+    if (PIEState != EPIEState::Stopped)
+    {
+        return;
+    }
     PIEState = EPIEState::Playing;
     UWorld* EditorWorld = GetEditorWorldContext().World();
-    if (!EditorWorld) { return; }
+    if (!EditorWorld)
+    {
+        return;
+    }
     if (EditorModule)
     {
         EditorModule->SelectComponent(nullptr);

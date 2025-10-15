@@ -15,6 +15,8 @@ public:
 	void ReleaseFrameBuffer();
 	void CreateDepthBuffer();
 	void ReleaseDepthBuffer();
+	void CreateSceneColor();
+	void ReleaseSceneColor();
 
 	// Direct2D/DirectWrite
 	void CreateFactories();
@@ -25,6 +27,12 @@ public:
 	IDXGISwapChain* GetSwapChain() const { return SwapChain; }
 	ID3D11RenderTargetView* GetRenderTargetView() const { return FrameBufferRTV; }
 	ID3D11DepthStencilView* GetDepthStencilView() const { return DepthStencilView; }
+
+	ID3D11RenderTargetView* GetSceneColorRTV() const { return SceneColorRTV; }
+	ID3D11ShaderResourceView* GetSceneColorSRV() const { return SceneColorSRV; }
+	uint32 GetWidth() const { return Width; }
+	uint32 GetHeight() const { return Height; }
+
 	const D3D11_VIEWPORT& GetViewportInfo() const { return ViewportInfo; }
 	void UpdateViewport(float InMenuBarHeight = 0.f);
 
@@ -41,6 +49,10 @@ private:
 
 	ID3D11Texture2D* DepthBuffer = nullptr;
 	ID3D11DepthStencilView* DepthStencilView = nullptr;
+
+	ID3D11Texture2D* SceneColorTexture = nullptr;
+	ID3D11RenderTargetView* SceneColorRTV = nullptr;
+	ID3D11ShaderResourceView* SceneColorSRV = nullptr;
 
 	D3D11_VIEWPORT ViewportInfo = {};
 

@@ -4,7 +4,7 @@
 #include "Render/UI/Widget/Public/CameraControlWidget.h"
 #include "Render/UI/Widget/Public/FPSWidget.h"
 #include "Render/UI/Widget/Public/PrimitiveSpawnWidget.h"
-
+#include "Render/UI/Widget/Public/PostProcessWidget.h"
 /**
  * @brief Control Panel Constructor
  * 적절한 사이즈의 윈도우 제공
@@ -27,6 +27,7 @@ UControlPanelWindow::UControlPanelWindow()
 
 	AddWidget(new UFPSWidget);
 	AddWidget(new UPrimitiveSpawnWidget);
+	AddWidget(new UPostProcessWidget);
 	// 현재 ViewportMenuBarWidget.cpp 에서 사용 중
 	//AddWidget(new UCameraControlWidget);
 }

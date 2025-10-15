@@ -127,6 +127,7 @@ void UDeviceResources::CreateFrameBuffer()
 	framebufferRTVdesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D; // 2D 텍스처
 
 	Device->CreateRenderTargetView(FrameBuffer, &framebufferRTVdesc, &FrameBufferRTV);
+	CreateSceneColor();
 }
 
 /**
@@ -178,6 +179,52 @@ void UDeviceResources::ReleaseDepthBuffer()
 	{
 		DepthBuffer->Release();
 		DepthBuffer = nullptr;
+	}
+}
+void UDeviceResources::CreateSceneColor()
+{
+	ReleaseSceneColor();
+
+	D3D11_TEXTURE2D_DESC Desc = {};
+	Desc.Width = Width;
+	Desc.Height = Height;
+	Desc.MipLevels = 1;
+	Desc.ArraySize = 1;
+	Desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	Desc.SampleDesc.Count = 1;
+	Desc.Usage = D3D11_USAGE_DEFAULT;
+	Desc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+
+	Device->CreateTexture2D(&Desc, nullptr, &SceneColorTexture);
+
+	D3D11_RENDER_TARGET_VIEW_DESC RtvDesc = {};
+	RtvDesc.Format = Desc.Format;
+	RtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+	Device->CreateRenderTargetView(SceneColorTexture, &RtvDesc, &SceneColorRTV);
+
+	D3D11_SHADER_RESOURCE_VIEW_DESC SrvDesc = {};
+	SrvDesc.Format = Desc.Format;
+	SrvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	SrvDesc.Texture2D.MipLevels = 1;
+	Device->CreateShaderResourceView(SceneColorTexture, &SrvDesc, &SceneColorSRV);
+}
+
+void UDeviceResources::ReleaseSceneColor()
+{
+	if (SceneColorSRV)
+	{
+		SceneColorSRV->Release();
+		SceneColorSRV = nullptr;
+	}
+	if (SceneColorRTV)
+	{
+		SceneColorRTV->Release();
+		SceneColorRTV = nullptr;
+	}
+	if (SceneColorTexture)
+	{
+		SceneColorTexture->Release();
+		SceneColorTexture = nullptr;
 	}
 }
 

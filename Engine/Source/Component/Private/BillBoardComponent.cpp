@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Component/Public/BillBoardComponent.h""
+#include "Component/Public/BillBoardComponent.h"
 #include "Manager/Asset/Public/AssetManager.h"
 #include "Render/Renderer/Public/Renderer.h"
 #include "Physics/Public/AABB.h"

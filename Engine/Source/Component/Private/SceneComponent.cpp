@@ -6,6 +6,7 @@
 #include "Component/Public/PrimitiveComponent.h"
 #include "Component/Public/DecalComponent.h"
 #include "Level/Public/Level.h"
+#include "Global/Quaternion.h"
 
 #include <json.hpp>
 
@@ -18,7 +19,7 @@ USceneComponent::USceneComponent()
 
 void USceneComponent::BeginPlay()
 {
-
+	Super::BeginPlay();
 }
 
 void USceneComponent::TickComponent()
@@ -209,7 +210,18 @@ FVector USceneComponent::GetWorldLocation() const
 
 FVector USceneComponent::GetWorldRotation() const
 {
-    return GetWorldTransformMatrix().GetRotation();
+    // RelativeRotation을 원본으로 사용 (Matrix 추출의 다중 표현 문제 방지)
+    if (ParentAttachment)
+    {
+        FQuaternion RelativeQuat = FQuaternion::FromEuler(RelativeRotation);
+        FQuaternion ParentQuat = FQuaternion::FromEuler(ParentAttachment->GetWorldRotation());
+        FQuaternion WorldQuat = ParentQuat * RelativeQuat;
+        return WorldQuat.ToEuler();
+    }
+    else
+    {
+        return RelativeRotation;
+    }
 }
 
 FVector USceneComponent::GetWorldScale3D() const
@@ -234,8 +246,11 @@ void USceneComponent::SetWorldRotation(const FVector& NewRotation)
 {
     if (ParentAttachment)
     {
-        const FVector ParentWorldRotation = ParentAttachment->GetWorldRotation();
-        SetRelativeRotation(NewRotation - ParentWorldRotation);
+        // 쿼터니언 기반 계산 (오일러 각도 단순 뺄셈은 틀림!)
+        FQuaternion WorldQuat = FQuaternion::FromEuler(NewRotation);
+        FQuaternion ParentQuat = FQuaternion::FromEuler(ParentAttachment->GetWorldRotation());
+        FQuaternion RelativeQuat = ParentQuat.Inverse() * WorldQuat;
+        SetRelativeRotation(RelativeQuat.ToEuler());
     }
     else
     {

@@ -179,7 +179,7 @@ void FClientApp::MainLoop()
 		// Game System Update
 		UpdateSystem();
 
-		UTimeManager::GetInstance().SetDeltaTime(CycleCounter.Finish() / 1000);
+		UTimeManager::GetInstance().SetDeltaTime(static_cast<float>(CycleCounter.Finish() / 1000));
 	}
 }
 

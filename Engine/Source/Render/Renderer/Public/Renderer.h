@@ -19,6 +19,33 @@ class FViewport;
 class UCamera;
 class UPipeline;
 
+struct FPostProcessParameters
+{
+	float SubpixelBlend = 0.5f; // 0~1 권장: 0.5
+	float EdgeThreshold = 0.125f; // 0.0312~0.25
+	float EdgeThresholdMin = 0.0312f; // 0~0.0833
+	float EnableFXAA = 1.0f; // FXAA 활성화 플래그 (0.0 = OFF, 1.0 = ON)
+
+	FVector2 ViewportTopLeft;
+	FVector2 ViewportSize;
+	FVector2 SceneRTSize;
+	FVector2 Padding2;
+
+	// Fog Parameters
+	float FogDensity;
+	float FogHeightFalloff;
+	float StartDistance;
+	float FogCutoffDistance;
+
+	float FogMaxOpacity;
+	FVector FogInscatteringColor;
+
+	FVector CameraPosition;
+	float FogHeight;
+
+	FMatrix InvViewProj;
+};
+
 /**
  * @brief Rendering Pipeline 전반을 처리하는 클래스
  */
@@ -39,7 +66,9 @@ public:
 	void CreateDecalShader();
 	void CreateTextureShader();
 	void CreateDepthShader();
+	void CreateFullscreenQuad();
 	void CreateConstantBuffers();
+	void CreateSceneRenderTargets();
 
 	// Release
 	void ReleaseConstantBuffers();
@@ -47,6 +76,8 @@ public:
 	void ReleaseDepthStencilState();
 	void ReleaseBlendState();
 	void ReleaseDepthShader();
+	void ReleaseFullscreenQuad();
+	void ReleaseSceneRenderTargets();
 
 	// Render
 	void Update();
@@ -55,7 +86,7 @@ public:
 	void RenderEnd() const;
 	void RenderEditorPrimitive(const FEditorPrimitive& InPrimitive, const FRenderState& InRenderState, uint32 InStride = 0, uint32 InIndexBufferStride = 0);
 
-	void OnResize(uint32 Inwidth = 0, uint32 InHeight = 0) const;
+	void OnResize(uint32 Inwidth = 0, uint32 InHeight = 0);
 
 	// Getter & Setter
 	ID3D11Device* GetDevice() const { return DeviceResources->GetDevice(); }
@@ -80,6 +111,16 @@ public:
 
 	void SetIsResizing(bool isResizing) { bIsResizing = isResizing; }
 
+	void SetFXAAEnabled(bool bEnabled) { bIsFXAAEnabled = bEnabled; }
+	bool IsFXAAEnabled() const { return bIsFXAAEnabled; }
+
+	void SetFXAASubpixelBlend(float InValue);
+	void SetFXAAEdgeThreshold(float InValue);
+	void SetFXAAEdgeThresholdMin(float InValue);
+
+	float GetFXAASubpixelBlend() const { return PostProcessUserParameters.SubpixelBlend; }
+	float GetFXAAEdgeThreshold() const { return PostProcessUserParameters.EdgeThreshold; }
+	float GetFXAAEdgeThresholdMin() const { return PostProcessUserParameters.EdgeThresholdMin; }
 private:
 	UPipeline* Pipeline = nullptr;
 	UDeviceResources* DeviceResources = nullptr;
@@ -90,6 +131,7 @@ private:
 	ID3D11DepthStencilState* DefaultDepthStencilState = nullptr;
 	ID3D11DepthStencilState* DecalDepthStencilState = nullptr;
 	ID3D11DepthStencilState* DisabledDepthStencilState = nullptr;
+	ID3D11DepthStencilState* NoTestButWriteDepthState = nullptr;  // Depth test 비활성화, depth write 활성화
 	ID3D11BlendState* AlphaBlendState = nullptr;
 	ID3D11BlendState* AdditiveBlendState = nullptr;
 
@@ -120,11 +162,41 @@ private:
 	ID3D11PixelShader* DepthPixelShader = nullptr;
 	ID3D11InputLayout* DepthInputLayout = nullptr;
 
+	// PostProcess Shaders
+	ID3D11VertexShader* PostProcessVertexShader = nullptr;
+	ID3D11InputLayout* PostProcessInputLayout = nullptr;
+
+	// Fullscreen Quad for Post-Processing
+	ID3D11Buffer* FullscreenQuadVB = nullptr;
+	ID3D11Buffer* FullscreenQuadIB = nullptr;
+
+	// Scene Render Targets for Post-Processing
+	ID3D11Texture2D* SceneColorTexture = nullptr;
+	ID3D11RenderTargetView* SceneColorRTV = nullptr;
+	ID3D11ShaderResourceView* SceneColorSRV = nullptr;
+
+	ID3D11Texture2D* SceneDepthTexture = nullptr;
+	ID3D11DepthStencilView* SceneDepthDSV = nullptr;
+	ID3D11ShaderResourceView* SceneDepthSRV = nullptr;
+
 	uint32 Stride = 0;
 
 	FViewport* ViewportClient = nullptr;
-	
+
 	bool bIsResizing = false;
+
+	bool bIsFXAAEnabled = false;
+
+	ID3D11PixelShader* PostProcessPixelShader = nullptr;
+	ID3D11SamplerState* PostProcessSamplerState = nullptr;
+
+	ID3D11Buffer* ConstantBufferPostProcessParameters = nullptr;
+	FPostProcessParameters PostProcessUserParameters;
+
+	void CreatePostProcessResources();
+	void ReleasePostProcessResources();
+	void ExecutePostProcess(UCamera* InCurrentCamera, const D3D11_VIEWPORT& InViewport);
+	void UpdatePostProcessConstantBuffer();
 
 	TArray<class FRenderPass*> RenderPasses;
 };
