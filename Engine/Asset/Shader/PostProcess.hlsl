@@ -183,8 +183,8 @@ PS_OUTPUT mainPS(VSOut In)
     float2 Dir;
     // 대각선 애들을 써서 엣지의 진행 방향을 얻음
     // x가 크면 수평 엣지, y가 크면 수직 엣지
-    Dir.x = -((LNW + LNE) - (LSW + LSE));
-    Dir.y = ((LNW + LSW) - (LNE + LSE));
+    Dir.x = -((LNW + LNE) - (LSW + LSE)); // [-2, 2]
+    Dir.y = ((LNW + LSW) - (LNE + LSE)); // [-2, 2]
     // 상하좌우 루마 평균 기반의 작은 완충치 (min(|x|,|y|)가 너무 작아 방향 비율이 폭주하는 걸 방지
     float DirReduce = max((LN + LS + LW + LE) * (0.25 * 1 / 8), 1 / 128);
      // Dir의 두 축 중 작은쪽 성분 (작은 쪽이 엣지 방향인 것임)
@@ -193,8 +193,8 @@ PS_OUTPUT mainPS(VSOut In)
     Dir *= RcpDirMin; // scale by inverse smallest axis + reduce
     // 너무 멀리까지 탐색하지 않도록 길이를 제한
     float Len = length(Dir);
-    if (Len > 0.0)
-        Dir *= (min(5.0, Len) / Len); // 탐색 폭 캡 (~8 texels 근처)
+    if (Len > 0.0) 
+        Dir *= (min(5.0, Len) / Len); // 탐색 폭 캡 (~8 texels 근처), 최종 |Dir| ≤ 5
     // Rcp 곱으로 픽셀좌표 -> 텍스쳐 좌표 보정
     Dir *= Rcp;
 
