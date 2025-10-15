@@ -62,21 +62,45 @@ void UTargetActorTransformWidget::RenderWidget()
 
 		ImGui::Spacing();
 
+		// Location with reset button
 		bPositionChanged |= ImGui::DragFloat3("Location", &EditLocation.X, 0.1f);
 		// 드래그가 끝났는지 확인
 		if (ImGui::IsItemDeactivatedAfterEdit())
 		{
 			bNeedsBVHUpdate = true;
 		}
+		ImGui::SameLine();
+		if (ImGui::Button("R##ResetLocation"))
+		{
+			EditLocation = FVector(0.0f, 0.0f, 0.0f);
+			bPositionChanged = true;
+			bNeedsBVHUpdate = true;
+		}
+		if (ImGui::IsItemHovered())
+		{
+			ImGui::SetTooltip("Reset Location to (0, 0, 0)");
+		}
 
+		// Rotation with reset button
 		bRotationChanged |= ImGui::DragFloat3("Rotation", &EditRotation.X, 0.1f);
 		// 드래그가 끝났는지 확인
 		if (ImGui::IsItemDeactivatedAfterEdit())
 		{
 			bNeedsBVHUpdate = true;
 		}
+		ImGui::SameLine();
+		if (ImGui::Button("R##ResetRotation"))
+		{
+			EditRotation = FVector(0.0f, 0.0f, 0.0f);
+			bRotationChanged = true;
+			bNeedsBVHUpdate = true;
+		}
+		if (ImGui::IsItemHovered())
+		{
+			ImGui::SetTooltip("Reset Rotation to (0, 0, 0)");
+		}
 
-		// Uniform Scale 옵션
+		// Scale with reset button
 		bool bUniformScale = SelectedActor->IsUniformScale();
 		if (bUniformScale)
 		{
@@ -92,6 +116,17 @@ void UTargetActorTransformWidget::RenderWidget()
 			{
 				bNeedsBVHUpdate = true;
 			}
+			ImGui::SameLine();
+			if (ImGui::Button("R##ResetScale"))
+			{
+				EditScale = FVector(1.0f, 1.0f, 1.0f);
+				bScaleChanged = true;
+				bNeedsBVHUpdate = true;
+			}
+			if (ImGui::IsItemHovered())
+			{
+				ImGui::SetTooltip("Reset Scale to (1, 1, 1)");
+			}
 		}
 		else
 		{
@@ -100,6 +135,17 @@ void UTargetActorTransformWidget::RenderWidget()
 			if (ImGui::IsItemDeactivatedAfterEdit())
 			{
 				bNeedsBVHUpdate = true;
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("R##ResetScale"))
+			{
+				EditScale = FVector(1.0f, 1.0f, 1.0f);
+				bScaleChanged = true;
+				bNeedsBVHUpdate = true;
+			}
+			if (ImGui::IsItemHovered())
+			{
+				ImGui::SetTooltip("Reset Scale to (1, 1, 1)");
 			}
 		}
 

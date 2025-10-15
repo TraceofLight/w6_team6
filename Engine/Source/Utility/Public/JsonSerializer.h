@@ -99,6 +99,33 @@ public:
 	}
 
 	/**
+	 * @brief 부호 없는 64비트 정수(uint64)를 안전하게 읽어옵니다.
+	 * @return 성공하면 true, 실패하면 false를 반환합니다.
+	 */
+	static bool ReadUInt64(const JSON& InJson, const FString& InKey, uint64& OutValue, uint64 InDefaultValue = 0, bool bInUseLog = true)
+	{
+		if (InJson.hasKey(InKey))
+		{
+			const JSON& Value = InJson.at(InKey);
+			if (Value.JSONType() == JSON::Class::Integral)
+			{
+				int64 Value_i64 = Value.ToInt();
+				if (Value_i64 >= 0)
+				{
+					OutValue = static_cast<uint64>(Value_i64);
+					return true;
+				}
+			}
+		}
+
+		if (bInUseLog)
+			UE_LOG_ERROR("[JsonSerializer] %s uint64 파싱에 실패했습니다 (기본값 사용)", InKey.c_str());
+
+		OutValue = InDefaultValue;
+		return false;
+	}
+
+	/**
 	 * @brief JSON 객체에서 키를 찾아 float 값을 안전하게 읽어옵니다.
 	 * @return 성공하면 true, 실패하면 false를 반환합니다.
 	 */

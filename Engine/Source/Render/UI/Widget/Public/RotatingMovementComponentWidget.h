@@ -27,4 +27,11 @@ public:
 
 private:
     URotatingMovementComponent* FindSelectedRotatingMovementComponent() const;
+
+    // Cache for SceneComponent list to avoid rebuilding every frame
+    TArray<USceneComponent*> CachedSceneComponents;
+    AActor* CachedOwnerActor = nullptr;
+    UActorComponent* CachedSelectedComponent = nullptr;
+
+    void RefreshSceneComponentCache(AActor* CurrentActor, UActorComponent* CurrentComponent);
 };

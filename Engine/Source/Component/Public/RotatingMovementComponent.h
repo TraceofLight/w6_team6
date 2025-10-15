@@ -40,6 +40,10 @@ public:
 	bool GetRotateInLocalSpace() const { return bRotateInLocalSpace; }
 	bool IsEnabled() const { return bEnabled; }
 
+	// Updated Component
+	void SetUpdatedComponent(USceneComponent* InComponent);
+	USceneComponent* GetUpdatedComponent() const { return UpdatedComponent; }
+
 	// Widget 연결
 	UClass* GetSpecificWidgetClass() const override;
 
@@ -55,5 +59,13 @@ protected:
 
 	bool bHasBegunPlay = false;
 
+	// The component we move and update. If this is nullptr, we'll use the RootComponent of our Owner.
+	USceneComponent* UpdatedComponent = nullptr;
+
+	// Temporary storage for component identification during duplication
+	FString PendingUpdatedComponentClassName;
+	int32 PendingUpdatedComponentIndex = -1;
+
 	void DuplicateSubObjects(UObject* DuplicatedObject) override;
+	void ResolvePendingUpdatedComponent();
 };
